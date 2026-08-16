@@ -1,0 +1,68 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <h2 class="mb-4">My Orders</h2>
+
+    {% if orders %}
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_number }}</td>
+                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge bg-secondary text-capitalize">{{ order.status }}</span>
+                    </td>
+                    <td>
+                        {% if order.payment_status == "paid" %}
+                        <span class="badge bg-success">Paid</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark text-capitalize">{{ order.payment_status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>KES {{ order.total_amount }}</td>
+                    <td>
+                        <a href="{% url 'order_detail' order.order_number %}" class="btn btn-outline-primary btn-sm">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    {% else %}
+
+    <div class="alert alert-info">
+        You haven't placed any orders yet.
+        <a href="{% url 'shop' %}">Start shopping</a>.
+    </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

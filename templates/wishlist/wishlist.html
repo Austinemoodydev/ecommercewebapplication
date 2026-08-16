@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+<h2>My Wishlist</h2>
+
+{% if items %}
+
+<div class="row">
+
+{% for item in items %}
+
+<div class="col-md-3 mb-4">
+
+<div class="card h-100">
+
+<img src="{{ item.product.image.url }}"
+     class="card-img-top"
+     alt="{{ item.product.name }}">
+
+<div class="card-body">
+
+<h5>{{ item.product.name }}</h5>
+
+<p>KES {{ item.product.current_price }}</p>
+
+<a href="{% url 'product_detail' item.product.slug %}"
+   class="btn btn-primary w-100">
+    View Product
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% else %}
+
+<div class="alert alert-info">
+Your wishlist is empty.
+</div>
+
+{% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,86 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body p-4">
+
+                    <h3 class="mb-4">Add Delivery Address</h3>
+
+                    <form method="POST">
+
+                        {% csrf_token %}
+
+                        {{ form.non_field_errors }}
+
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            {{ form.full_name }}
+                            {{ form.full_name.errors }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number</label>
+                            {{ form.phone }}
+                            {{ form.phone.errors }}
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">County</label>
+                                {{ form.county }}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">City</label>
+                                {{ form.city }}
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Estate / Area</label>
+                            {{ form.estate }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">House / Building Number</label>
+                            {{ form.house_number }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Landmark</label>
+                            {{ form.landmark }}
+                        </div>
+
+                        <div class="form-check mb-4">
+                            {{ form.is_default }}
+                            <label class="form-check-label">Make this my default address</label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'addresses' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-success">Save Address</button>
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

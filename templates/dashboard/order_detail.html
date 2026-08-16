@@ -1,0 +1,134 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <a href="{% url 'order_history' %}" class="btn btn-outline-secondary btn-sm mb-4">
+        &larr; Back to My Orders
+    </a>
+
+    <div class="row g-4">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body p-4">
+
+                    <h4 class="mb-4">Order {{ order.order_number }}</h4>
+
+                    <table class="table">
+
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for item in items %}
+                            <tr>
+                                <td>{{ item.product_name }}</td>
+                                <td>KES {{ item.price }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>KES {{ item.subtotal }}</td>
+                            </tr>
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-5">
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body p-4">
+
+                    <h5 class="mb-3">Order Status</h5>
+
+                    <p class="mb-1">
+                        Status: <span class="badge bg-secondary text-capitalize">{{ order.status }}</span>
+                    </p>
+
+                    <p class="mb-0">
+                        Payment:
+                        {% if order.payment_status == "paid" %}
+                        <span class="badge bg-success">Paid</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark text-capitalize">{{ order.payment_status }}</span>
+                        {% endif %}
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body p-4">
+
+                    <h5 class="mb-3">Delivery</h5>
+
+                    <p class="mb-1">{{ order.full_name }}</p>
+                    <p class="mb-1">{{ order.phone }}</p>
+                    <p class="mb-1">{{ order.house_number }}, {{ order.estate }}</p>
+                    <p class="mb-1">{{ order.city }}, {{ order.county }}</p>
+
+                    {% if order.landmark %}
+                    <p class="text-muted">Near {{ order.landmark }}</p>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <div class="card shadow-sm">
+
+                <div class="card-body p-4">
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span>
+                        <strong>KES {{ order.subtotal }}</strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Delivery</span>
+                        <strong>KES {{ order.shipping_cost }}</strong>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between fs-5">
+                        <strong>Total</strong>
+                        <strong>KES {{ order.total_amount }}</strong>
+                    </div>
+
+                    {% if order.payment_status == "pending" %}
+                    <a href="{% url 'initiate_payment' order.order_number %}" class="btn btn-success w-100 mt-3">
+                        Pay with M-PESA
+                    </a>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

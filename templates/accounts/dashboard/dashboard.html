@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+<div class="row">
+
+<div class="col-md-3">
+
+<div class="list-group">
+
+<a href="#" class="list-group-item">
+
+Dashboard
+
+</a>
+
+<a href="#">
+
+My Orders
+
+</a>
+
+<a href="#">
+
+Wishlist
+
+</a>
+
+<a href="#">
+
+Addresses
+
+</a>
+
+<a href="#">
+
+Profile
+
+</a>
+
+<a href="#">
+
+Notifications
+
+</a>
+
+<a href="{% url 'logout' %}">
+
+Logout
+
+</a>
+
+</div>
+
+</div>
+
+<div class="col-md-9">
+
+<h2>
+
+Hello,
+
+{{ request.user.first_name|default:request.user.username }}
+
+👋
+
+</h2>
+
+<div class="card mt-4">
+
+<div class="card-body">
+
+<h5>
+
+Quick Overview
+
+</h5>
+
+<div class="row text-center">
+
+<div class="col">
+
+<h3>
+
+0
+
+</h3>
+
+Orders
+
+</div>
+
+<div class="col">
+
+<h3>
+
+0
+
+</h3>
+
+Wishlist
+
+</div>
+
+<div class="col">
+
+<h3>
+
+1
+
+</h3>
+
+Addresses
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}

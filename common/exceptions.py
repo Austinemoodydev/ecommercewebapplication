@@ -1,0 +1,1 @@
+﻿"""Reusable custom exceptions."""

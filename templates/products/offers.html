@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Offers{% endblock %}
+{% block content %}
+<section class="container"><div class="page-hero page-hero--offers"><span class="eyebrow">Limited-time savings</span><h1>Offers worth discovering</h1><p>Shop reduced prices while stock lasts. Every item below is currently discounted.</p></div><div class="row g-4">{% for product in page_obj %}<div class="col-6 col-md-4 col-xl-3"><article class="product-card position-relative"><span class="offer-tag">On offer</span><a href="{% url 'product_detail' product.slug %}"><img class="product-image" src="{{ product.image.url }}" alt="{{ product.name }}"><div class="card-body"><span class="product-category">{{ product.category.name }}</span><span class="product-name">{{ product.name }}</span><span class="price">KES {{ product.discount_price }}</span><span class="price-old">KES {{ product.price }}</span></div></a></article></div>{% empty %}<div class="col-12"><div class="empty-state"><i class="bi bi-tags fs-2 d-block mb-2"></i>No active offers right now. Check back soon.</div></div>{% endfor %}</div></section>
+{% endblock %}

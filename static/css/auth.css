@@ -1,0 +1,35 @@
+body {
+
+    background: #f4f6f9;
+
+}
+
+.card {
+
+    border-radius: 20px;
+
+}
+
+input {
+
+    border-radius: 10px !important;
+
+}
+
+button {
+
+    border-radius: 10px !important;
+
+}
+
+.progress {
+
+    height: 8px;
+
+}
+
+a {
+
+    text-decoration: none;
+
+}

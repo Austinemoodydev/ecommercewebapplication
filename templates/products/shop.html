@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load querystring %}
+
+{% block title %}
+Shop
+{% endblock %}
+
+{% block content %}
+
+<div class="col-12 mb-3">
+    <a href="{% url 'shop' %}" class="btn btn-outline-secondary w-100">
+        Clear All Filters
+    </a>
+</div>
+
+{% if request.GET %}
+<div class="col-12">
+    <div class="alert alert-info">
+        <strong>Active Filters:</strong>
+
+        {% if request.GET.search %}
+        <span class="badge bg-primary">
+            Search: {{ request.GET.search }}
+        </span>
+        {% endif %}
+
+        {% if request.GET.category %}
+        <span class="badge bg-success">
+            Category: {{ request.GET.category }}
+        </span>
+        {% endif %}
+
+        {% if request.GET.brand %}
+        <span class="badge bg-warning text-dark">
+            Brand: {{ request.GET.brand }}
+        </span>
+        {% endif %}
+
+        {% if request.GET.sort %}
+        <span class="badge bg-dark">
+            Sort: {{ request.GET.sort }}
+        </span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+
+    <!-- Sidebar -->
+    <div class="col-lg-3">
+
+        <div class="card mb-4">
+            <div class="card-header">
+                Search
+            </div>
+            <div class="card-body">
+                <form method="get">
+
+                    <input
+                        name="search"
+                        class="form-control mb-2"
+                        placeholder="Search..."
+                        value="{{ request.GET.search }}">
+
+                    {% if request.GET.category %}
+                    <input type="hidden" name="category" value="{{ request.GET.category }}">
+                    {% endif %}
+
+                    {% if request.GET.brand %}
+                    <input type="hidden" name="brand" value="{{ request.GET.brand }}">
+                    {% endif %}
+
+                    {% if request.GET.sort %}
+                    <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                    {% endif %}
+
+                    <button class="btn btn-primary w-100">
+                        Search
+                    </button>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="card mb-4">
+            <div class="card-header">
+                Categories
+            </div>
+            <div class="list-group list-group-flush">
+                {% for category in categories %}
+                <a href="?{% query_transform category=category.slug page=None %}"
+                   class="list-group-item">
+                    {{ category.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Brands -->
+        <div class="card">
+            <div class="card-header">
+                Brands
+            </div>
+            <div class="list-group list-group-flush">
+                {% for brand in brands %}
+                <a href="?{% query_transform brand=brand.slug page=None %}"
+                   class="list-group-item">
+                    {{ brand.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Products -->
+    <div class="col-lg-9">
+
+        <div class="d-flex justify-content-between mb-4">
+            <h3>
+                Products
+            </h3>
+
+            <form method="get">
+                <select name="sort" class="form-select" onchange="this.form.submit()">
+                    <option value="" {% if not selected_sort %}selected{% endif %}>Newest</option>
+                    <option value="price_low" {% if selected_sort == "price_low" %}selected{% endif %}>Price Low</option>
+                    <option value="price_high" {% if selected_sort == "price_high" %}selected{% endif %}>Price High</option>
+                    <option value="name" {% if selected_sort == "name" %}selected{% endif %}>Name</option>
+                </select>
+            </form>
+        </div>
+
+        <div class="row">
+            {% for product in page_obj %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+
+                    <img src="{{ product.image.url }}"
+                         class="card-img-top"
+                         style="height:250px;object-fit:cover;">
+
+                    <div class="card-body">
+                        <h5>
+                            {{ product.name }}
+                        </h5>
+
+                        {% if product.discount_price %}
+                        <h5>
+                            <del class="text-muted">
+                                KES {{ product.price }}
+                            </del>
+                        </h5>
+                        <h4 class="text-danger">
+                            KES {{ product.discount_price }}
+                        </h4>
+                        {% else %}
+                        <h4 class="text-success">
+                            KES {{ product.price }}
+                        </h4>
+                        {% endif %}
+
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'product_detail' product.slug %}"
+                               class="btn btn-primary">
+                                View
+                            </a>
+                            <button
+class="btn btn-outline-danger wishlist-btn"
+data-product="{{ product.id }}">
+
+<i class="bi bi-heart"></i>
+
+</button>
+                           <button type="button"
+        class="btn btn-success add-to-cart-btn"
+        data-product="{{ product.id }}">
+    Add To Cart
+</button> 
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-warning">
+                No products found.
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <nav>
+            <ul class="pagination justify-content-center">
+
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?{% query_transform page=page_obj.previous_page_number %}">
+                        Previous
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">
+                        {{ page_obj.number }}
+                    </span>
+                </li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?{% query_transform page=page_obj.next_page_number %}">
+                        Next
+                    </a>
+                </li>
+                {% endif %}
+
+            </ul>
+        </nav>
+
+    </div>
+</div>
+
+{% endblock %}

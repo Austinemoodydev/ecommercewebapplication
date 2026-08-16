@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row g-4">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body p-4">
+
+                    <h4 class="mb-4">Delivery Information</h4>
+
+                    {% if stock_error %}
+                    <div class="alert alert-danger">{{ stock_error }}</div>
+                    {% endif %}
+
+                    {% if addresses %}
+
+                    <div class="mb-4">
+
+                        <label class="form-label fw-bold">Select Delivery Address</label>
+
+                        {% for address in addresses %}
+
+                        <div class="card mb-2">
+
+                            <div class="card-body">
+
+                                <div class="form-check">
+
+                                    <input
+                                        class="form-check-input"
+                                        type="radio"
+                                        name="address_id"
+                                        value="{{ address.id }}"
+                                        {% if address.is_default %}checked{% endif %}
+                                        required>
+
+                                    <label class="form-check-label">
+
+                                        <strong>{{ address.full_name }}</strong>
+
+                                        {% if address.is_default %}
+                                        <span class="badge bg-success ms-2">Default</span>
+                                        {% endif %}
+
+                                        <br>
+
+                                        {{ address.house_number }}, {{ address.estate }}, {{ address.city }}
+
+                                        <br>
+
+                                        {{ address.phone }}
+
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                    <a href="{% url 'add_address' %}" class="btn btn-outline-success mb-4">
+                        <i class="bi bi-plus"></i> Add New Address
+                    </a>
+
+                    {% endif %}
+
+                    <form method="POST" id="checkout-form">
+
+                        {% csrf_token %}
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" name="full_name" class="form-control" value="{{ request.user.get_full_name }}" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" name="phone" class="form-control" placeholder="07XXXXXXXX" required>
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ request.user.email }}">
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">County</label>
+                                <select name="county" class="form-select" required>
+                                    <option value="">Select County</option>
+                                    <option value="Nairobi">Nairobi</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">City</label>
+                                <input type="text" name="city" class="form-control" value="Nairobi">
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Estate / Area</label>
+                            <select name="delivery_area" id="delivery-area" class="form-select" required>
+                                <option value="">Select your area</option>
+                                {% for area in delivery_areas %}
+                                <option value="{{ area.id }}" data-fee="{{ area.fee }}">
+                                    {{ area.name }} (KES {{ area.fee }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <button type="button" id="detect-location-btn" class="btn btn-outline-primary btn-sm">
+                                ?? Detect My Location
+                            </button>
+                            <span id="location-status" class="ms-2 text-muted small"></span>
+                        </div>
+
+                        <input type="hidden" name="latitude" id="checkout-latitude">
+                        <input type="hidden" name="longitude" id="checkout-longitude">
+
+                        <div class="mb-3">
+                            <label class="form-label">House / Building Number</label>
+                            <input type="text" name="house_number" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Landmark</label>
+                            <input type="text" name="landmark" class="form-control" placeholder="Optional">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Delivery Notes</label>
+                            <textarea name="delivery_notes" class="form-control" rows="3" placeholder="Any special delivery instructions?"></textarea>
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-5">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body p-4">
+
+                    <h4 class="mb-4">Order Summary</h4>
+
+                    {% for item in items %}
+
+                    <div class="d-flex justify-content-between mb-3">
+
+                        <div>
+                            <strong>{{ item.product.name }}</strong>
+                            <br>
+                            <small class="text-muted">Qty: {{ item.quantity }}</small>
+                        </div>
+
+                        <span>KES {{ item.subtotal }}</span>
+
+                    </div>
+
+                    {% endfor %}
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <span>Subtotal</span>
+                        <strong>KES {{ cart.total_price }}</strong>
+                    </div>
+
+                    <div class="mt-3 mb-2">
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="coupon-code" class="form-control" placeholder="Coupon code">
+                            <button type="button" id="apply-coupon-btn" class="btn btn-outline-dark">Apply</button>
+                        </div>
+                        <div id="coupon-message" class="small mt-1"></div>
+                    </div>
+
+                    <div class="d-flex justify-content-between" id="discount-row" style="display: none !important;">
+                        <span>Discount <span id="applied-coupon-code"></span></span>
+                        <strong class="text-success">- KES <span id="discount-amount">0</span></strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-2">
+                        <span>Delivery</span>
+                        <strong>KES <span id="delivery-fee">0</span></strong>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between fs-5">
+                        <strong>Total</strong>
+                        <strong>KES <span id="checkout-total">{{ cart.total_price }}</span></strong>
+                    </div>
+
+                    <button type="submit" form="checkout-form" class="btn btn-success w-100 mt-4">
+                        Proceed to Payment
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const areaSelect = document.getElementById("delivery-area");
+    const feeEl = document.getElementById("delivery-fee");
+    const totalEl = document.getElementById("checkout-total");
+    const subtotal = {{ cart.total_price|default:0 }};
+
+    let currentFee = 0;
+    let currentDiscount = 0;
+
+    function recalcTotal() {
+        const total = subtotal + currentFee - currentDiscount;
+        totalEl.textContent = total.toFixed(2);
+    }
+
+    function getCookie(name) {
+        const value = ; \;
+        const parts = value.split(; \=);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+
+    if (areaSelect) {
+        areaSelect.addEventListener("change", function () {
+
+            const selected = areaSelect.options[areaSelect.selectedIndex];
+            currentFee = parseFloat(selected.dataset.fee || 0);
+
+            feeEl.textContent = currentFee.toFixed(2);
+            recalcTotal();
+        });
+    }
+
+    const applyCouponBtn = document.getElementById("apply-coupon-btn");
+    const couponInput = document.getElementById("coupon-code");
+    const couponMessage = document.getElementById("coupon-message");
+    const discountRow = document.getElementById("discount-row");
+    const discountAmountEl = document.getElementById("discount-amount");
+    const appliedCodeEl = document.getElementById("applied-coupon-code");
+
+    if (applyCouponBtn) {
+        applyCouponBtn.addEventListener("click", function () {
+
+            const code = couponInput.value.trim();
+
+            if (!code) {
+                couponMessage.innerHTML = '<span class="text-danger">Enter a coupon code.</span>';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("code", code);
+
+            fetch("{% url 'apply_coupon' %}", {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") },
+                body: formData,
+            })
+            .then(res => res.json())
+            .then(data => {
+
+                if (data.success) {
+                    currentDiscount = parseFloat(data.discount);
+                    discountAmountEl.textContent = currentDiscount.toFixed(2);
+                    appliedCodeEl.textContent = "(" + data.code + ")";
+                    discountRow.style.setProperty("display", "flex", "important");
+                    couponMessage.innerHTML = '<span class="text-success">Coupon applied!</span>';
+                    recalcTotal();
+                } else {
+                    couponMessage.innerHTML = '<span class="text-danger">' + data.error + '</span>';
+                }
+            });
+        });
+    }
+
+    const detectBtn = document.getElementById("detect-location-btn");
+    const statusEl = document.getElementById("location-status");
+    const latInput = document.getElementById("checkout-latitude");
+    const lngInput = document.getElementById("checkout-longitude");
+
+    if (detectBtn) {
+        detectBtn.addEventListener("click", function () {
+
+            if (!navigator.geolocation) {
+                statusEl.textContent = "Geolocation not supported by your browser.";
+                return;
+            }
+
+            statusEl.textContent = "Detecting location...";
+
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    latInput.value = position.coords.latitude;
+                    lngInput.value = position.coords.longitude;
+                    statusEl.textContent = "Location detected \u2713";
+                },
+                function (error) {
+                    statusEl.textContent = "Could not detect location. Please select manually.";
+                }
+            );
+        });
+    }
+
+});
+</script>
+{% endblock %}
+
+
+
+
+
+
+

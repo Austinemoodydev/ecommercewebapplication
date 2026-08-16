@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4"><h1 class="h3 mb-0">Store analytics</h1><a class="btn btn-outline-primary" href="{% url 'admin:index' %}">Admin</a></div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><small>Orders today</small><div class="fs-3">{{ today_orders }}</div></div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><small>Revenue today</small><div class="fs-3">KES {{ today_revenue }}</div></div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><small>Revenue (7 days)</small><div class="fs-3">KES {{ week_revenue }}</div></div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><small>Open orders</small><div class="fs-3">{{ pending_orders }}</div></div></div></div>
+  </div>
+  <div class="row g-4"><div class="col-lg-7"><div class="card"><div class="card-body"><h2 class="h5">Recent orders</h2><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Order</th><th>Customer</th><th>Status</th><th>Total</th></tr></thead><tbody>{% for order in recent_orders %}<tr><td>{{ order.order_number }}</td><td>{{ order.full_name }}</td><td>{{ order.get_status_display }}</td><td>KES {{ order.total_amount }}</td></tr>{% empty %}<tr><td colspan="4">No orders yet.</td></tr>{% endfor %}</tbody></table></div></div></div></div><div class="col-lg-5"><div class="card mb-4"><div class="card-body"><h2 class="h5">Order status</h2>{% for item in status_counts %}<div class="d-flex justify-content-between border-bottom py-1"><span>{{ item.status|title }}</span><span>{{ item.total }}</span></div>{% empty %}<p class="mb-0">No orders yet.</p>{% endfor %}</div></div></div><div class="card"><div class="card-body"><h2 class="h5">Low stock (&lt; 5)</h2>{% for product in low_stock %}<div class="d-flex justify-content-between border-bottom py-1"><span>{{ product.name }}</span><span>{{ product.stock }}</span></div>{% empty %}<p class="mb-0">Stock levels look good.</p>{% endfor %}</div></div></div></div>
+</div>
+{% endblock %}

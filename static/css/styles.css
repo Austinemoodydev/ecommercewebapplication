@@ -1,0 +1,45 @@
+:root { --ink:#122036; --muted:#64748b; --brand:#2563eb; --accent:#f97316; --surface:#fff; --canvas:#f6f8fc; --line:#e5eaf2; }
+* { box-sizing:border-box; }
+body { min-height:100vh; background:var(--canvas); color:var(--ink); font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; }
+a { text-decoration:none; }
+.site-main { min-height:calc(100vh - 190px); padding:2rem 0 4rem; }
+.storefront-nav { background:#101c31; padding:.8rem 0; }
+.navbar-brand { color:#fff!important; font-weight:800; letter-spacing:-.03em; }
+.navbar-brand i { color:#fbbf24; }
+.storefront-nav .nav-link { color:#cbd5e1!important; font-weight:600; padding:.55rem .8rem!important; }
+.storefront-nav .nav-link:hover,.storefront-nav .nav-link:focus { color:#fff!important; }
+.nav-offer { color:#fdba74!important; }
+.nav-search { max-width:275px; border:1px solid #34445f; border-radius:.6rem; overflow:hidden; background:#fff; }
+.nav-search input { border:0; box-shadow:none!important; min-width:0; }
+.nav-search .btn { color:var(--brand); background:#fff; }
+.nav-icon { position:relative; display:inline-flex; align-items:center; justify-content:center; width:2.4rem; height:2.4rem; color:#fff; font-size:1.15rem; }
+.count-badge { position:absolute; top:0; right:0; min-width:1.15rem; height:1.15rem; padding:0 .25rem; border-radius:99px; background:var(--accent); color:#fff; font-size:.67rem; line-height:1.15rem; text-align:center; }
+.nav-account { display:inline-block; border:1px solid #52627c; color:#fff!important; border-radius:.55rem; padding:.45rem .75rem; font-weight:700; }
+.page-hero { padding:2.6rem; border-radius:1.25rem; color:#fff; background:linear-gradient(115deg,#162b50,#2563eb); margin-bottom:2rem; overflow:hidden; }
+.page-hero--offers { background:linear-gradient(115deg,#7c2d12,#ea580c); }
+.eyebrow { display:inline-block; text-transform:uppercase; letter-spacing:.1em; font-weight:800; font-size:.72rem; opacity:.8; margin-bottom:.65rem; }
+.page-hero h1 { font-weight:800; letter-spacing:-.04em; margin:0 0 .55rem; }
+.page-hero p { max-width:42rem; margin:0; color:#dbeafe; }
+.page-hero--offers p { color:#ffedd5; }
+.category-card,.product-card { border:1px solid var(--line); border-radius:1rem; overflow:hidden; background:var(--surface); height:100%; transition:transform .2s ease,box-shadow .2s ease; }
+.category-card:hover,.product-card:hover { transform:translateY(-4px); box-shadow:0 15px 32px rgba(15,23,42,.1); }
+.category-image { height:185px; width:100%; object-fit:cover; background:#dbeafe; }
+.category-placeholder { height:185px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#dbeafe,#e0e7ff); color:var(--brand); font-size:2.5rem; }
+.category-body { padding:1.25rem; }
+.category-body h2 { font-size:1.1rem; font-weight:800; margin:0; color:var(--ink); }
+.category-body p { color:var(--muted); font-size:.9rem; min-height:2.7rem; margin:.55rem 0 1rem; }
+.category-meta { color:var(--brand); font-size:.85rem; font-weight:800; }
+.product-card .product-image { width:100%; height:220px; object-fit:cover; background:#eef2f7; }
+.product-card .card-body { padding:1.05rem; }
+.product-category { color:var(--muted); font-size:.78rem; font-weight:700; }
+.product-name { color:var(--ink); font-weight:800; font-size:1rem; display:block; margin:.3rem 0 .7rem; }
+.price { color:#15803d; font-weight:800; font-size:1.08rem; }
+.price-old { color:#94a3b8; font-size:.84rem; text-decoration:line-through; margin-left:.4rem; }
+.offer-tag { position:absolute; top:.75rem; left:.75rem; background:#ea580c; color:#fff; padding:.25rem .55rem; font-size:.72rem; font-weight:800; border-radius:.35rem; }
+.empty-state { background:#fff; border:1px dashed #cbd5e1; border-radius:1rem; padding:3rem 1.5rem; text-align:center; color:var(--muted); }
+.whatsapp-float { position:fixed; right:1.25rem; bottom:1.25rem; z-index:1030; width:3.25rem; height:3.25rem; display:grid; place-items:center; border-radius:50%; color:#fff; background:#25d366; box-shadow:0 8px 20px rgba(37,211,102,.35); }
+.whatsapp-float:hover { color:#fff; transform:translateY(-2px); }
+footer { margin-top:0!important; background:#101c31!important; }
+footer a,footer li { color:#cbd5e1; }
+@media (max-width:991.98px) { .nav-search { max-width:none; } .nav-icon { margin-right:.6rem; } .site-main { padding-top:1.25rem; } }
+@media (max-width:575.98px) { .page-hero { padding:1.7rem 1.35rem; border-radius:1rem; } .page-hero h1 { font-size:1.8rem; } .product-card .product-image { height:185px; } .whatsapp-float { right:1rem; bottom:1rem; } }

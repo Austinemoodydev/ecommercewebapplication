@@ -1,0 +1,918 @@
+This specification is enough to build a **professional e-commerce platform comparable to Jumia, Kilimall, or Shopify (single-vendor)**. I would improve the architecture slightly before development because some technologies in your list overlap.
+
+## Recommended Technology Stack
+
+Instead of:
+
+* HTML
+* CSS
+* Bootstrap
+* JavaScript
+* Django
+* MySQL
+
+Use
+
+**Frontend**
+
+* HTML5
+* CSS3
+* Bootstrap 5
+* JavaScript (ES6)
+* AJAX
+* Chart.js (analytics)
+* Leaflet.js + OpenStreetMap (location detection)
+* SweetAlert2
+* Font Awesome
+
+**Backend**
+
+* Django 5
+* Django REST Framework
+* MySQL
+* Pillow (image uploads)
+* django-crispy-forms
+* django-filter
+* Celery + Redis (email/SMS tasks)
+* M-PESA Daraja API
+* OpenAI API (AI recommendations)
+
+---
+
+# Complete System Modules
+
+```
+Home
+│
+├── Shop
+├── Categories
+├── Offers
+├── Wishlist
+├── Cart
+├── Checkout
+├── Orders
+├── My Account
+├── Contact
+├── About
+
+Admin Dashboard
+│
+├── Products
+├── Categories
+├── Brands
+├── Orders
+├── Payments
+├── Coupons
+├── Customers
+├── Reviews
+├── Reports
+├── Inventory
+├── Notifications
+├── Website Settings
+```
+
+---
+
+# Database Design
+
+## Users
+
+```
+id
+first_name
+last_name
+username
+email
+phone
+password
+avatar
+role
+is_active
+created_at
+```
+
+---
+
+## Categories
+
+```
+id
+name
+slug
+image
+description
+status
+created_at
+```
+
+---
+
+## Brands
+
+```
+id
+name
+logo
+```
+
+---
+
+## Products
+
+```
+id
+category_id
+brand_id
+name
+slug
+description
+price
+discount_price
+stock
+sku
+weight
+image
+status
+featured
+created_at
+```
+
+---
+
+## Product Images
+
+```
+id
+product_id
+image
+```
+
+Multiple images per product.
+
+---
+
+## Cart
+
+```
+id
+user_id
+created_at
+```
+
+---
+
+## Cart Items
+
+```
+id
+cart_id
+product_id
+quantity
+price
+```
+
+---
+
+## Wishlist
+
+```
+id
+user_id
+product_id
+created_at
+```
+
+---
+
+## Orders
+
+```
+id
+user_id
+order_number
+subtotal
+shipping
+discount
+tax
+total
+status
+payment_status
+payment_method
+created_at
+```
+
+---
+
+## Order Items
+
+```
+id
+order_id
+product_id
+price
+quantity
+```
+
+---
+
+## Shipping Address
+
+```
+id
+user_id
+county
+sub_county
+estate
+street
+house_no
+phone
+latitude
+longitude
+```
+
+---
+
+## Reviews
+
+```
+id
+user_id
+product_id
+rating
+comment
+created_at
+```
+
+---
+
+## Coupons
+
+```
+id
+code
+discount
+expiry_date
+usage_limit
+status
+```
+
+---
+
+## Payments
+
+```
+id
+order_id
+transaction_code
+amount
+phone
+status
+created_at
+```
+
+---
+
+## Notifications
+
+```
+id
+user_id
+title
+message
+read
+created_at
+```
+
+---
+
+## Analytics
+
+```
+id
+visits
+sales
+orders
+revenue
+```
+
+---
+
+# Pages
+
+## Public
+
+```
+Landing Page
+About
+Contact
+Shop
+Category
+Product Details
+Search Results
+Cart
+Login
+Register
+Forgot Password
+Terms
+Privacy
+```
+
+---
+
+## User Dashboard
+
+```
+Dashboard
+
+My Profile
+
+Orders
+
+Wishlist
+
+Addresses
+
+Reviews
+
+Notifications
+
+Settings
+
+Logout
+```
+
+---
+
+## Admin Dashboard
+
+```
+Dashboard
+
+Products
+
+Categories
+
+Brands
+
+Inventory
+
+Orders
+
+Customers
+
+Payments
+
+Coupons
+
+Reviews
+
+Analytics
+
+Reports
+
+Website Settings
+
+Users
+
+Roles
+
+Logout
+```
+
+---
+
+# Landing Page Layout
+
+```
+----------------------------------------------------
+TOP BAR
+----------------------------------------------------
+Logo
+
+Search
+
+Account
+
+Wishlist
+
+Cart
+
+----------------------------------------------------
+NAVIGATION
+----------------------------------------------------
+
+Home
+
+Shop
+
+Categories
+
+Offers
+
+About
+
+Contact
+
+----------------------------------------------------
+HERO SLIDER
+----------------------------------------------------
+
+Big Promotional Banner
+
+Shop Now Button
+
+----------------------------------------------------
+
+Categories
+
+----------------------------------------------------
+
+Featured Products
+
+----------------------------------------------------
+
+Best Sellers
+
+----------------------------------------------------
+
+Latest Products
+
+----------------------------------------------------
+
+Flash Sale Countdown
+
+----------------------------------------------------
+
+Recommended Products
+
+----------------------------------------------------
+
+Customer Testimonials
+
+----------------------------------------------------
+
+Newsletter
+
+----------------------------------------------------
+
+Footer
+```
+
+---
+
+# Product Listing Page
+
+```
+----------------------------------------------------
+Header
+----------------------------------------------------
+
+Breadcrumb
+
+----------------------------------------------------
+
+Sidebar
+
+Category Filter
+
+Brand Filter
+
+Price Slider
+
+Ratings
+
+Stock
+
+Discount
+
+----------------------------------------------------
+
+Products Grid
+
+Image
+
+Name
+
+Price
+
+Discount
+
+Stars
+
+Wishlist
+
+Quick View
+
+Add to Cart
+
+----------------------------------------------------
+
+Pagination
+
+----------------------------------------------------
+
+Footer
+```
+
+---
+
+# Product Details Page
+
+```
+Gallery
+
+Zoom Image
+
+Product Name
+
+Rating
+
+Price
+
+Discount
+
+Stock
+
+Description
+
+Specifications
+
+Quantity
+
+Add to Cart
+
+Wishlist
+
+Share
+
+Related Products
+
+Reviews
+```
+
+---
+
+# Shopping Cart
+
+```
+Product
+
+Price
+
+Quantity
+
+Subtotal
+
+Coupon
+
+Shipping
+
+Total
+
+Checkout
+```
+
+---
+
+# Checkout
+
+### Shipping
+
+```
+Name
+
+Phone
+
+County
+
+Estate
+
+Street
+
+House Number
+```
+
+### Auto Location
+
+```
+Use Current Location
+```
+
+Using
+
+```
+navigator.geolocation
+```
+
+or
+
+```
+Leaflet.js
+```
+
+---
+
+### Nairobi Delivery Areas
+
+Include all major locations, for example:
+
+```
+CBD
+Westlands
+Kilimani
+Kileleshwa
+Parklands
+South B
+South C
+Embakasi
+Utawala
+Ruaka
+Karen
+Runda
+Lavington
+Ngong Road
+Upperhill
+Eastleigh
+Donholm
+Buruburu
+Pipeline
+Zimmerman
+Roysambu
+Kasarani
+Thika Road
+Ruiru
+Syokimau
+Mlolongo
+Kitengela
+```
+
+Each can have configurable delivery charges.
+
+---
+
+# Payment
+
+Only
+
+```
+M-PESA Daraja API
+```
+
+Flow:
+
+```
+Checkout
+
+↓
+
+Enter Phone
+
+↓
+
+STK Push
+
+↓
+
+Customer enters PIN
+
+↓
+
+Payment Verified
+
+↓
+
+Order Created
+
+↓
+
+Email
+
+↓
+
+SMS
+
+↓
+
+Receipt
+```
+
+---
+
+# Order Status
+
+```
+Pending
+
+Confirmed
+
+Processing
+
+Packed
+
+Shipped
+
+Out for Delivery
+
+Delivered
+
+Cancelled
+
+Refunded
+```
+
+---
+
+# Admin Analytics
+
+Dashboard Cards
+
+```
+Revenue
+
+Orders
+
+Customers
+
+Products
+
+Pending Orders
+
+Low Stock
+
+Today's Sales
+```
+
+Charts
+
+```
+Sales
+
+Revenue
+
+Orders
+
+Visitors
+
+Top Products
+
+Categories
+```
+
+---
+
+# Inventory
+
+Features
+
+```
+Stock Tracking
+
+Low Stock Alert
+
+Out of Stock
+
+Auto Inventory Deduction
+
+SKU Management
+```
+
+---
+
+# AI Recommendation System
+
+Using OpenAI API
+
+Recommend based on
+
+```
+Browsing history
+
+Purchase history
+
+Wishlist
+
+Category preference
+
+Frequently bought together
+
+Recently viewed
+
+Similar products
+```
+
+---
+
+# Security
+
+```
+CSRF Protection
+
+Password Hashing
+
+XSS Protection
+
+SQL Injection Prevention
+
+Rate Limiting
+
+Login Attempt Limits
+
+Email Verification
+
+Password Reset
+
+Role-based Access Control
+
+HTTPS
+
+Secure Cookies
+```
+
+---
+
+# Notifications
+
+Customer
+
+```
+Order Confirmed
+
+Payment Received
+
+Shipped
+
+Delivered
+
+Review Request
+```
+
+Admin
+
+```
+New Order
+
+Low Stock
+
+New Customer
+
+Failed Payment
+```
+
+---
+
+# Future Features
+
+* Multi-vendor marketplace
+* Vendor dashboards
+* Live chat with customers
+* Loyalty points and rewards
+* Gift cards
+* Product comparison
+* Recently viewed products
+* Saved carts
+* Abandoned cart recovery
+* PDF invoice generation
+* Sales reports (Excel/PDF)
+* Social login (Google, Facebook)
+* Two-factor authentication (2FA)
+* Multi-language and multi-currency support
+* PWA (installable app)
+* Push notifications
+* QR code order tracking
+* AI chatbot for customer support
+* AI-powered product recommendations
+* Voice search
+
+## Suggested Project Structure
+
+```
+ecommerce/
+│
+├── accounts/
+├── products/
+├── categories/
+├── brands/
+├── cart/
+├── wishlist/
+├── orders/
+├── payments/
+├── reviews/
+├── coupons/
+├── inventory/
+├── analytics/
+├── notifications/
+├── dashboard/
+├── api/
+├── templates/
+├── static/
+│   ├── css/
+│   ├── js/
+│   ├── images/
+│   └── uploads/
+├── media/
+├── config/
+├── requirements.txt
+└── manage.py
+```
+
+This architecture is scalable, secure, and suitable for a final-year university project or a real production deployment. It covers the complete customer journey (browsing, ordering, payment, delivery, and reviews), comprehensive administration tools, M-PESA integration for the Kenyan market, analytics, inventory management, and room for future AI-powered personalization.

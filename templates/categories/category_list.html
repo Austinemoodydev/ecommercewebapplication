@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Categories{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-hero"><span class="eyebrow">Browse with ease</span><h1>Shop by category</h1><p>Discover products grouped around the things you need, from trusted everyday essentials to your next favourite find.</p></div>
+  <div class="row g-4">
+    {% for category in categories %}<div class="col-12 col-sm-6 col-lg-4 col-xl-3"><a class="category-card d-block" href="{% url 'category_detail' category.slug %}">{% if category.image %}<img src="{{ category.image.url }}" class="category-image" alt="{{ category.name }}">{% else %}<div class="category-placeholder"><i class="bi bi-grid"></i></div>{% endif %}<div class="category-body"><h2>{{ category.name }}</h2><p>{{ category.description|default:"Explore our carefully selected products."|truncatechars:88 }}</p><span class="category-meta">{{ category.product_count }} product{{ category.product_count|pluralize }} <i class="bi bi-arrow-right ms-1"></i></span></div></a></div>{% empty %}<div class="col-12"><div class="empty-state"><i class="bi bi-grid fs-2 d-block mb-2"></i>Categories will appear here soon.</div></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

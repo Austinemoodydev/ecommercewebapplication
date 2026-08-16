@@ -1,0 +1,22 @@
+{% extends 'accounts/auth_base.html' %}
+{% load socialaccount %}
+{% block title %}Create Account{% endblock %}
+{% block content %}
+<form method="POST">
+{% csrf_token %}
+<div class="mb-3"><label>Username</label>{{ form.username }}</div>
+<div class="mb-3"><label>Email</label>{{ form.email }}</div>
+<div class="mb-3"><label>Phone</label>{{ form.phone }}</div>
+<div class="mb-3"><label>Password</label><div class="input-group">{{ form.password1 }}<button type="button" class="btn btn-outline-secondary" onclick="togglePassword('id_password1')"><i class="bi bi-eye"></i></button></div></div>
+<div class="mb-3"><label>Confirm Password</label><div class="input-group">{{ form.password2 }}<button type="button" class="btn btn-outline-secondary" onclick="togglePassword('id_password2')"><i class="bi bi-eye"></i></button></div></div>
+<div class="form-check mb-3"><input class="form-check-input" type="checkbox" required><label>I agree to the <a href="#">Terms &amp; Conditions</a></label></div>
+<button class="btn btn-primary w-100">Create Account</button>
+<hr>
+<div class="d-grid gap-2 mb-3">
+  <a class="btn btn-outline-danger" href="{% provider_login_url 'google' %}">Continue with Google</a>
+  <a class="btn btn-outline-primary" href="{% provider_login_url 'facebook' %}">Continue with Facebook</a>
+  <a class="btn btn-outline-dark" href="{% provider_login_url 'apple' %}">Continue with Apple</a>
+</div>
+<div class="text-center">Already have an account? <a href="{% url 'login' %}">Login</a></div>
+</form>
+{% endblock %}
