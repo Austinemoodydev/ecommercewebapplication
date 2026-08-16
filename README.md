@@ -31,6 +31,7 @@ The main application areas are:
 * Background processing with Celery
 * Redis caching/task brokering
 * Request rate limiting
+* mysql database open config folder and import mysql file.
 
 The application also uses Django's timezone support with:
 
