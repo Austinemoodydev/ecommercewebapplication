@@ -70,6 +70,13 @@
                         <span class="badge bg-warning text-dark text-capitalize">{{ order.payment_status }}</span>
                         {% endif %}
                     </p>
+                    {% if order.courier or order.tracking_number %}
+                    <hr>
+                    <p class="mb-1"><strong>Delivery tracking</strong></p>
+                    {% if order.courier %}<p class="mb-1">Courier: {{ order.courier }}</p>{% endif %}
+                    {% if order.tracking_number %}<p class="mb-0">Tracking number: {{ order.tracking_number }}</p>{% endif %}
+                    {% if order.tracking_url %}<a href="{{ order.tracking_url }}" target="_blank" rel="noopener">Track shipment</a>{% endif %}
+                    {% endif %}
 
                 </div>
 
@@ -118,6 +125,20 @@
                     {% if order.payment_status == "pending" %}
                     <a href="{% url 'initiate_payment' order.order_number %}" class="btn btn-success w-100 mt-3">
                         Pay with M-PESA
+                    </a>
+                    {% if order.status == "pending" %}
+                    <form method="post" action="{% url 'cancel_order' order.order_number %}" class="mt-2">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100">Cancel order</button>
+                    </form>
+                    {% endif %}
+                    {% endif %}
+                    {% if order.status == "delivered" and order.payment_status == "paid" %}
+                    <a href="{% url 'request_refund' order.order_number %}" class="btn btn-outline-warning w-100 mt-2">
+                        Request a refund
+                    </a>
+                    <a href="{% url 'request_return' order.order_number %}" class="btn btn-outline-secondary w-100 mt-2">
+                        Request a return or replacement
                     </a>
                     {% endif %}
 

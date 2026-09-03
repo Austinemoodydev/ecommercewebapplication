@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5" style="max-width: 600px;">
+    <h2>Request a refund</h2>
+    <p>Order {{ order.order_number }} · KES {{ order.total_amount }}</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-warning">Submit refund request</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,5 +1,6 @@
 from wishlist.models import Wishlist
 from cart.models import Cart
+from django.conf import settings
 
 
 def global_context(request):
@@ -34,5 +35,7 @@ def global_context(request):
         "cart_count": cart_count,
 
         "cart_total": cart_total,
+        "google_site_verification": settings.GOOGLE_SITE_VERIFICATION,
+        "site_url": settings.SITE_URL,
 
     }

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Brand, Product, ProductImage
+from .models import Brand, Product, ProductImage, ProductVariant
 
 
 class ProductImageInline(admin.TabularInline):
@@ -16,6 +16,8 @@ class ProductAdmin(admin.ModelAdmin):
         "brand",
         "current_price",
         "stock",
+        "reserved_stock",
+        "available_stock",
         "featured",
         "is_active",
     )
@@ -49,3 +51,10 @@ class BrandAdmin(admin.ModelAdmin):
     prepopulated_fields = {
         "slug": ("name",)
     }
+
+
+@admin.register(ProductVariant)
+class ProductVariantAdmin(admin.ModelAdmin):
+    list_display = ("product", "name", "sku", "price", "stock", "is_active")
+    list_filter = ("is_active", "product")
+    search_fields = ("product__name", "name", "sku")

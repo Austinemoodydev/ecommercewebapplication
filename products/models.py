@@ -54,6 +54,7 @@ class Product(models.Model):
     )
 
     stock = models.PositiveIntegerField(default=0)
+    reserved_stock = models.PositiveIntegerField(default=0)
 
     image = models.ImageField(upload_to="products/")
 
@@ -85,7 +86,11 @@ class Product(models.Model):
     
     @property
     def in_stock(self):
-        return self.stock > 0
+        return self.available_stock > 0
+
+    @property
+    def available_stock(self):
+        return max(self.stock - self.reserved_stock, 0)
 
     @property
     def average_rating(self):
@@ -114,4 +119,25 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"{self.product.name} Image"
+
+
+class ProductVariant(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
+    name = models.CharField(max_length=100)
+    sku = models.CharField(max_length=50, unique=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stock = models.PositiveIntegerField(default=0)
+    reserved_stock = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    @property
+    def current_price(self):
+        return self.price if self.price is not None else self.product.current_price
+
+    @property
+    def available_stock(self):
+        return max(self.stock - self.reserved_stock, 0)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.name}"
 

@@ -1,0 +1,13 @@
+{% extends "accounts/auth_base.html" %}
+{% block title %}Email verification{% endblock %}
+{% block content %}
+{% if verified %}
+<h2 class="mb-3">Email verified</h2>
+<p class="text-muted">Your account is active. You can now sign in.</p>
+<a href="{% url 'login' %}" class="btn btn-warning w-100">Continue to login</a>
+{% else %}
+<h2 class="mb-3">Invalid verification link</h2>
+<p class="text-muted">This link is invalid or has expired.</p>
+<a href="{% url 'register' %}" class="btn btn-outline-secondary w-100">Create a new account</a>
+{% endif %}
+{% endblock %}

@@ -41,13 +41,13 @@ document.addEventListener("click", function (e) {
         fetch(`/cart/${action}/${itemId}/`, {
             headers: { "X-Requested-With": "XMLHttpRequest" }
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.quantity === undefined) {
-                removeRow(itemId);
-            }
-            updateCartUI(data);
-        });
+            .then(res => res.json())
+            .then(data => {
+                if (data.quantity === undefined) {
+                    removeRow(itemId);
+                }
+                updateCartUI(data);
+            });
     }
 
     if (e.target.matches(".remove-btn")) {
@@ -57,26 +57,28 @@ document.addEventListener("click", function (e) {
         fetch(`/cart/remove/${itemId}/`, {
             headers: { "X-Requested-With": "XMLHttpRequest" }
         })
-        .then(res => res.json())
-        .then(data => {
-            removeRow(itemId);
-            updateCartUI(data);
-        });
+            .then(res => res.json())
+            .then(data => {
+                removeRow(itemId);
+                updateCartUI(data);
+            });
     }
 
     if (e.target.matches(".add-to-cart-btn")) {
 
         const productId = e.target.dataset.product;
+        const variantSelect = e.target.dataset.variantSelect ? document.getElementById(e.target.dataset.variantSelect) : null;
+        const variantQuery = variantSelect && variantSelect.value ? `?variant=${encodeURIComponent(variantSelect.value)}` : "";
 
-        fetch(`/cart/add/${productId}/`, {
+        fetch(`/cart/add/${productId}/${variantQuery}`, {
             headers: { "X-Requested-With": "XMLHttpRequest" }
         })
-        .then(res => res.json())
-        .then(data => {
-            updateCartUI(data);
-            e.target.textContent = "Added!";
-            setTimeout(() => { e.target.textContent = "Add to Cart"; }, 1200);
-        });
+            .then(res => res.json())
+            .then(data => {
+                updateCartUI(data);
+                e.target.textContent = "Added!";
+                setTimeout(() => { e.target.textContent = "Add to Cart"; }, 1200);
+            });
     }
 
 });
@@ -92,25 +94,25 @@ document.addEventListener("DOMContentLoaded", function () {
             fetch("/cart/mini/", {
                 headers: { "X-Requested-With": "XMLHttpRequest" }
             })
-            .then(res => res.json())
-            .then(data => {
+                .then(res => res.json())
+                .then(data => {
 
-                const container = document.getElementById("mini-cart-items");
-                const totalEl = document.getElementById("mini-cart-total");
+                    const container = document.getElementById("mini-cart-items");
+                    const totalEl = document.getElementById("mini-cart-total");
 
-                if (data.items.length === 0) {
-                    container.innerHTML = `<p class="text-muted mb-0">Your cart is empty.</p>`;
-                } else {
-                    container.innerHTML = data.items.map(item => `
+                    if (data.items.length === 0) {
+                        container.innerHTML = `<p class="text-muted mb-0">Your cart is empty.</p>`;
+                    } else {
+                        container.innerHTML = data.items.map(item => `
                         <div class="d-flex justify-content-between mb-1">
                             <span>${item.name} x${item.quantity}</span>
                             <span>KES ${item.subtotal}</span>
                         </div>
                     `).join("");
-                }
+                    }
 
-                if (totalEl) totalEl.textContent = data.total;
-            });
+                    if (totalEl) totalEl.textContent = data.total;
+                });
         });
     }
 

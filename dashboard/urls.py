@@ -6,4 +6,5 @@ urlpatterns = [
     path("orders/", views.order_history, name="order_history"),
     path("orders/<str:order_number>/", views.order_detail, name="order_detail"),
     path("admin/analytics/", views.admin_analytics, name="admin_analytics"),
+    path("admin/analytics/export/", views.admin_sales_export, name="admin_sales_export"),
 ]

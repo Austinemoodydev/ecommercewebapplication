@@ -1,5 +1,6 @@
 ﻿{% extends 'base.html' %}
 {% block title %}{{ product.name }}{% endblock %}
+{% block meta_description %}{{ product.description|striptags|truncatechars:155 }}{% endblock %}
 {% block content %}
 
 <div class="row">
@@ -22,13 +23,19 @@
         </span>
     </div>
 
-    <h3 class="text-success">KES {{ product.price }}</h3>
+    <h3 class="text-success">KES {{ product.current_price }}</h3>
     <p>{{ product.description }}</p>
-    <p>Stock: {{ product.stock }}</p>
+    {% if product.variants.exists %}
+    <label for="variant-select">Choose an option</label>
+    <select id="variant-select" class="form-select mb-3" style="max-width: 320px;">
+      {% for variant in product.variants.all %}{% if variant.is_active %}<option value="{{ variant.id }}">{{ variant.name }} - KES {{ variant.current_price }} ({{ variant.available_stock }} available)</option>{% endif %}{% endfor %}
+    </select>
+    {% else %}<p>Stock: {{ product.available_stock }}</p>{% endif %}
 
     <button type="button"
             class="btn btn-success add-to-cart-btn"
-            data-product="{{ product.id }}">
+            data-product="{{ product.id }}"
+            {% if product.variants.exists %}data-variant-select="variant-select"{% endif %}>
         Add to Cart
     </button>
 
@@ -122,4 +129,22 @@
   {% endfor %}
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  "description": "{{ product.description|striptags|escapejs }}",
+  "url": "{{ site_url }}{{ request.path }}",
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "KES",
+    "price": "{{ product.current_price }}",
+    "availability": "https://schema.org/{% if product.available_stock > 0 %}InStock{% else %}OutOfStock{% endif %}"
+  }
+}
+</script>
 {% endblock %}

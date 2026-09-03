@@ -1205,6 +1205,23 @@ python manage.py collectstatic
 
 # Testing
 
+## Operational notes
+
+## Google indexing setup
+
+Set these values in the production environment before launch:
+
+```env
+SITE_URL=https://your-store-domain.com
+GOOGLE_SITE_VERIFICATION=the-token-provided-by-Google-Search-Console
+```
+
+Register `https://your-store-domain.com/` as a Domain or URL-prefix property in Google Search Console, complete verification, and submit `https://your-store-domain.com/sitemap.xml`. The application serves `robots.txt`, references the sitemap, excludes private customer/payment routes, and emits canonical URLs for public pages.
+
+Refunds are processed manually through the payment provider. Staff must verify the request, complete the provider reversal, record its reference, and then mark the request as `Processed` in Django admin. See `DEVELOPMENT.md` for the complete procedure.
+
+Product variants are available for catalog and stock administration. The current shopping cart still uses product-level items; variant selection in the storefront and variant-level checkout reservations is a planned follow-up and should be completed before selling products that have multiple purchasable variants.
+
 The application should be tested at both the individual app level and as a complete shopping workflow.
 
 Important areas to test include:

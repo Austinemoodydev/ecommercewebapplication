@@ -4,6 +4,7 @@
 <div class="container py-5" style="max-width: 400px;">
   <h2 class="mb-4">Login</h2>
   <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit" class="btn btn-warning w-100">Login</button></form>
+  <p class="text-center mt-3"><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
   <div class="text-center text-muted my-3">or continue with</div>
   <div class="d-grid gap-2">
     <a class="btn btn-outline-danger" href="{% provider_login_url 'google' %}">Continue with Google</a>

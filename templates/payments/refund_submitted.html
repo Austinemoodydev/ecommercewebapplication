@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5" style="max-width: 600px;">
+    <h2>Refund request submitted</h2>
+    <p>We received your request for KES {{ refund.amount }} for order {{ refund.order.order_number }}.</p>
+    <a href="{% url 'order_detail' refund.order.order_number %}" class="btn btn-outline-secondary">Back to order</a>
+</div>
+{% endblock %}

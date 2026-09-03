@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django_ratelimit.decorators import ratelimit
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,6 +13,7 @@ from django.http import JsonResponse
 
 from .models import Coupon, DeliveryArea, Order, OrderItem
 from .utils import generate_order_number
+from products.models import Product
 
 
 @login_required
@@ -40,8 +42,9 @@ def checkout(request):
         if form.is_valid():
 
             for item in items:
-                if item.quantity > item.product.stock:
-                    stock_error = f"Only {item.product.stock} of {item.product.name} left in stock."
+                available_stock = item.variant.available_stock if item.variant else item.product.available_stock
+                if item.quantity > available_stock:
+                    stock_error = f"Only {available_stock} of {item.product.name} left in stock."
                     break
 
         if form.is_valid() and not stock_error:
@@ -90,6 +93,30 @@ def checkout(request):
                     total_amount=total_amount,
                 )
 
+                for item in items:
+                    inventory = item.variant.__class__.objects.select_for_update().get(id=item.variant_id) if item.variant else Product.objects.select_for_update().get(id=item.product_id)
+                    if item.quantity > inventory.available_stock:
+                        stock_error = f"Only {inventory.available_stock} of {item.product.name} left in stock."
+                        transaction.set_rollback(True)
+                        break
+                    inventory.reserved_stock += item.quantity
+                    inventory.save(update_fields=["reserved_stock"] + (["updated_at"] if not item.variant else []))
+
+                if stock_error:
+                    return render(
+                        request,
+                        "orders/checkout.html",
+                        {
+                            "cart": cart,
+                            "items": items,
+                            "addresses": addresses,
+                            "default_address": default_address,
+                            "delivery_areas": delivery_areas,
+                            "form": form,
+                            "stock_error": stock_error,
+                        },
+                    )
+
                 if coupon_obj:
                     coupon_obj.times_used += 1
                     coupon_obj.save(update_fields=["times_used"])
@@ -99,8 +126,10 @@ def checkout(request):
                     OrderItem.objects.create(
                         order=order,
                         product=item.product,
+                        variant=item.variant,
                         product_name=item.product.name,
-                        price=item.product.current_price,
+                        variant_name=item.variant.name if item.variant else "",
+                        price=item.variant.current_price if item.variant else item.product.current_price,
                         quantity=item.quantity,
                         subtotal=item.subtotal,
                     )
@@ -136,6 +165,35 @@ def order_confirmation(request, order_number):
             "order": order,
         },
     )
+
+
+@login_required
+@ratelimit(key="user", rate="10/m", method="POST", block=True)
+def cancel_order(request, order_number):
+    if request.method != "POST":
+        return redirect("order_detail", order_number=order_number)
+
+    with transaction.atomic():
+        order = get_object_or_404(
+            Order.objects.select_for_update(),
+            order_number=order_number,
+            user=request.user,
+        )
+
+        if order.status != "pending" or order.payment_status != "pending":
+            messages.error(request, "Only unpaid pending orders can be cancelled.")
+            return redirect("order_detail", order_number=order.order_number)
+
+        for order_item in order.items.all():
+            inventory = order_item.variant.__class__.objects.select_for_update().get(id=order_item.variant_id) if order_item.variant_id else Product.objects.select_for_update().get(id=order_item.product_id)
+            inventory.reserved_stock = max(inventory.reserved_stock - order_item.quantity, 0)
+            inventory.save(update_fields=["reserved_stock"] + (["updated_at"] if not order_item.variant_id else []))
+
+        order.status = "cancelled"
+        order.save(update_fields=["status", "updated_at"])
+
+    messages.success(request, "Your order has been cancelled.")
+    return redirect("order_detail", order_number=order.order_number)
 
 
 

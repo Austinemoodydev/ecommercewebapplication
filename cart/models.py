@@ -48,15 +48,29 @@ class CartItem(models.Model):
         on_delete=models.CASCADE,
     )
 
+    variant = models.ForeignKey(
+        "products.ProductVariant",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="cart_items",
+    )
+
     quantity = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("cart", "product")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("cart", "product", "variant"),
+                name="cart_product_variant_unique",
+            )
+        ]
 
     @property
     def subtotal(self):
-        return self.product.current_price * self.quantity
+        price = self.variant.current_price if self.variant else self.product.current_price
+        return price * self.quantity
 
     def __str__(self):
-        return self.product.name
+        return f"{self.product.name}{f' - {self.variant.name}' if self.variant else ''}"

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from decimal import Decimal
 
 
 class Order(models.Model):
@@ -57,6 +58,9 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")
     payment_method = models.CharField(max_length=30, default="mpesa")
+    courier = models.CharField(max_length=100, blank=True)
+    tracking_number = models.CharField(max_length=100, blank=True)
+    tracking_url = models.URLField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -78,7 +82,15 @@ class OrderItem(models.Model):
         on_delete=models.PROTECT,
     )
 
+    variant = models.ForeignKey(
+        "products.ProductVariant",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
+
     product_name = models.CharField(max_length=255)
+    variant_name = models.CharField(max_length=100, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2)
     quantity = models.PositiveIntegerField()
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
@@ -160,7 +172,7 @@ class Coupon(models.Model):
     def calculate_discount(self, subtotal):
 
         if self.discount_type == "percentage":
-            discount = subtotal * (self.discount_value / 100)
+            discount = subtotal * (self.discount_value / Decimal("100"))
         else:
             discount = self.discount_value
 

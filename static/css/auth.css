@@ -1,25 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 body {
-
-    background: #f4f6f9;
-
+    background: #f4f1e9;
+    color: #17211b;
+    font-family: 'DM Sans', sans-serif;
 }
 
 .card {
-
-    border-radius: 20px;
-
+    border-radius: 1rem;
+    background: #fffdf8;
+    border: 1px solid #deded2 !important;
+    box-shadow: 0 22px 55px rgba(23, 33, 27, .12) !important;
 }
 
-input {
+h1,
+h2,
+h3 {
+    font-family: 'Space Grotesk', sans-serif;
+}
 
-    border-radius: 10px !important;
-
+input,
+select,
+textarea {
+    border-radius: .55rem !important;
+    border-color: #cfd5ca !important;
+    padding: .7rem .85rem !important;
 }
 
 button {
-
-    border-radius: 10px !important;
-
+    border-radius: 999px !important;
+    font-weight: 700;
 }
 
 .progress {
@@ -29,7 +39,7 @@ button {
 }
 
 a {
-
+    color: #1f6f5b;
     text-decoration: none;
-
+    font-weight: 600;
 }

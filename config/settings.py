@@ -27,6 +27,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-for-local-de
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000").rstrip("/")
+GOOGLE_SITE_VERIFICATION = os.environ.get("GOOGLE_SITE_VERIFICATION", "")
 
 
 # Application definition
@@ -59,6 +61,10 @@ INSTALLED_APPS = [
     'dashboard',
     'notifications',
 ]
+
+MIGRATION_MODULES = {
+    "socialaccount": "config.socialaccount_migrations",
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -167,11 +173,14 @@ SITE_ID = 1
 # This project is running on a MySQL server with a 1000-byte index limit.
 # 191 characters keeps allauth's unique email index valid with utf8mb4.
 ACCOUNT_EMAIL_MAX_LENGTH = 191
+SOCIALACCOUNT_UID_MAX_LENGTH = 40
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
+LOGIN_REDIRECT_URL = "/"
 
 
 
@@ -202,13 +211,12 @@ if not DEBUG:
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "BACKEND": "django.core.cache.backends.redis.RedisCache"
+        if not DEBUG else "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": os.environ.get("CACHE_URL", "redis://localhost:6379/1"),
     }
 }
 
-# django-ratelimit needs a cache. LocMemCache works for local/dev with a single
-# process, but is NOT safe for production with multiple workers/processes.
-# When deploying, switch this to Redis or Memcached (a real shared cache).
 RATELIMIT_USE_CACHE = "default"
 
 SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003"]

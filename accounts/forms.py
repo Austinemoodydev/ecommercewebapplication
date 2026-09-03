@@ -6,6 +6,8 @@ from .models import CustomUser, Address
 
 class RegisterForm(UserCreationForm):
 
+    email = forms.EmailField(required=True)
+
     class Meta:
 
         model = CustomUser
@@ -36,4 +38,10 @@ class AddressForm(forms.ModelForm):
             "landmark": forms.TextInput(attrs={"class": "form-control", "placeholder": "Optional landmark"}),
             "is_default": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ("first_name", "last_name", "email", "phone", "avatar", "email_notifications", "sms_notifications")
 

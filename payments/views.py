@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction as db_transaction
@@ -9,6 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from orders.models import Order
 from .models import MpesaTransaction
+from .forms import RefundRequestForm, ReturnRequestForm
+from .models import RefundRequest, ReturnRequest
 from .mpesa import MpesaError, stk_push
 
 
@@ -20,6 +23,8 @@ def initiate_payment(request, order_number):
 
     if order.payment_status == "paid":
         return JsonResponse({"success": False, "error": "This order has already been paid."}, status=400)
+    if order.status == "cancelled":
+        return JsonResponse({"success": False, "error": "This order has been cancelled."}, status=400)
 
     if request.method == "POST":
 
@@ -92,44 +97,63 @@ def mpesa_callback(request):
     if checkout_request_id is None or result_code is None:
         return JsonResponse({"ResultCode": 1, "ResultDesc": "Missing required fields"})
 
-    transaction = MpesaTransaction.objects.filter(
-        checkout_request_id=checkout_request_id
-    ).first()
+    with db_transaction.atomic():
+        transaction = MpesaTransaction.objects.select_for_update().select_related("order").filter(
+            checkout_request_id=checkout_request_id
+        ).first()
 
-    if not transaction:
-        return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
+        if not transaction:
+            return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
-    if transaction.status in ("success", "failed"):
-        return JsonResponse({"ResultCode": 0, "ResultDesc": "Already processed"})
+        if transaction.status in ("success", "failed"):
+            return JsonResponse({"ResultCode": 0, "ResultDesc": "Already processed"})
 
-    transaction.result_code = str(result_code)
-    transaction.result_description = result_desc
+        transaction.result_code = str(result_code)
+        transaction.result_description = result_desc
 
-    if result_code == 0:
+        if result_code == 0 and transaction.order.status == "cancelled":
+            transaction.status = "failed"
+            transaction.result_description = "The order was cancelled before payment completed."
+        elif result_code == 0:
+            metadata = stk_callback.get("CallbackMetadata", {}).get("Item", [])
+            callback_values = {
+                item.get("Name"): item.get("Value")
+                for item in metadata
+                if isinstance(item, dict) and item.get("Name")
+            }
+            receipt_number = callback_values.get("MpesaReceiptNumber")
+            callback_amount = callback_values.get("Amount")
 
-        transaction.status = "success"
+            if receipt_number is None or callback_amount is None:
+                transaction.status = "failed"
+                transaction.result_description = "M-PESA callback did not include payment metadata."
+            elif int(callback_amount) != int(transaction.amount.quantize(Decimal("1"))):
+                transaction.status = "failed"
+                transaction.result_description = "M-PESA callback amount did not match the order amount."
+            else:
+                transaction.status = "success"
+                transaction.mpesa_receipt_number = str(receipt_number)
 
-        metadata = stk_callback.get("CallbackMetadata", {}).get("Item", [])
+                transaction.order.payment_status = "paid"
+                transaction.order.status = "confirmed"
+                transaction.order.save(update_fields=["payment_status", "status", "updated_at"])
 
-        for item in metadata:
-            if item.get("Name") == "MpesaReceiptNumber":
-                transaction.mpesa_receipt_number = item.get("Value", "")
+                for order_item in transaction.order.items.select_related("product"):
+                    inventory = order_item.variant.__class__.objects.select_for_update().get(id=order_item.variant_id) if order_item.variant_id else order_item.product.__class__.objects.select_for_update().get(id=order_item.product_id)
+                    inventory.stock -= order_item.quantity
+                    inventory.reserved_stock = max(inventory.reserved_stock - order_item.quantity, 0)
+                    inventory.save(update_fields=["stock", "reserved_stock"] + (["updated_at"] if not order_item.variant_id else []))
 
-        transaction.order.payment_status = "paid"
-        transaction.order.status = "confirmed"
-        transaction.order.save(update_fields=["payment_status", "status", "updated_at"])
+        else:
+            transaction.status = "failed"
+            for order_item in transaction.order.items.select_related("product"):
+                inventory = order_item.variant.__class__.objects.select_for_update().get(id=order_item.variant_id) if order_item.variant_id else order_item.product.__class__.objects.select_for_update().get(id=order_item.product_id)
+                inventory.reserved_stock = max(inventory.reserved_stock - order_item.quantity, 0)
+                inventory.save(update_fields=["reserved_stock"] + (["updated_at"] if not order_item.variant_id else []))
 
-        for order_item in transaction.order.items.select_related("product"):
-            product = order_item.product
-            product.stock = max(product.stock - order_item.quantity, 0)
-            product.save(update_fields=["stock"])
+        transaction.save()
 
-    else:
-        transaction.status = "failed"
-
-    transaction.save()
-
-    if result_code == 0:
+    if result_code == 0 and transaction.status == "success":
         from notifications.tasks import send_payment_confirmation
         try:
             db_transaction.on_commit(lambda: send_payment_confirmation.delay(transaction.order_id))
@@ -154,6 +178,41 @@ def check_payment_status(request, order_number):
         "status": transaction.status,
         "receipt": transaction.mpesa_receipt_number,
     })
+
+
+@login_required
+def request_refund(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    if order.payment_status != "paid" or order.status != "delivered":
+        return JsonResponse({"success": False, "error": "Refunds are available only for paid delivered orders."}, status=400)
+    if RefundRequest.objects.filter(order=order, status__in=("requested", "approved", "processed")).exists():
+        return JsonResponse({"success": False, "error": "A refund request already exists for this order."}, status=400)
+    if request.method != "POST":
+        return render(request, "payments/refund_request.html", {"order": order, "form": RefundRequestForm(order=order)})
+
+    form = RefundRequestForm(request.POST, order=order)
+    if form.is_valid():
+        refund = form.save(commit=False)
+        refund.order = order
+        refund.save()
+        return render(request, "payments/refund_submitted.html", {"refund": refund})
+    return render(request, "payments/refund_request.html", {"order": order, "form": form})
+
+
+@login_required
+def request_return(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    if order.payment_status != "paid" or order.status != "delivered":
+        return JsonResponse({"success": False, "error": "Returns are available only for paid delivered orders."}, status=400)
+    if ReturnRequest.objects.filter(order=order, status__in=("requested", "approved")).exists():
+        return JsonResponse({"success": False, "error": "An active return request already exists for this order."}, status=400)
+    form = ReturnRequestForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        return_request = form.save(commit=False)
+        return_request.order = order
+        return_request.save()
+        return render(request, "payments/return_submitted.html", {"return_request": return_request})
+    return render(request, "payments/return_request.html", {"order": order, "form": form})
 
 
 

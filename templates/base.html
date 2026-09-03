@@ -5,6 +5,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Online Shop{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Shop quality products online with secure M-PESA payments and reliable delivery.{% endblock %}">
+    <link rel="canonical" href="{{ site_url }}{{ request.path }}">
+    {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
 
     <!-- Bootstrap -->
     <link

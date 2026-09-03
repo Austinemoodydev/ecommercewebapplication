@@ -1,7 +1,7 @@
 ﻿from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 
-from products.models import Product
+from products.models import Product, ProductVariant
 from cart.selectors.cart_selector import CartSelector
 from cart.services.cart_service import CartService
 
@@ -41,9 +41,13 @@ def add_to_cart(request, product_id):
 
     product = get_object_or_404(Product, id=product_id)
 
-    cart = CartService.add(request, product)
+    variant_id = request.POST.get("variant") or request.GET.get("variant")
+    variant = None
+    if variant_id:
+        variant = get_object_or_404(ProductVariant, id=variant_id, product=product, is_active=True)
+    cart = CartService.add(request, product, variant)
 
-    item = cart.items.filter(product=product).first()
+    item = cart.items.filter(product=product, variant=variant).first()
 
     return _cart_json(cart, item)
 

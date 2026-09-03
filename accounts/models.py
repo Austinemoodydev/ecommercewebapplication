@@ -33,6 +33,9 @@ class CustomUser(AbstractUser):
         default=False,
     )
 
+    email_notifications = models.BooleanField(default=True)
+    sms_notifications = models.BooleanField(default=True)
+
     def __str__(self):
         return self.username
 

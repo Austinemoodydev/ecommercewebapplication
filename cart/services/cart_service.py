@@ -5,17 +5,18 @@ from cart.selectors.cart_selector import CartSelector
 class CartService:
 
     @staticmethod
-    def add(request, product):
+    def add(request, product, variant=None):
 
         cart = CartSelector.get_cart(request)
 
-        item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            product=product,
-        )
+        item = cart.items.filter(product=product, variant=variant).first()
+        created = item is None
+        if created:
+            item = CartItem.objects.create(cart=cart, product=product, variant=variant)
 
         if not created:
-            if item.quantity < product.stock:
+            available_stock = variant.available_stock if variant else product.available_stock
+            if item.quantity < available_stock:
                 item.quantity += 1
                 item.save()
 
@@ -28,7 +29,8 @@ class CartService:
 
         item = cart.items.filter(id=item_id).first()
 
-        if item and item.quantity < item.product.stock:
+        available_stock = item.variant.available_stock if item and item.variant else item.product.available_stock if item else 0
+        if item and item.quantity < available_stock:
             item.quantity += 1
             item.save()
 
@@ -79,11 +81,12 @@ class CartService:
 
         for item in session_cart.items.all():
 
-            existing = user_cart.items.filter(product=item.product).first()
+            existing = user_cart.items.filter(product=item.product, variant=item.variant).first()
 
             if existing:
                 combined_qty = existing.quantity + item.quantity
-                existing.quantity = min(combined_qty, item.product.stock) if item.product.stock else combined_qty
+                available_stock = item.variant.available_stock if item.variant else item.product.available_stock
+                existing.quantity = min(combined_qty, available_stock) if available_stock else combined_qty
                 existing.save()
             else:
                 item.cart = user_cart

@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<div class="container py-5" style="max-width:600px"><h1>Request a return</h1><p>Order {{ order.order_number }}</p><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-warning">Submit request</button></form></div>{% endblock %}

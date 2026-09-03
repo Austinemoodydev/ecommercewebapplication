@@ -21,8 +21,8 @@
 <tbody>
 {% for item in items %}
 <tr id="cart-row-{{ item.id }}">
-<td>{{ item.product.name }}</td>
-<td>KES {{ item.product.current_price }}</td>
+<td>{{ item.product.name }}{% if item.variant %} - {{ item.variant.name }}{% endif %}</td>
+<td>KES {% if item.variant %}{{ item.variant.current_price }}{% else %}{{ item.product.current_price }}{% endif %}</td>
 <td>
 <button class="btn btn-sm btn-outline-secondary qty-btn" data-action="decrease" data-item="{{ item.id }}">-</button>
 <span id="qty-{{ item.id }}" class="mx-2">{{ item.quantity }}</span>
