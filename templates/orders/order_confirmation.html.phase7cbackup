@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm text-center">
+
+                <div class="card-body p-5">
+
+                    <div class="display-1 text-success mb-3">
+                        ??
+                    </div>
+
+                    <h2 class="mb-3">Order Placed Successfully!</h2>
+
+                    <p class="text-muted mb-4">
+                        Thank you, {{ order.full_name }}. Your order has been received.
+                    </p>
+
+                    <div class="text-start bg-light p-4 rounded mb-4">
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Order Number</span>
+                            <strong>{{ order.order_number }}</strong>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Payment Status</span>
+                            <strong class="text-capitalize">{{ order.payment_status }}</strong>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Delivery</span>
+                            <strong>{{ order.estate }}, {{ order.house_number }}</strong>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal</span>
+                            <span>KES {{ order.subtotal }}</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Delivery Fee</span>
+                            <span>KES {{ order.shipping_cost }}</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between fw-bold fs-5">
+                            <span>Total</span>
+                            <span>KES {{ order.total_amount }}</span>
+                        </div>
+
+                    </div>
+
+                    {% if order.payment_status == "pending" %}
+                    <a href="{% url 'initiate_payment' order.order_number %}" class="btn btn-success">
+                        Pay with M-PESA
+                    </a>
+                    {% else %}
+                    <a href="{% url 'shop' %}" class="btn btn-success">
+                        Continue Shopping
+                    </a>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+

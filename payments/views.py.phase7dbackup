@@ -1,0 +1,848 @@
+import json
+from decimal import Decimal
+from datetime import timedelta
+
+from django.contrib.auth.decorators import login_required
+from django.conf import settings
+from django.utils import timezone
+from django.db import transaction as db_transaction
+from django_ratelimit.decorators import ratelimit
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.csrf import csrf_exempt
+
+from orders.models import Order
+from .models import MpesaTransaction
+from .forms import RefundRequestForm, ReturnRequestForm
+from .models import RefundRequest, ReturnRequest
+from .mpesa import MpesaError, stk_push
+
+from orders.inventory import (
+    InventoryError,
+    reserve_order_inventory,
+    release_order_inventory,
+    consume_order_inventory,
+)
+
+
+@login_required
+@ratelimit(
+    key="user",
+    rate="5/m",
+    method="POST",
+    block=True,
+)
+def initiate_payment(request, order_number):
+
+    if request.method != "POST":
+
+        order = get_object_or_404(
+            Order,
+            order_number=order_number,
+            user=request.user,
+        )
+
+        return render(
+            request,
+            "payments/pay.html",
+            {
+                "order": order,
+                "delivery_quote_pending": (
+                    order.delivery_pricing_status
+                    == "quote_pending"
+                ),
+            },
+        )
+
+    with db_transaction.atomic():
+
+        order = get_object_or_404(
+            Order.objects.select_for_update(),
+            order_number=order_number,
+            user=request.user,
+        )
+
+        if (
+            order.delivery_pricing_status
+            == "quote_pending"
+        ):
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": (
+                        "Delivery price has not been "
+                        "confirmed yet. Please wait for "
+                        "the shop to provide the final "
+                        "delivery quote."
+                    ),
+                },
+                status=409,
+            )
+
+        if order.payment_status == "paid":
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": (
+                        "This order has already been paid."
+                    ),
+                },
+                status=400,
+            )
+
+        if order.status == "cancelled":
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": (
+                        "This order has been cancelled."
+                    ),
+                },
+                status=400,
+            )
+
+        # -----------------------------------------------------
+        # EXPIRED ORDER
+        # -----------------------------------------------------
+
+        if (
+            order.reservation_expires_at
+            and order.reservation_expires_at
+            <= timezone.now()
+            and order.inventory_status == "reserved"
+        ):
+
+            release_order_inventory(order)
+
+            order.status = "cancelled"
+
+            order.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": (
+                        "This order has expired. "
+                        "Please place the order again."
+                    ),
+                },
+                status=409,
+            )
+
+        # -----------------------------------------------------
+        # PREVENT RAPID DUPLICATE STK REQUESTS
+        # -----------------------------------------------------
+
+        active_cutoff = (
+            timezone.now()
+            - timedelta(
+                seconds=settings.MPESA_STK_ACTIVE_SECONDS
+            )
+        )
+
+        active_transaction = (
+            MpesaTransaction.objects
+            .select_for_update()
+            .filter(
+                order=order,
+                status="pending",
+                created_at__gte=active_cutoff,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if active_transaction:
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": (
+                        "An M-PESA request is already active. "
+                        "Check your phone first."
+                    ),
+                    "status": "payment_pending",
+                },
+                status=409,
+            )
+
+        # -----------------------------------------------------
+        # RE-RESERVE STOCK AFTER PREVIOUS FAILURE
+        # -----------------------------------------------------
+
+        if order.inventory_status == "released":
+
+            try:
+                reserve_order_inventory(order)
+
+            except InventoryError as exc:
+
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": str(exc),
+                    },
+                    status=409,
+                )
+
+            order.reservation_expires_at = (
+                timezone.now()
+                + timedelta(
+                    minutes=
+                    settings.ORDER_RESERVATION_MINUTES
+                )
+            )
+
+            order.save(
+                update_fields=[
+                    "reservation_expires_at",
+                    "updated_at",
+                ]
+            )
+
+        phone_number = request.POST.get(
+            "phone_number",
+            order.phone,
+        )
+
+        order_amount = order.total_amount
+
+    # ---------------------------------------------------------
+    # CALL M-PESA OUTSIDE DB LOCK
+    # ---------------------------------------------------------
+
+    try:
+
+        response = stk_push(
+            phone_number=phone_number,
+            amount=order_amount,
+            order_number=order.order_number,
+        )
+
+    except MpesaError as exc:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "error": str(exc),
+            },
+            status=400,
+        )
+
+    except Exception:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "error": (
+                    "Could not start the M-PESA request. "
+                    "Please try again."
+                ),
+            },
+            status=502,
+        )
+
+    # ---------------------------------------------------------
+    # SAVE SUCCESSFUL STK INITIATION
+    # ---------------------------------------------------------
+
+    if response.get("ResponseCode") == "0":
+
+        with db_transaction.atomic():
+
+            locked_order = (
+                Order.objects
+                .select_for_update()
+                .get(pk=order.pk)
+            )
+
+            locked_order.reservation_expires_at = (
+                timezone.now()
+                + timedelta(
+                    minutes=
+                    settings.MPESA_PAYMENT_GRACE_MINUTES
+                )
+            )
+
+            locked_order.save(
+                update_fields=[
+                    "reservation_expires_at",
+                    "updated_at",
+                ]
+            )
+
+            MpesaTransaction.objects.create(
+                order=locked_order,
+                phone_number=phone_number,
+                amount=order_amount,
+
+                merchant_request_id=response.get(
+                    "MerchantRequestID",
+                    "",
+                ),
+
+                checkout_request_id=response.get(
+                    "CheckoutRequestID",
+                    "",
+                ),
+            )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": (
+                    "M-PESA request sent. "
+                    "Check your phone."
+                ),
+            }
+        )
+
+    return JsonResponse(
+        {
+            "success": False,
+            "error": response.get(
+                "errorMessage",
+                "Failed to initiate payment.",
+            ),
+        },
+        status=400,
+    )
+
+
+@csrf_exempt
+def mpesa_callback(request):
+
+    from django.conf import settings
+
+    token = request.GET.get("token")
+
+    if (
+        not settings.MPESA_CALLBACK_SECRET
+        or token != settings.MPESA_CALLBACK_SECRET
+    ):
+
+        return JsonResponse(
+            {
+                "ResultCode": 1,
+                "ResultDesc": "Unauthorized",
+            },
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # PARSE CALLBACK
+    # ---------------------------------------------------------
+
+    try:
+        data = json.loads(request.body)
+
+    except (
+        json.JSONDecodeError,
+        TypeError,
+    ):
+        return JsonResponse(
+            {
+                "ResultCode": 1,
+                "ResultDesc": "Invalid payload",
+            }
+        )
+
+    body = data.get("Body")
+
+    if not isinstance(body, dict):
+
+        return JsonResponse(
+            {
+                "ResultCode": 1,
+                "ResultDesc": (
+                    "Invalid payload structure"
+                ),
+            }
+        )
+
+    stk_callback = body.get(
+        "stkCallback"
+    )
+
+    if not isinstance(stk_callback, dict):
+
+        return JsonResponse(
+            {
+                "ResultCode": 1,
+                "ResultDesc": (
+                    "Invalid payload structure"
+                ),
+            }
+        )
+
+    checkout_request_id = stk_callback.get(
+        "CheckoutRequestID"
+    )
+
+    result_code = stk_callback.get(
+        "ResultCode"
+    )
+
+    result_desc = stk_callback.get(
+        "ResultDesc",
+        "",
+    )
+
+    if (
+        checkout_request_id is None
+        or result_code is None
+    ):
+
+        return JsonResponse(
+            {
+                "ResultCode": 1,
+                "ResultDesc": (
+                    "Missing required fields"
+                ),
+            }
+        )
+
+    payment_confirmed = False
+    order_id_for_notification = None
+
+    # ---------------------------------------------------------
+    # PROCESS ATOMICALLY
+    # ---------------------------------------------------------
+
+    with db_transaction.atomic():
+
+        mpesa_transaction = (
+            MpesaTransaction.objects
+            .select_for_update()
+            .filter(
+                checkout_request_id=
+                checkout_request_id
+            )
+            .first()
+        )
+
+        if not mpesa_transaction:
+
+            # Safaricom may retry callbacks.
+            # Unknown IDs should simply be acknowledged.
+            return JsonResponse(
+                {
+                    "ResultCode": 0,
+                    "ResultDesc": "Accepted",
+                }
+            )
+
+        # Same STK callback already processed.
+        if mpesa_transaction.status in (
+            "success",
+            "failed",
+            "cancelled",
+        ):
+
+            return JsonResponse(
+                {
+                    "ResultCode": 0,
+                    "ResultDesc": (
+                        "Already processed"
+                    ),
+                }
+            )
+
+        # Lock the Order separately.
+        order = (
+            Order.objects
+            .select_for_update()
+            .get(
+                pk=mpesa_transaction.order_id
+            )
+        )
+
+        mpesa_transaction.result_code = str(
+            result_code
+        )
+
+        mpesa_transaction.result_description = (
+            result_desc
+        )
+
+        # =====================================================
+        # SUCCESS CALLBACK
+        # =====================================================
+
+        if result_code == 0:
+
+            metadata = (
+                stk_callback
+                .get(
+                    "CallbackMetadata",
+                    {},
+                )
+                .get(
+                    "Item",
+                    [],
+                )
+            )
+
+            callback_values = {
+                item.get("Name"): item.get("Value")
+                for item in metadata
+                if (
+                    isinstance(item, dict)
+                    and item.get("Name")
+                )
+            }
+
+            receipt_number = (
+                callback_values.get(
+                    "MpesaReceiptNumber"
+                )
+            )
+
+            callback_amount = (
+                callback_values.get(
+                    "Amount"
+                )
+            )
+
+            # -------------------------------------------------
+            # VALIDATE CALLBACK
+            # -------------------------------------------------
+
+            if (
+                receipt_number is None
+                or callback_amount is None
+            ):
+
+                mpesa_transaction.status = (
+                    "failed"
+                )
+
+                mpesa_transaction.result_description = (
+                    "M-PESA callback did not include "
+                    "payment metadata."
+                )
+
+                if order.payment_status != "paid":
+                    release_order_inventory(
+                        order
+                    )
+
+            elif (
+                Decimal(str(callback_amount))
+                != mpesa_transaction.amount
+            ):
+
+                mpesa_transaction.status = (
+                    "failed"
+                )
+
+                mpesa_transaction.result_description = (
+                    "M-PESA callback amount did not "
+                    "match the order amount."
+                )
+
+                if order.payment_status != "paid":
+                    release_order_inventory(
+                        order
+                    )
+
+            # -------------------------------------------------
+            # LATE PAYMENT AFTER EXPIRY / CANCELLATION
+            # -------------------------------------------------
+
+            elif order.status == "cancelled":
+
+                mpesa_transaction.status = (
+                    "success"
+                )
+
+                mpesa_transaction.mpesa_receipt_number = (
+                    str(receipt_number)
+                )
+
+                mpesa_transaction.result_description = (
+                    "Payment was received after the order "
+                    "had already expired or been cancelled."
+                )
+
+                order.payment_status = "paid"
+
+                order.payment_review_required = True
+
+                order.payment_review_reason = (
+                    "Late M-PESA payment received after order "
+                    f"cancellation. Receipt: {receipt_number}. "
+                    "Review fulfilment availability or process "
+                    "a refund."
+                )
+
+                order.save(
+                    update_fields=[
+                        "payment_status",
+                        "payment_review_required",
+                        "payment_review_reason",
+                        "updated_at",
+                    ]
+                )
+
+                # Reservation was already released before
+                # cancellation, so do NOT call
+                # consume_order_inventory() here.
+
+            # -------------------------------------------------
+            # ORDER ALREADY PAID (POSSIBLE DUPLICATE)
+            # -------------------------------------------------
+
+            elif order.payment_status == "paid":
+
+                # Another STK request may already have
+                # paid this same order.
+                #
+                # Record this transaction but DO NOT
+                # consume stock again.
+
+                mpesa_transaction.status = (
+                    "success"
+                )
+
+                mpesa_transaction.mpesa_receipt_number = (
+                    str(receipt_number)
+                )
+
+                mpesa_transaction.result_description = (
+                    "Additional successful M-PESA payment "
+                    "received for an already paid order."
+                )
+
+                order.payment_review_required = True
+
+                order.payment_review_reason = (
+                    "Possible duplicate M-PESA payment. "
+                    f"Additional receipt: {receipt_number}"
+                )
+
+                order.save(
+                    update_fields=[
+                        "payment_review_required",
+                        "payment_review_reason",
+                        "updated_at",
+                    ]
+                )
+
+            # -------------------------------------------------
+            # NORMAL SUCCESS
+            # -------------------------------------------------
+
+            else:
+
+                try:
+
+                    consume_order_inventory(
+                        order
+                    )
+
+                except InventoryError as exc:
+
+                    # Money was received but inventory
+                    # cannot safely be fulfilled.
+                    #
+                    # Do NOT pretend payment failed.
+                    # Preserve the transaction for staff
+                    # investigation/refund.
+
+                    mpesa_transaction.status = (
+                        "success"
+                    )
+
+                    mpesa_transaction.mpesa_receipt_number = (
+                        str(receipt_number)
+                    )
+
+                    mpesa_transaction.result_description = (
+                        "Payment received, but inventory "
+                        f"requires staff review: {exc}"
+                    )
+
+                    order.payment_status = "paid"
+
+                    order.save(
+                        update_fields=[
+                            "payment_status",
+                            "updated_at",
+                        ]
+                    )
+
+                    payment_confirmed = True
+                    order_id_for_notification = (
+                        order.pk
+                    )
+
+                else:
+
+                    mpesa_transaction.status = (
+                        "success"
+                    )
+
+                    mpesa_transaction.mpesa_receipt_number = (
+                        str(receipt_number)
+                    )
+
+                    order.payment_status = "paid"
+                    order.status = "confirmed"
+                    order.reservation_expires_at = None
+
+                    order.save(
+                        update_fields=[
+                            "payment_status",
+                            "status",
+                            "reservation_expires_at",
+                            "updated_at",
+                        ]
+                    )
+
+                    payment_confirmed = True
+                    order_id_for_notification = (
+                        order.pk
+                    )
+
+        # =====================================================
+        # FAILED / CANCELLED STK
+        # =====================================================
+
+        else:
+
+            mpesa_transaction.status = "failed"
+
+            if order.payment_status != "paid":
+
+                release_order_inventory(
+                    order
+                )
+
+        mpesa_transaction.save()
+
+    # ---------------------------------------------------------
+    # NOTIFICATION
+    # ---------------------------------------------------------
+
+    if (
+        payment_confirmed
+        and order_id_for_notification
+    ):
+
+        from notifications.tasks import (
+            send_payment_confirmation,
+        )
+
+        try:
+
+            db_transaction.on_commit(
+                lambda: send_payment_confirmation.delay(
+                    order_id_for_notification
+                )
+            )
+
+        except Exception:
+            # Redis/Celery failure must never undo payment.
+            pass
+
+    return JsonResponse(
+        {
+            "ResultCode": 0,
+            "ResultDesc": "Accepted",
+        }
+    )
+
+
+@login_required
+def check_payment_status(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        Order,
+        order_number=order_number,
+        user=request.user,
+    )
+
+    transaction = (
+        order.mpesa_transactions
+        .order_by("-created_at")
+        .first()
+    )
+
+    if not transaction:
+
+        return JsonResponse(
+            {
+                "status": "none",
+                "order_status": order.status,
+                "payment_status": (
+                    order.payment_status
+                ),
+            }
+        )
+
+    return JsonResponse(
+        {
+            "status": transaction.status,
+
+            "payment_status": (
+                order.payment_status
+            ),
+
+            "order_status": order.status,
+
+            "receipt": (
+                transaction.mpesa_receipt_number
+            ),
+
+            "review_required": (
+                order.payment_review_required
+            ),
+        }
+    )
+
+
+@login_required
+def request_refund(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    if order.payment_status != "paid" or order.status != "delivered":
+        return JsonResponse({"success": False, "error": "Refunds are available only for paid delivered orders."}, status=400)
+    if RefundRequest.objects.filter(order=order, status__in=("requested", "approved", "processed")).exists():
+        return JsonResponse({"success": False, "error": "A refund request already exists for this order."}, status=400)
+    if request.method != "POST":
+        return render(request, "payments/refund_request.html", {"order": order, "form": RefundRequestForm(order=order)})
+
+    form = RefundRequestForm(request.POST, order=order)
+    if form.is_valid():
+        refund = form.save(commit=False)
+        refund.order = order
+        refund.save()
+        return render(request, "payments/refund_submitted.html", {"refund": refund})
+    return render(request, "payments/refund_request.html", {"order": order, "form": form})
+
+
+@login_required
+def request_return(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    if order.payment_status != "paid" or order.status != "delivered":
+        return JsonResponse({"success": False, "error": "Returns are available only for paid delivered orders."}, status=400)
+    if ReturnRequest.objects.filter(order=order, status__in=("requested", "approved")).exists():
+        return JsonResponse({"success": False, "error": "An active return request already exists for this order."}, status=400)
+    form = ReturnRequestForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        return_request = form.save(commit=False)
+        return_request.order = order
+        return_request.save()
+        return render(request, "payments/return_submitted.html", {"return_request": return_request})
+    return render(request, "payments/return_request.html", {"order": order, "form": form})

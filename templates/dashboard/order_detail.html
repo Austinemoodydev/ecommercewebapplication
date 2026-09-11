@@ -1,6 +1,22 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
+
+<div class="container pt-3">
+
+    <div class="text-end">
+
+        <a
+            href="{% url 'customer_returns_refunds' %}"
+            class="btn btn-sm btn-outline-secondary"
+        >
+            My Returns & Refunds
+        </a>
+
+    </div>
+
+</div>
+
 
 <div class="container py-5">
 
@@ -17,6 +33,32 @@
                 <div class="card-body p-4">
 
                     <h4 class="mb-4">Order {{ order.order_number }}</h4>
+
+                    {% if order.payment_review_required %}
+                    <div
+                        class="alert alert-danger
+                               d-flex align-items-start gap-3"
+                    >
+
+                        <i
+                            class="bi bi-exclamation-triangle-fill
+                                   fs-4"
+                        ></i>
+
+                        <div>
+
+                            <strong>
+                                Payment Review Required
+                            </strong>
+
+                            <div class="mt-1">
+                                {{ order.payment_review_reason }}
+                            </div>
+
+                        </div>
+
+                    </div>
+                    {% endif %}
 
                     <table class="table">
 
@@ -70,6 +112,58 @@
                         <span class="badge bg-warning text-dark text-capitalize">{{ order.payment_status }}</span>
                         {% endif %}
                     </p>
+
+                    {% if order.reservation_expires_at and order.payment_status == "pending" %}
+                    <div class="list-row d-flex justify-content-between mt-2">
+
+                        <span>
+                            Reservation Expires
+                        </span>
+
+                        <strong>
+                            {{ order.reservation_expires_at|date:"d M Y H:i" }}
+                        </strong>
+
+                    </div>
+                    {% endif %}
+
+                    {% if order.delivery %}
+
+                    <hr>
+
+                    <div
+                        class="
+                            d-flex
+                            justify-content-between
+                            align-items-center
+                            gap-3
+                        "
+                    >
+
+                        <div>
+
+                            <strong>
+                                Delivery Tracking
+                            </strong>
+
+                            <div class="small text-muted">
+                                {{ order.delivery.get_status_display }}
+                            </div>
+
+                        </div>
+
+                        <a
+                            href="{% url 'customer_delivery_tracking' order.order_number %}"
+                            class="btn btn-primary btn-sm"
+                        >
+                            Track Delivery
+                        </a>
+
+                    </div>
+
+                    {% endif %}
+
+
                     {% if order.courier or order.tracking_number %}
                     <hr>
                     <p class="mb-1"><strong>Delivery tracking</strong></p>

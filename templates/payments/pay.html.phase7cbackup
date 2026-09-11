@@ -1,0 +1,121 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body p-4 text-center">
+
+                    <h3 class="mb-3">Pay with M-PESA</h3>
+
+                    <p class="text-muted mb-4">
+                        Order <strong>{{ order.order_number }}</strong><br>
+                        Amount: <strong>KES {{ order.total_amount }}</strong>
+                    </p>
+
+                    <div class="mb-3 text-start">
+                        <label class="form-label">M-PESA Phone Number</label>
+                        <input type="tel" id="mpesa-phone" class="form-control" value="{{ order.phone }}" placeholder="07XXXXXXXX">
+                    </div>
+
+                    <button id="pay-btn" class="btn btn-success w-100">
+                        Pay Now
+                    </button>
+
+                    <div id="pay-status" class="mt-3"></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const payBtn = document.getElementById("pay-btn");
+    const statusEl = document.getElementById("pay-status");
+    const phoneInput = document.getElementById("mpesa-phone");
+
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+
+    payBtn.addEventListener("click", function () {
+
+        payBtn.disabled = true;
+        payBtn.textContent = "Sending request...";
+        statusEl.innerHTML = "";
+
+        const formData = new FormData();
+        formData.append("phone_number", phoneInput.value);
+
+        fetch(window.location.href, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: formData,
+        })
+        .then(res => res.json())
+        .then(data => {
+
+            if (data.success) {
+                statusEl.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                payBtn.textContent = "Waiting for payment...";
+                pollStatus();
+            } else {
+                statusEl.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                payBtn.disabled = false;
+                payBtn.textContent = "Pay Now";
+            }
+        })
+        .catch(() => {
+            statusEl.innerHTML = `<div class="alert alert-danger">Something went wrong. Try again.</div>`;
+            payBtn.disabled = false;
+            payBtn.textContent = "Pay Now";
+        });
+    });
+
+    function pollStatus() {
+
+        const interval = setInterval(() => {
+
+            fetch("{% url 'check_payment_status' order.order_number %}")
+                .then(res => res.json())
+                .then(data => {
+
+                    if (data.status === "success") {
+                        clearInterval(interval);
+                        statusEl.innerHTML = `<div class="alert alert-success">Payment successful! Receipt: ${data.receipt}</div>`;
+                        payBtn.style.display = "none";
+                    } else if (data.status === "failed") {
+                        clearInterval(interval);
+                        statusEl.innerHTML = `<div class="alert alert-danger">Payment failed. Please try again.</div>`;
+                        payBtn.disabled = false;
+                        payBtn.textContent = "Pay Now";
+                    }
+                });
+
+        }, 3000);
+    }
+
+});
+</script>
+{% endblock %}

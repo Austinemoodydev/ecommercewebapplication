@@ -1,0 +1,779 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Sales Reports
+{% endblock %}
+
+{% block page_heading %}
+Sales Reports
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div>
+
+        <h1>
+            Sales & Business Analytics
+        </h1>
+
+        <p>
+            Revenue, orders, refunds, delivery costs,
+            products and customer performance.
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- FILTERS -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <form
+        method="GET"
+        class="row g-3 align-items-end"
+    >
+
+        <div class="col-md-4">
+
+            <label class="form-label">
+                From
+            </label>
+
+            <input
+                type="date"
+                name="start"
+                value="{{ start_date|date:'Y-m-d' }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div class="col-md-4">
+
+            <label class="form-label">
+                To
+            </label>
+
+            <input
+                type="date"
+                name="end"
+                value="{{ end_date|date:'Y-m-d' }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div class="col-md-2">
+
+            <button
+                class="btn btn-primary w-100"
+            >
+                Apply
+            </button>
+
+        </div>
+
+
+        <div class="col-md-2">
+
+            <a
+                href="{% url 'admin_sales_reports_csv' %}?start={{ start_date|date:'Y-m-d' }}&end={{ end_date|date:'Y-m-d' }}"
+                class="btn btn-outline-success w-100"
+            >
+                Export CSV
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- REVENUE KPI -->
+<!-- ===================================================== -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Gross Revenue
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ gross_revenue|floatformat:2 }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Refunds
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ processed_refunds|floatformat:2 }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Net Revenue
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ net_revenue|floatformat:2 }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Estimated Gross Profit
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ estimated_gross_profit|floatformat:2 }}
+            </div>
+
+            <small class="text-muted">
+                Uses current product cost prices.
+            </small>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- ORDER KPI -->
+<!-- ===================================================== -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Total Orders
+            </small>
+
+            <div class="fs-3 fw-bold">
+                {{ total_orders }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Paid Orders
+            </small>
+
+            <div class="fs-3 fw-bold">
+                {{ paid_order_count }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Cancelled
+            </small>
+
+            <div class="fs-3 fw-bold">
+                {{ cancelled_orders }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Average Order Value
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ average_order_value|floatformat:2 }}
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- DELIVERY / PAYMENT -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-4">
+                Delivery Financials
+            </h2>
+
+
+            <div class="d-flex justify-content-between border-bottom py-2">
+
+                <span>
+                    Customer Delivery Charges
+                </span>
+
+                <strong>
+                    KES {{ delivery_income|floatformat:2 }}
+                </strong>
+
+            </div>
+
+
+            <div class="d-flex justify-content-between border-bottom py-2">
+
+                <span>
+                    Actual Delivery Cost
+                </span>
+
+                <strong>
+                    KES {{ actual_delivery_cost|floatformat:2 }}
+                </strong>
+
+            </div>
+
+
+            <div class="d-flex justify-content-between py-2">
+
+                <span>
+                    Delivery Margin
+                </span>
+
+                <strong>
+                    KES {{ delivery_margin|floatformat:2 }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-4">
+                Payment Collection
+            </h2>
+
+
+            <div class="d-flex justify-content-between border-bottom py-2">
+
+                <span>
+                    Successful M-PESA
+                </span>
+
+                <strong>
+                    {{ successful_mpesa_count }}
+                </strong>
+
+            </div>
+
+
+            <div class="d-flex justify-content-between border-bottom py-2">
+
+                <span>
+                    M-PESA Collected
+                </span>
+
+                <strong>
+                    KES {{ mpesa_collected|floatformat:2 }}
+                </strong>
+
+            </div>
+
+
+            <div class="d-flex justify-content-between py-2">
+
+                <span>
+                    Estimated Product Cost
+                </span>
+
+                <strong>
+                    KES {{ estimated_cogs|floatformat:2 }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- DAILY SALES -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <h2 class="h5 mb-3">
+        Daily Sales
+    </h2>
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th>Date</th>
+                    <th>Orders</th>
+                    <th class="text-end">
+                        Revenue
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for row in daily_sales %}
+
+                    <tr>
+
+                        <td>
+                            {{ row.day|date:"d M Y" }}
+                        </td>
+
+                        <td>
+                            {{ row.orders }}
+                        </td>
+
+                        <td class="text-end">
+                            KES {{ row.revenue|floatformat:2 }}
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="3"
+                            class="text-center text-muted py-4"
+                        >
+                            No paid sales in this period.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- TOP PRODUCTS / CUSTOMERS -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Top Products
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Product</th>
+
+                            <th class="text-end">
+                                Qty
+                            </th>
+
+                            <th class="text-end">
+                                Revenue
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in top_products %}
+
+                            <tr>
+
+                                <td>
+                                    {{ row.product_name }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.quantity_sold }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.revenue|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="text-muted text-center"
+                                >
+                                    No sales.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Top Customers
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Customer</th>
+
+                            <th class="text-end">
+                                Orders
+                            </th>
+
+                            <th class="text-end">
+                                Spent
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in top_customers %}
+
+                            <tr>
+
+                                <td>
+
+                                    {{ row.full_name }}
+
+                                    <small class="d-block text-muted">
+                                        {{ row.phone }}
+                                    </small>
+
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.order_count }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.total_spent|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="text-muted text-center"
+                                >
+                                    No customers.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- STATUS BREAKDOWNS -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5">
+                Order Status
+            </h2>
+
+            {% for row in order_statuses %}
+
+                <div class="d-flex justify-content-between border-bottom py-2">
+
+                    <span>
+                        {{ row.status|title }}
+                    </span>
+
+                    <strong>
+                        {{ row.total }}
+                    </strong>
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No orders.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5">
+                Payment Status
+            </h2>
+
+            {% for row in payment_statuses %}
+
+                <div class="d-flex justify-content-between border-bottom py-2">
+
+                    <span>
+                        {{ row.payment_status|title }}
+                    </span>
+
+                    <strong>
+                        {{ row.total }}
+                    </strong>
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No orders.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- RECENT PAID ORDERS -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card">
+
+    <h2 class="h5 mb-3">
+        Recent Paid Orders
+    </h2>
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Date</th>
+
+                    <th class="text-end">
+                        Total
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for order in recent_orders %}
+
+                    <tr>
+
+                        <td>
+
+                            <a
+                                href="{% url 'admin_order_detail' order.order_number %}"
+                            >
+                                {{ order.order_number }}
+                            </a>
+
+                        </td>
+
+                        <td>
+                            {{ order.full_name }}
+                        </td>
+
+                        <td>
+                            {{ order.get_status_display }}
+                        </td>
+
+                        <td>
+                            {{ order.get_payment_status_display }}
+                        </td>
+
+                        <td>
+                            {{ order.created_at|date:"d M Y H:i" }}
+                        </td>
+
+                        <td class="text-end">
+                            KES {{ order.total_amount|floatformat:2 }}
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="text-center text-muted py-4"
+                        >
+                            No paid orders.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

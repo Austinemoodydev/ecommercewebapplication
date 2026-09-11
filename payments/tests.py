@@ -111,6 +111,44 @@ class MpesaCallbackTests(TestCase):
 		self.assertEqual(self.order.payment_status, "pending")
 		self.assertEqual(self.product.stock, 3)
 
+	def test_second_successful_stk_does_not_deduct_stock_twice(self):
+
+		# First payment succeeds.
+		self.post_callback(self.callback_payload())
+
+		self.order.refresh_from_db()
+		self.assertEqual(self.order.inventory_status, "consumed")
+
+		# Create another STK transaction for the same order.
+		second_transaction = MpesaTransaction.objects.create(
+			order=self.order,
+			phone_number="254712345678",
+			amount=self.order.total_amount,
+			checkout_request_id="ws_CO_SECOND",
+		)
+
+		second_payload = {
+			"Body": {
+				"stkCallback": {
+					"CheckoutRequestID": second_transaction.checkout_request_id,
+					"ResultCode": 0,
+					"ResultDesc": "Success",
+					"CallbackMetadata": {
+						"Item": [
+							{"Name": "Amount", "Value": 20},
+							{"Name": "MpesaReceiptNumber", "Value": "SECOND123"},
+						]
+					},
+				}
+			}
+		}
+
+		self.post_callback(second_payload)
+
+		self.product.refresh_from_db()
+
+		self.assertEqual(self.product.stock, 1)
+
 
 class RefundRequestTests(TestCase):
 	def setUp(self):

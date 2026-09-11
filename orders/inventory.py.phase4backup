@@ -1,0 +1,199 @@
+from django.core.exceptions import ValidationError
+
+from products.models import Product, ProductVariant
+
+
+class InventoryError(Exception):
+    pass
+
+
+def get_locked_inventory(order_item):
+    """
+    Return the Product or ProductVariant belonging to an OrderItem,
+    locked for database update.
+    """
+
+    if order_item.variant_id:
+        return ProductVariant.objects.select_for_update().get(
+            pk=order_item.variant_id
+        )
+
+    return Product.objects.select_for_update().get(
+        pk=order_item.product_id
+    )
+
+
+def reserve_order_inventory(order):
+    """
+    Reserve stock for an order.
+
+    Safe to call repeatedly. If the order already has a reservation,
+    nothing is reserved twice.
+    """
+
+    if order.inventory_status == "consumed":
+        raise InventoryError(
+            "Inventory for this order has already been consumed."
+        )
+
+    if order.inventory_status == "reserved":
+        return
+
+    items = list(
+        order.items
+        .select_related("product", "variant")
+        .all()
+    )
+
+    locked_inventory = []
+
+    # First verify everything is available.
+    for item in items:
+
+        inventory = get_locked_inventory(item)
+
+        if item.quantity > inventory.available_stock:
+            raise InventoryError(
+                f"Only {inventory.available_stock} of "
+                f"{item.product_name} is currently available."
+            )
+
+        locked_inventory.append(
+            (item, inventory)
+        )
+
+    # Reserve only after every item has passed validation.
+    for item, inventory in locked_inventory:
+
+        inventory.reserved_stock += item.quantity
+
+        fields = ["reserved_stock"]
+
+        if not item.variant_id:
+            fields.append("updated_at")
+
+        inventory.save(
+            update_fields=fields
+        )
+
+    order.inventory_status = "reserved"
+
+    order.save(
+        update_fields=[
+            "inventory_status",
+            "updated_at",
+        ]
+    )
+
+
+def release_order_inventory(order):
+    """
+    Release inventory reserved for an unpaid/cancelled order.
+
+    Safe to call more than once.
+    """
+
+    if order.inventory_status != "reserved":
+        return
+
+    items = (
+        order.items
+        .select_related("product", "variant")
+        .all()
+    )
+
+    for item in items:
+
+        inventory = get_locked_inventory(item)
+
+        inventory.reserved_stock = max(
+            inventory.reserved_stock - item.quantity,
+            0,
+        )
+
+        fields = ["reserved_stock"]
+
+        if not item.variant_id:
+            fields.append("updated_at")
+
+        inventory.save(
+            update_fields=fields
+        )
+
+    order.inventory_status = "released"
+
+    order.save(
+        update_fields=[
+            "inventory_status",
+            "updated_at",
+        ]
+    )
+
+
+def consume_order_inventory(order):
+    """
+    Convert an existing reservation into a completed sale.
+
+    This deducts physical stock exactly once.
+    """
+
+    if order.inventory_status == "consumed":
+        return
+
+    if order.inventory_status != "reserved":
+        raise InventoryError(
+            "This order no longer has reserved inventory."
+        )
+
+    items = (
+        order.items
+        .select_related("product", "variant")
+        .all()
+    )
+
+    locked_inventory = []
+
+    for item in items:
+
+        inventory = get_locked_inventory(item)
+
+        # The stock itself must still be sufficient.
+        if inventory.stock < item.quantity:
+            raise InventoryError(
+                f"Insufficient physical stock for "
+                f"{item.product_name}."
+            )
+
+        locked_inventory.append(
+            (item, inventory)
+        )
+
+    for item, inventory in locked_inventory:
+
+        inventory.stock -= item.quantity
+
+        inventory.reserved_stock = max(
+            inventory.reserved_stock - item.quantity,
+            0,
+        )
+
+        fields = [
+            "stock",
+            "reserved_stock",
+        ]
+
+        if not item.variant_id:
+            fields.append("updated_at")
+
+        inventory.save(
+            update_fields=fields
+        )
+
+    order.inventory_status = "consumed"
+
+    order.save(
+        update_fields=[
+            "inventory_status",
+            "updated_at",
+        ]
+    )

@@ -1,0 +1,131 @@
+from decimal import Decimal
+
+from django.contrib.auth import (
+    get_user_model,
+)
+
+from django.test import TestCase
+
+from orders.models import Order
+
+from .models import CustomerNote
+
+
+User = get_user_model()
+
+
+class CRMTests(TestCase):
+
+    def setUp(self):
+
+        self.staff = (
+            User.objects.create_user(
+                username="crmadmin",
+                password="testpass123",
+                role=User.ADMIN,
+                is_staff=True,
+            )
+        )
+
+        self.customer = (
+            User.objects.create_user(
+                username="buyer",
+                email="buyer@example.com",
+                password="testpass123",
+                role=User.CUSTOMER,
+                phone="0712345678",
+            )
+        )
+
+    def create_order(
+        self,
+        number,
+        payment_status="paid",
+        amount="1000.00",
+    ):
+
+        return Order.objects.create(
+            user=self.customer,
+            order_number=number,
+            full_name="Test Buyer",
+            phone="0712345678",
+            email="buyer@example.com",
+            county="Nairobi",
+            city="Nairobi",
+            estate="CBD",
+            house_number="1",
+            subtotal=Decimal(amount),
+            shipping_cost=Decimal("0.00"),
+            discount=Decimal("0.00"),
+            total_amount=Decimal(amount),
+            status="delivered",
+            payment_status=payment_status,
+            inventory_status="consumed",
+        )
+
+    def test_customer_note(self):
+
+        note = CustomerNote.objects.create(
+            customer=self.customer,
+            created_by=self.staff,
+            note="Important customer note.",
+        )
+
+        self.assertEqual(
+            note.customer,
+            self.customer,
+        )
+
+    def test_customer_list_requires_staff(self):
+
+        response = self.client.get(
+            "/dashboard/admin/customers/"
+        )
+
+        self.assertNotEqual(
+            response.status_code,
+            200,
+        )
+
+        self.client.login(
+            username="crmadmin",
+            password="testpass123",
+        )
+
+        response = self.client.get(
+            "/dashboard/admin/customers/"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+    def test_customer_detail(self):
+
+        self.create_order(
+            "CRM-ORDER-001",
+            amount="2500.00",
+        )
+
+        self.client.login(
+            username="crmadmin",
+            password="testpass123",
+        )
+
+        response = self.client.get(
+            (
+                "/dashboard/admin/customers/"
+                f"{self.customer.pk}/"
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            "2500.00",
+        )

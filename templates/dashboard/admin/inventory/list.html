@@ -1,0 +1,498 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Inventory | Store Management
+{% endblock %}
+
+{% block page_heading %}
+Inventory
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            Inventory Management
+        </h1>
+
+        <p class="text-muted mb-0">
+            Stock control, valuation and movement history.
+        </p>
+
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+
+        <a
+            href="{% url 'inventory_export_csv' %}"
+            class="btn btn-outline-success"
+        >
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            Export CSV
+        </a>
+
+        <a
+            href="{% url 'inventory_movement_list' %}"
+            class="btn btn-outline-primary"
+        >
+            <i class="bi bi-clock-history"></i>
+            Stock History
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4 col-xl">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Products
+            </span>
+
+            <strong>
+                {{ total_products }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-4 col-xl">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Low Stock Items
+            </span>
+
+            <strong>
+                {{ low_stock_count }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-4 col-xl">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Out of Stock
+            </span>
+
+            <strong>
+                {{ out_stock_count }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Inventory Cost Value
+            </span>
+
+            <strong>
+                KES {{ inventory_value|floatformat:2 }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Missing Cost Prices
+            </span>
+
+            <strong>
+                {{ missing_cost_count }}
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+{% if missing_cost_count %}
+
+<div class="alert alert-warning">
+
+    <i class="bi bi-exclamation-triangle"></i>
+
+    {{ missing_cost_count }}
+    stocked item{{ missing_cost_count|pluralize }}
+    have no cost price.
+
+    They are excluded from the inventory valuation.
+
+</div>
+
+{% endif %}
+
+
+<div class="dashboard-card mb-4">
+
+    <form method="GET">
+
+        <div class="row g-3">
+
+            <div class="col-lg-8">
+
+                <label class="form-label">
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control"
+                    placeholder="Product, SKU, variant, brand..."
+                >
+
+            </div>
+
+            <div class="col-lg-4">
+
+                <label class="form-label">
+                    Stock Status
+                </label>
+
+                <select
+                    name="stock"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All
+                    </option>
+
+                    <option
+                        value="available"
+                        {% if selected_stock == "available" %}
+                            selected
+                        {% endif %}
+                    >
+                        Available
+                    </option>
+
+                    <option
+                        value="low"
+                        {% if selected_stock == "low" %}
+                            selected
+                        {% endif %}
+                    >
+                        Low Stock
+                    </option>
+
+                    <option
+                        value="out"
+                        {% if selected_stock == "out" %}
+                            selected
+                        {% endif %}
+                    >
+                        Out of Stock
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <div class="mt-3">
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Filter
+            </button>
+
+            <a
+                href="{% url 'inventory_dashboard' %}"
+                class="btn btn-outline-secondary"
+            >
+                Reset
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<div class="dashboard-card mb-4">
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Product</th>
+                    <th>Physical</th>
+                    <th>Reserved</th>
+                    <th>Available</th>
+                    <th>Alert At</th>
+                    <th>Cost</th>
+                    <th>Stock Value</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for product in products %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+                                {{ product.name }}
+                            </strong>
+
+                            <small class="text-muted d-block">
+                                {{ product.sku }}
+                            </small>
+
+                            {% if product.variants.count %}
+
+                                <small class="text-muted">
+                                    {{ product.variants.count }}
+                                    variant{{ product.variants.count|pluralize }}
+                                </small>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ product.stock }}
+                        </td>
+
+
+                        <td>
+                            {{ product.reserved_stock }}
+                        </td>
+
+
+                        <td>
+
+                            {% if product.available_stock == 0 %}
+
+                                <span class="badge text-bg-danger">
+                                    0
+                                </span>
+
+                            {% elif product.available_stock <= product.low_stock_threshold %}
+
+                                <span class="badge text-bg-warning">
+                                    {{ product.available_stock }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-success">
+                                    {{ product.available_stock }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ product.low_stock_threshold }}
+                        </td>
+
+
+                        <td>
+
+                            {% if product.cost_price != None %}
+
+                                KES {{ product.cost_price|floatformat:2 }}
+
+                            {% else %}
+
+                                <span class="badge text-bg-warning">
+                                    Missing
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            {% if product.inventory_value != None %}
+
+                                KES {{ product.inventory_value|floatformat:2 }}
+
+                            {% else %}
+
+                                —
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <a
+                                href="{% url 'inventory_product_detail' product.pk %}"
+                                class="btn btn-sm btn-outline-primary"
+                            >
+                                Manage
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="8"
+                            class="text-center text-muted py-5"
+                        >
+                            No products found.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<div class="dashboard-card">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <h2 class="h5 mb-0">
+            Recent Stock Movements
+        </h2>
+
+        <a href="{% url 'inventory_movement_list' %}">
+            View All
+        </a>
+
+    </div>
+
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Item</th>
+                    <th>Type</th>
+                    <th>Qty</th>
+                    <th>Before</th>
+                    <th>After</th>
+                    <th>Reference</th>
+                    <th>Date</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for movement in recent_movements %}
+
+                    <tr>
+
+                        <td>
+                            {{ movement.item_name }}
+                        </td>
+
+                        <td>
+                            {{ movement.get_movement_type_display }}
+                        </td>
+
+                        <td>
+                            {{ movement.quantity }}
+                        </td>
+
+                        <td>
+                            {{ movement.stock_before }}
+                        </td>
+
+                        <td>
+                            {{ movement.stock_after }}
+                        </td>
+
+                        <td>
+                            {{ movement.reference|default:"—" }}
+                        </td>
+
+                        <td>
+                            {{ movement.created_at|date:"d M Y H:i" }}
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="text-center text-muted py-4"
+                        >
+                            No inventory movements yet.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

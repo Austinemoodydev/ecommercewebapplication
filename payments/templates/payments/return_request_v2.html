@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <a
+                href="{% url 'order_detail' order.order_number %}"
+                class="btn btn-outline-secondary btn-sm mb-4"
+            >
+                &larr; Back to Order
+            </a>
+
+
+            <div class="card shadow-sm">
+
+                <div class="card-body p-4">
+
+                    <h3>
+                        Return or Replace Items
+                    </h3>
+
+                    <p class="text-muted">
+                        Order {{ order.order_number }}
+                    </p>
+
+
+                    {% if error %}
+
+                        <div class="alert alert-danger">
+                            {{ error }}
+                        </div>
+
+                    {% endif %}
+
+
+                    <form method="POST">
+
+                        {% csrf_token %}
+
+
+                        <div class="mb-4">
+
+                            <label class="form-label fw-semibold">
+                                Request Type
+                            </label>
+
+                            <select
+                                name="request_type"
+                                class="form-select"
+                                required
+                            >
+
+                                <option value="">
+                                    Select
+                                </option>
+
+                                <option
+                                    value="return"
+                                    {% if request_type == "return" %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    Return
+                                </option>
+
+                                <option
+                                    value="replacement"
+                                    {% if request_type == "replacement" %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    Replacement
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <h5 class="mb-3">
+                            Select Items
+                        </h5>
+
+
+                        <div class="table-responsive">
+
+                            <table class="table align-middle">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>Product</th>
+
+                                        <th>
+                                            Purchased
+                                        </th>
+
+                                        <th style="width:140px;">
+                                            Return Qty
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody>
+
+                                    {% for item in items %}
+
+                                        <tr>
+
+                                            <td>
+
+                                                <strong>
+                                                    {{ item.product_name }}
+                                                </strong>
+
+                                                {% if item.variant_name %}
+
+                                                    <div class="small text-muted">
+                                                        {{ item.variant_name }}
+                                                    </div>
+
+                                                {% endif %}
+
+                                            </td>
+
+
+                                            <td>
+                                                {{ item.quantity }}
+
+                                                {% if item.returnable_quantity != item.quantity %}
+
+                                                    <small class="d-block text-muted">
+                                                        {{ item.returnable_quantity }}
+                                                        still returnable
+                                                    </small>
+
+                                                {% endif %}
+                                            </td>
+
+
+                                            <td>
+
+                                                <input
+                                                    type="number"
+                                                    name="quantity_{{ item.pk }}"
+                                                    min="0"
+                                                    max="{{ item.returnable_quantity }}"
+                                                    value="0"
+                                                    class="form-control"
+                                                >
+
+                                            </td>
+
+                                        </tr>
+
+                                    {% endfor %}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <div class="mb-4">
+
+                            <label class="form-label fw-semibold">
+                                Reason
+                            </label>
+
+                            <textarea
+                                name="reason"
+                                rows="5"
+                                class="form-control"
+                                required
+                                placeholder="Explain the problem with the item..."
+                            >{{ reason|default:"" }}</textarea>
+
+                        </div>
+
+
+                        <button
+                            class="btn btn-primary"
+                        >
+                            Submit Request
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

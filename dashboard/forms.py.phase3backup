@@ -1,0 +1,209 @@
+from django import forms
+from django.core.exceptions import ValidationError
+
+from products.models import Product
+from orders.models import Order
+
+
+class AdminProductForm(forms.ModelForm):
+
+    class Meta:
+        model = Product
+
+        fields = [
+            "name",
+            "sku",
+            "category",
+            "brand",
+            "description",
+            "price",
+            "discount_price",
+            "stock",
+            "image",
+            "featured",
+            "is_active",
+        ]
+
+        widgets = {
+
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Product name",
+                }
+            ),
+
+            "sku": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. HP-840-G6-001",
+                }
+            ),
+
+            "category": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+
+            "brand": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 6,
+                    "placeholder": (
+                        "Describe the product..."
+                    ),
+                }
+            ),
+
+            "price": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "0",
+                    "step": "0.01",
+                }
+            ),
+
+            "discount_price": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "0",
+                    "step": "0.01",
+                    "placeholder": "Optional sale price",
+                }
+            ),
+
+            "stock": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "0",
+                }
+            ),
+
+            "image": forms.ClearableFileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/*",
+                }
+            ),
+
+            "featured": forms.CheckboxInput(
+                attrs={
+                    "class": "form-check-input",
+                }
+            ),
+
+            "is_active": forms.CheckboxInput(
+                attrs={
+                    "class": "form-check-input",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        self.fields["category"].queryset = (
+            self.fields["category"]
+            .queryset
+            .order_by("name")
+        )
+
+        self.fields["brand"].queryset = (
+            self.fields["brand"]
+            .queryset
+            .order_by("name")
+        )
+
+        self.fields["brand"].required = False
+
+        # Existing products should not be forced
+        # to upload the primary image again.
+        if self.instance and self.instance.pk:
+            self.fields["image"].required = False
+
+    def clean_sku(self):
+
+        sku = self.cleaned_data["sku"].strip().upper()
+
+        existing = Product.objects.filter(
+            sku__iexact=sku
+        )
+
+        if self.instance.pk:
+            existing = existing.exclude(
+                pk=self.instance.pk
+            )
+
+        if existing.exists():
+            raise ValidationError(
+                "Another product already uses this SKU."
+            )
+
+        return sku
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+
+        price = cleaned_data.get("price")
+
+        discount_price = cleaned_data.get(
+            "discount_price"
+        )
+
+        if (
+            price is not None
+            and discount_price is not None
+            and discount_price >= price
+        ):
+            self.add_error(
+                "discount_price",
+                (
+                    "Sale price must be lower "
+                    "than the regular price."
+                ),
+            )
+
+        return cleaned_data
+
+
+class AdminOrderShippingForm(forms.ModelForm):
+    class Meta:
+        model = Order
+
+        fields = [
+            "courier",
+            "tracking_number",
+            "tracking_url",
+        ]
+
+        widgets = {
+            "courier": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. G4S, Fargo Courier",
+                }
+            ),
+
+            "tracking_number": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Tracking number",
+                }
+            ),
+
+            "tracking_url": forms.URLInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "https://...",
+                }
+            ),
+        }

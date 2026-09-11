@@ -1,0 +1,806 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Payment | {{ order.order_number }}
+{% endblock %}
+
+{% block page_heading %}
+Payment Details
+{% endblock %}
+
+{% block admin_content %}
+
+
+<div class="dashboard-heading">
+
+    <div
+        class="
+            d-flex
+            justify-content-between
+            align-items-start
+            flex-wrap
+            gap-3
+        "
+    >
+
+        <div>
+
+            <h1>
+                M-Pesa Transaction
+            </h1>
+
+            <p>
+                Order
+                {{ order.order_number }}
+            </p>
+
+        </div>
+
+
+        <div class="d-flex gap-2 flex-wrap">
+
+            <a
+                href="{% url 'admin_payment_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                <i class="bi bi-arrow-left"></i>
+                Payments
+            </a>
+
+
+            <a
+                href="{% url 'admin_order_detail' order.order_number %}"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-bag-check"></i>
+                View Order
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- SUMMARY -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Amount
+            </span>
+
+            <strong>
+                KES {{ payment.amount|floatformat:2 }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Transaction
+            </span>
+
+            <strong class="fs-6">
+                {{ payment.get_status_display }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Order Payment
+            </span>
+
+            <strong class="fs-6">
+                {{ order.get_payment_status_display }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Successful Attempts
+            </span>
+
+            <strong>
+                {{ successful_payment_count }}
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- REVIEW WARNING -->
+
+{% if order.payment_review_required %}
+
+<div class="alert alert-warning">
+
+    <div class="d-flex gap-3">
+
+        <i
+            class="
+                bi
+                bi-exclamation-triangle-fill
+                fs-4
+            "
+        ></i>
+
+
+        <div>
+
+            <strong class="d-block mb-1">
+                Payment Review Required
+            </strong>
+
+            {{ order.payment_review_reason|default:"This payment requires staff review." }}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<div class="row g-3 mb-4">
+
+
+    <!-- TRANSACTION -->
+
+    <div class="col-xl-7">
+
+        <div class="dashboard-card h-100">
+
+            <div class="card-header-custom">
+
+                <div>
+
+                    <h2>
+                        Transaction Information
+                    </h2>
+
+                    <p>
+                        Raw M-Pesa transaction identifiers
+                        recorded by the payment system.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table
+                    class="
+                        table
+                        dashboard-table
+                        mb-0
+                    "
+                >
+
+                    <tbody>
+
+                        <tr>
+
+                            <th style="width:34%;">
+                                M-Pesa Receipt
+                            </th>
+
+                            <td>
+
+                                {% if payment.mpesa_receipt_number %}
+
+                                    <code>
+                                        {{ payment.mpesa_receipt_number }}
+                                    </code>
+
+                                {% else %}
+                                    —
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Phone Number
+                            </th>
+
+                            <td>
+                                {{ payment.phone_number }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Amount
+                            </th>
+
+                            <td>
+                                KES {{ payment.amount|floatformat:2 }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <td>
+                                {{ payment.get_status_display }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Result Code
+                            </th>
+
+                            <td>
+                                {{ payment.result_code|default:"—" }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Result Description
+                            </th>
+
+                            <td>
+                                {{ payment.result_description|default:"—" }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Merchant Request ID
+                            </th>
+
+                            <td>
+                                <code>
+                                    {{ payment.merchant_request_id|default:"—" }}
+                                </code>
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Checkout Request ID
+                            </th>
+
+                            <td>
+                                <code>
+                                    {{ payment.checkout_request_id|default:"—" }}
+                                </code>
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Created
+                            </th>
+
+                            <td>
+                                {{ payment.created_at|date:"d M Y H:i:s" }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <th>
+                                Last Updated
+                            </th>
+
+                            <td>
+                                {{ payment.updated_at|date:"d M Y H:i:s" }}
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ORDER / CUSTOMER -->
+
+    <div class="col-xl-5">
+
+        <div class="dashboard-card h-100">
+
+            <div class="card-header-custom">
+
+                <div>
+
+                    <h2>
+                        Order & Customer
+                    </h2>
+
+                    <p>
+                        Related ecommerce record.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <dl class="row mb-0">
+
+                <dt class="col-5">
+                    Order
+                </dt>
+
+                <dd class="col-7">
+                    {{ order.order_number }}
+                </dd>
+
+
+                <dt class="col-5">
+                    Customer
+                </dt>
+
+                <dd class="col-7">
+
+                    {% if order.user.get_full_name %}
+
+                        {{ order.user.get_full_name }}
+
+                    {% else %}
+
+                        {{ order.user.username }}
+
+                    {% endif %}
+
+                </dd>
+
+
+                <dt class="col-5">
+                    Email
+                </dt>
+
+                <dd class="col-7">
+                    {{ order.user.email|default:"—" }}
+                </dd>
+
+
+                <dt class="col-5">
+                    Order Total
+                </dt>
+
+                <dd class="col-7">
+                    KES {{ order.total_amount|floatformat:2 }}
+                </dd>
+
+
+                <dt class="col-5">
+                    Successful Paid
+                </dt>
+
+                <dd class="col-7">
+                    KES {{ successful_payment_total|floatformat:2 }}
+                </dd>
+
+
+                <dt class="col-5">
+                    Order Status
+                </dt>
+
+                <dd class="col-7">
+                    {{ order.get_status_display }}
+                </dd>
+
+
+                <dt class="col-5">
+                    Payment Status
+                </dt>
+
+                <dd class="col-7">
+                    {{ order.get_payment_status_display }}
+                </dd>
+
+
+                <dt class="col-5">
+                    Inventory
+                </dt>
+
+                <dd class="col-7">
+                    {{ order.get_inventory_status_display }}
+                </dd>
+
+            </dl>
+
+
+            <hr>
+
+
+            <a
+                href="{% url 'admin_order_detail' order.order_number %}"
+                class="btn btn-outline-primary"
+            >
+                Open Full Order
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     PAYMENT REVIEW
+====================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <div class="card-header-custom">
+
+        <div>
+
+            <h2>
+                Reconciliation Review
+            </h2>
+
+            <p>
+                Staff audit trail for exceptional payment cases.
+            </p>
+
+        </div>
+
+
+        {% if order.payment_review_required %}
+
+            <span class="badge text-bg-warning">
+                Open
+            </span>
+
+        {% else %}
+
+            <span class="badge text-bg-success">
+                Clear
+            </span>
+
+        {% endif %}
+
+    </div>
+
+
+    {% if order.payment_review_reason %}
+
+        <div class="mb-4">
+
+            <label class="form-label fw-semibold">
+                Review Reason
+            </label>
+
+            <div
+                class="
+                    border
+                    rounded
+                    p-3
+                    bg-body-tertiary
+                "
+            >
+                {{ order.payment_review_reason }}
+            </div>
+
+        </div>
+
+    {% endif %}
+
+
+    {% if order.payment_review_resolution %}
+
+        <div class="mb-4">
+
+            <label class="form-label fw-semibold">
+                Last Resolution
+            </label>
+
+            <div
+                class="
+                    border
+                    rounded
+                    p-3
+                "
+            >
+
+                <div style="white-space:pre-wrap;">{{ order.payment_review_resolution }}</div>
+
+
+                {% if order.payment_review_resolved_at %}
+
+                    <small class="d-block text-muted mt-2">
+
+                        Resolved
+
+                        {{ order.payment_review_resolved_at|date:"d M Y H:i" }}
+
+                        {% if order.payment_review_resolved_by %}
+
+                            by
+
+                            {{ order.payment_review_resolved_by.get_full_name|default:order.payment_review_resolved_by.username }}
+
+                        {% endif %}
+
+                    </small>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+
+    {% if order.payment_review_required %}
+
+        <form
+            method="POST"
+            action="{% url 'admin_payment_review_resolve' payment.pk %}"
+        >
+
+            {% csrf_token %}
+
+            <label
+                class="
+                    form-label
+                    fw-semibold
+                "
+            >
+                Resolution Note
+            </label>
+
+            {{ review_form.resolution }}
+
+            <div class="form-text mb-3">
+
+                Record what you verified before
+                closing this payment-review case.
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-success"
+                onclick="return confirm('Mark this payment review as resolved?');"
+            >
+                <i class="bi bi-check-circle"></i>
+                Resolve Review
+            </button>
+
+        </form>
+
+    {% else %}
+
+        <form
+            method="POST"
+            action="{% url 'admin_payment_review_reopen' payment.pk %}"
+        >
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                class="btn btn-outline-warning"
+            >
+                <i class="bi bi-arrow-counterclockwise"></i>
+                Reopen Review
+            </button>
+
+        </form>
+
+    {% endif %}
+
+</div>
+
+
+<!-- ======================================================
+     ALL STK ATTEMPTS FOR ORDER
+====================================================== -->
+
+<div class="dashboard-card">
+
+    <div class="card-header-custom">
+
+        <div>
+
+            <h2>
+                All M-Pesa Attempts
+            </h2>
+
+            <p>
+                Every STK transaction linked
+                to order {{ order.order_number }}.
+            </p>
+
+        </div>
+
+        <span class="badge text-bg-light border">
+
+            {{ all_order_transactions.count }}
+            attempt{{ all_order_transactions.count|pluralize }}
+
+        </span>
+
+    </div>
+
+
+    <div class="table-responsive">
+
+        <table
+            class="
+                table
+                dashboard-table
+                align-middle
+            "
+        >
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Date
+                    </th>
+
+                    <th>
+                        Phone
+                    </th>
+
+                    <th>
+                        Amount
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Receipt
+                    </th>
+
+                    <th>
+                        Result
+                    </th>
+
+                    <th class="text-end">
+                        Action
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for tx in all_order_transactions %}
+
+                    <tr
+                        {% if tx.pk == payment.pk %}
+                            class="table-active"
+                        {% endif %}
+                    >
+
+                        <td>
+                            {{ tx.created_at|date:"d M Y H:i" }}
+                        </td>
+
+
+                        <td>
+                            {{ tx.phone_number }}
+                        </td>
+
+
+                        <td>
+                            KES {{ tx.amount|floatformat:2 }}
+                        </td>
+
+
+                        <td>
+                            {{ tx.get_status_display }}
+                        </td>
+
+
+                        <td>
+                            {{ tx.mpesa_receipt_number|default:"—" }}
+                        </td>
+
+
+                        <td>
+                            {{ tx.result_description|default:"—"|truncatechars:50 }}
+                        </td>
+
+
+                        <td class="text-end">
+
+                            <a
+                                href="{% url 'admin_payment_detail' tx.pk %}"
+                                class="btn btn-sm btn-outline-primary"
+                            >
+                                View
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+{% endblock %}

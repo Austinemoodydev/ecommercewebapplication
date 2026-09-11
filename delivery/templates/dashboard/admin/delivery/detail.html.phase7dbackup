@@ -1,0 +1,494 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Delivery | {{ order.order_number }}
+{% endblock %}
+
+{% block page_heading %}
+Delivery Details
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+
+        <div>
+
+            <h1>
+                {{ order.order_number }}
+            </h1>
+
+            <p>
+                {{ delivery.get_management_type_display }}
+                · {{ delivery.get_method_display }}
+            </p>
+
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+
+            <a
+                href="{% url 'delivery_assign' order.order_number %}"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-pencil"></i>
+                Edit Delivery
+            </a>
+
+            <a
+                href="{% url 'admin_order_detail' order.order_number %}"
+                class="btn btn-outline-secondary"
+            >
+                View Order
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+{% if order.delivery_pricing_status == "quote_pending" %}
+
+<div class="alert alert-warning">
+
+    <div
+        class="
+            d-flex
+            justify-content-between
+            align-items-start
+            flex-wrap
+            gap-3
+        "
+    >
+
+        <div>
+
+            <strong>
+                Delivery Quote Required
+            </strong>
+
+            <div class="mt-1">
+
+                The customer cannot make the M-PESA
+                payment until the final delivery
+                charge is confirmed.
+
+            </div>
+
+        </div>
+
+
+        <form
+            method="POST"
+            action="{% url 'delivery_set_quote' delivery.pk %}"
+            class="
+                d-flex
+                gap-2
+                align-items-center
+                flex-wrap
+            "
+        >
+
+            {% csrf_token %}
+
+            <div class="input-group">
+
+                <span class="input-group-text">
+                    KES
+                </span>
+
+                <input
+                    type="number"
+                    name="delivery_fee"
+                    min="0"
+                    step="0.01"
+                    class="form-control"
+                    placeholder="e.g. 550"
+                    required
+                >
+
+                <button
+                    type="submit"
+                    class="btn btn-warning"
+                >
+                    Confirm Quote
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+            <span>Status</span>
+            <strong class="fs-6">
+                {{ delivery.get_status_display }}
+            </strong>
+        </div>
+
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+            <span>Provider</span>
+            <strong class="fs-6">
+                {{ delivery.provider.name|default:"Shop / Internal" }}
+            </strong>
+        </div>
+
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+            <span>Charged</span>
+            <strong>
+                KES {{ delivery.customer_delivery_fee|floatformat:2 }}
+            </strong>
+        </div>
+
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+            <span>Delivery Margin</span>
+            <strong>
+                KES {{ delivery.delivery_margin|floatformat:2 }}
+            </strong>
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-xl-7">
+
+        <div class="dashboard-card h-100">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Delivery Information</h2>
+                    <p>Transport and customer destination details.</p>
+                </div>
+
+            </div>
+
+            <div class="table-responsive">
+
+                <table class="table dashboard-table mb-0">
+
+                    <tbody>
+
+                        <tr>
+                            <th>Managed By</th>
+                            <td>{{ delivery.get_management_type_display }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Method</th>
+                            <td>{{ delivery.get_method_display }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Provider</th>
+                            <td>{{ delivery.provider.name|default:"Shop / Internal" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Parcel Reference</th>
+                            <td>
+                                {% if delivery.transport_reference %}
+                                    <code>{{ delivery.transport_reference }}</code>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Origin</th>
+                            <td>{{ delivery.origin|default:"—" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Destination</th>
+                            <td>{{ delivery.destination }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Pickup Point</th>
+                            <td>{{ delivery.pickup_point|default:"—" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Driver / Rider</th>
+                            <td>{{ delivery.driver_name|default:"—" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Driver Phone</th>
+                            <td>{{ delivery.driver_phone|default:"—" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Expected Arrival</th>
+                            <td>
+                                {% if delivery.expected_arrival %}
+                                    {{ delivery.expected_arrival|date:"d M Y H:i" }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-5">
+
+        <div class="dashboard-card h-100">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Update Status</h2>
+                    <p>Record the real delivery progress.</p>
+                </div>
+
+            </div>
+
+            {% if allowed_statuses %}
+
+                <form
+                    method="POST"
+                    action="{% url 'delivery_update_status' delivery.pk %}"
+                >
+
+                    {% csrf_token %}
+
+                    <label class="form-label">
+                        Next Status
+                    </label>
+
+                    <select
+                        name="status"
+                        class="form-select"
+                        required
+                    >
+
+                        <option value="">
+                            Choose...
+                        </option>
+
+                        {% for value, label in allowed_statuses %}
+
+                            <option value="{{ value }}">
+                                {{ label }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                    <label class="form-label mt-3">
+                        Timeline Message
+                    </label>
+
+                    <textarea
+                        name="message"
+                        class="form-control"
+                        rows="3"
+                        placeholder="e.g. Parcel loaded in Nairobi for Kisii."
+                    ></textarea>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary mt-3"
+                    >
+                        Update Delivery
+                    </button>
+
+                </form>
+
+            {% else %}
+
+                <div class="alert alert-light border mb-0">
+
+                    This delivery is currently in
+                    a final state:
+
+                    <strong>
+                        {{ delivery.get_status_display }}
+                    </strong>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3">
+
+    <div class="col-xl-7">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Delivery Timeline</h2>
+                    <p>Chronological delivery activity.</p>
+                </div>
+
+            </div>
+
+            {% for event in events %}
+
+                <div class="border-start border-3 ps-3 pb-4">
+
+                    <strong>
+                        {{ event.get_status_display }}
+                    </strong>
+
+                    <small class="d-block text-muted">
+                        {{ event.created_at|date:"d M Y H:i" }}
+
+                        {% if event.created_by %}
+                            · {{ event.created_by.username }}
+                        {% endif %}
+                    </small>
+
+                    {% if event.message %}
+
+                        <div class="mt-2">
+                            {{ event.message }}
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No delivery events yet.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-5">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Delivery Attempt</h2>
+                    <p>Record failed or successful delivery attempts.</p>
+                </div>
+
+            </div>
+
+            <form
+                method="POST"
+                action="{% url 'delivery_add_attempt' delivery.pk %}"
+            >
+
+                {% csrf_token %}
+
+                <label class="form-label">
+                    Result
+                </label>
+
+                {{ attempt_form.result }}
+
+                <label class="form-label mt-3">
+                    Notes
+                </label>
+
+                {{ attempt_form.notes }}
+
+                <button
+                    type="submit"
+                    class="btn btn-outline-primary mt-3"
+                >
+                    Record Attempt
+                </button>
+
+            </form>
+
+
+            {% if attempts %}
+
+                <hr>
+
+                {% for attempt in attempts %}
+
+                    <div class="mb-3">
+
+                        <strong>
+                            {{ attempt.get_result_display }}
+                        </strong>
+
+                        <small class="d-block text-muted">
+                            {{ attempt.created_at|date:"d M Y H:i" }}
+                        </small>
+
+                        {% if attempt.notes %}
+                            <div class="small mt-1">
+                                {{ attempt.notes }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+
+                {% endfor %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

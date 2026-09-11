@@ -1,0 +1,425 @@
+from django import forms
+
+from .models import (
+    Delivery,
+    DeliveryAttempt,
+    DeliveryProvider,
+    DeliveryZone,
+)
+
+
+class DeliveryProviderForm(forms.ModelForm):
+
+    class Meta:
+
+        model = DeliveryProvider
+
+        fields = [
+            "name",
+            "provider_type",
+            "phone",
+            "email",
+            "website",
+            "notes",
+            "is_active",
+        ]
+
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "provider_type": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+            "phone": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "email": forms.EmailInput(
+                attrs={"class": "form-control"}
+            ),
+            "website": forms.URLInput(
+                attrs={"class": "form-control"}
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                }
+            ),
+            "is_active": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
+        }
+
+
+class DeliveryAssignmentForm(forms.ModelForm):
+
+    class Meta:
+
+        model = Delivery
+
+        fields = [
+            "management_type",
+            "method",
+            "provider",
+            "origin",
+            "destination",
+            "pickup_point",
+            "transport_reference",
+            "driver_name",
+            "driver_phone",
+            "customer_delivery_fee",
+            "actual_delivery_cost",
+            "expected_arrival",
+            "notes",
+        ]
+
+        widgets = {
+            "management_type": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+
+            "method": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+
+            "provider": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+
+            "origin": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. Nairobi",
+                }
+            ),
+
+            "destination": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. Kisii Town",
+                }
+            ),
+
+            "pickup_point": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": (
+                        "Parcel office, stage, station "
+                        "or collection point"
+                    ),
+                }
+            ),
+
+            "transport_reference": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": (
+                        "Receipt, parcel number or "
+                        "provider reference"
+                    ),
+                }
+            ),
+
+            "driver_name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+
+            "driver_phone": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+
+            "customer_delivery_fee": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+
+            "actual_delivery_cost": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+
+            "expected_arrival": forms.DateTimeInput(
+                attrs={
+                    "class": "form-control",
+                    "type": "datetime-local",
+                },
+                format="%Y-%m-%dT%H:%M",
+            ),
+
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        self.fields[
+            "provider"
+        ].queryset = (
+            DeliveryProvider.objects
+            .filter(is_active=True)
+            .order_by("name")
+        )
+
+        self.fields[
+            "expected_arrival"
+        ].input_formats = [
+            "%Y-%m-%dT%H:%M",
+        ]
+
+    def clean(self):
+
+        cleaned = super().clean()
+
+        management_type = cleaned.get(
+            "management_type"
+        )
+
+        provider = cleaned.get(
+            "provider"
+        )
+
+        method = cleaned.get(
+            "method"
+        )
+
+        pickup_point = (
+            cleaned.get(
+                "pickup_point"
+            )
+            or ""
+        ).strip()
+
+        if (
+            management_type == "external"
+            and not provider
+        ):
+
+            self.add_error(
+                "provider",
+                (
+                    "Choose the external transport "
+                    "provider."
+                ),
+            )
+
+        if (
+            method == "station_pickup"
+            and not pickup_point
+        ):
+
+            self.add_error(
+                "pickup_point",
+                (
+                    "Enter the station, parcel office "
+                    "or pickup point."
+                ),
+            )
+
+        return cleaned
+
+
+class DeliveryStatusForm(forms.Form):
+
+    status = forms.ChoiceField(
+        choices=Delivery.STATUS_CHOICES,
+        widget=forms.Select(
+            attrs={"class": "form-select"}
+        ),
+    )
+
+    message = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": (
+                    "Optional update visible in "
+                    "the delivery timeline."
+                ),
+            }
+        ),
+    )
+
+
+class DeliveryAttemptForm(forms.ModelForm):
+
+    class Meta:
+
+        model = DeliveryAttempt
+
+        fields = [
+            "result",
+            "notes",
+        ]
+
+        widgets = {
+            "result": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                }
+            ),
+        }
+
+
+
+class DeliveryZoneForm(forms.ModelForm):
+
+    class Meta:
+
+        model = DeliveryZone
+
+        fields = [
+            "county",
+            "town",
+            "method",
+            "provider",
+            "pickup_point",
+            "pricing_mode",
+            "fee",
+            "estimated_time",
+            "instructions",
+            "is_active",
+        ]
+
+        widgets = {
+
+            "county": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. Nairobi",
+                }
+            ),
+
+            "town": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": (
+                        "e.g. Kilimani, Kisii Town, Rongo"
+                    ),
+                }
+            ),
+
+            "method": forms.Select(
+                attrs={
+                    "class": "form-select"
+                }
+            ),
+
+            "provider": forms.Select(
+                attrs={
+                    "class": "form-select"
+                }
+            ),
+
+            "pickup_point": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": (
+                        "Optional station / parcel office"
+                    ),
+                }
+            ),
+
+            "pricing_mode": forms.Select(
+                attrs={
+                    "class": "form-select"
+                }
+            ),
+
+            "fee": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "0",
+                    "step": "0.01",
+                }
+            ),
+
+            "estimated_time": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": (
+                        "e.g. Same day / 1-2 days"
+                    ),
+                }
+            ),
+
+            "instructions": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                }
+            ),
+
+            "is_active": forms.CheckboxInput(
+                attrs={
+                    "class": "form-check-input"
+                }
+            ),
+        }
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        self.fields[
+            "provider"
+        ].queryset = (
+            DeliveryProvider.objects
+            .filter(is_active=True)
+            .order_by("name")
+        )
+
+    def clean(self):
+
+        cleaned = super().clean()
+
+        pricing_mode = cleaned.get(
+            "pricing_mode"
+        )
+
+        fee = cleaned.get(
+            "fee"
+        )
+
+        if (
+            pricing_mode == "fixed"
+            and (
+                fee is None
+                or fee < 0
+            )
+        ):
+
+            self.add_error(
+                "fee",
+                "Enter a valid delivery fee.",
+            )
+
+        return cleaned

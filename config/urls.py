@@ -16,12 +16,38 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
-from django.urls import path, include
+from django.urls import include, path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from core.sitemaps import sitemaps
 
 urlpatterns = [
+
+    path(
+        "dashboard/admin/returns/",
+        include("payments.returns_admin_urls"),
+    ),
+
+    path(
+        "dashboard/admin/delivery/",
+        include("delivery.urls"),
+    ),
+
+    path(
+        "dashboard/admin/payments/",
+        include("payments.admin_urls"),
+    ),
+
+    path(
+        "dashboard/admin/customers/",
+        include("crm.urls"),
+    ),
+
+    path(
+        "dashboard/admin/inventory/",
+        include("inventory.urls"),
+    ),
+
     path('admin/', admin.site.urls),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
     path("robots.txt", include("core.robots_urls")),

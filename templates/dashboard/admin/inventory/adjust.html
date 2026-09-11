@@ -1,0 +1,172 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+{{ page_title }}
+{% endblock %}
+
+{% block page_heading %}
+Inventory Adjustment
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            {{ page_title }}
+        </h1>
+
+        <p class="text-muted mb-0">
+
+            {{ product.name }}
+
+            {% if variant %}
+                — {{ variant.name }}
+            {% endif %}
+
+        </p>
+
+    </div>
+
+    <a
+        href="{% url 'inventory_product_detail' product.pk %}"
+        class="btn btn-outline-secondary"
+    >
+        <i class="bi bi-arrow-left"></i>
+        Back
+    </a>
+
+</div>
+
+
+<div class="row">
+
+    <div class="col-xl-7">
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <div class="dashboard-card">
+
+                {% if variant %}
+
+                    <div class="alert alert-light border">
+
+                        Physical:
+                        <strong>
+                            {{ variant.stock }}
+                        </strong>
+
+                        &nbsp; | &nbsp;
+
+                        Reserved:
+                        <strong>
+                            {{ variant.reserved_stock }}
+                        </strong>
+
+                        &nbsp; | &nbsp;
+
+                        Available:
+                        <strong>
+                            {{ variant.available_stock }}
+                        </strong>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="alert alert-light border">
+
+                        Physical:
+                        <strong>
+                            {{ product.stock }}
+                        </strong>
+
+                        &nbsp; | &nbsp;
+
+                        Reserved:
+                        <strong>
+                            {{ product.reserved_stock }}
+                        </strong>
+
+                        &nbsp; | &nbsp;
+
+                        Available:
+                        <strong>
+                            {{ product.available_stock }}
+                        </strong>
+
+                    </div>
+
+                {% endif %}
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Movement Type
+                    </label>
+
+                    {{ form.movement_type }}
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Quantity
+                    </label>
+
+                    {{ form.quantity }}
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Reference
+                    </label>
+
+                    {{ form.reference }}
+
+                    <div class="form-text">
+                        Example: supplier invoice,
+                        GRN, adjustment reference.
+                    </div>
+
+                </div>
+
+
+                <div class="mb-4">
+
+                    <label class="form-label">
+                        Notes
+                    </label>
+
+                    {{ form.notes }}
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    <i class="bi bi-check-lg"></i>
+                    Save Stock Movement
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,602 @@
+{% extends "dashboard/admin/base.html" %}
+
+
+{% block title %}
+{{ product.name }} | Product
+{% endblock %}
+
+
+{% block page_heading %}
+Product
+{% endblock %}
+
+
+{% block admin_content %}
+
+
+<div
+    class="
+        d-flex
+        justify-content-between
+        align-items-center
+        flex-wrap
+        gap-3
+        mb-4
+    "
+>
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            {{ product.name }}
+        </h1>
+
+        <span class="text-muted">
+            {{ product.sku }}
+        </span>
+
+    </div>
+
+
+    <div class="d-flex gap-2">
+
+        <a
+            href="{% url 'product_detail' product.slug %}"
+            target="_blank"
+            class="btn btn-outline-secondary"
+        >
+
+            <i class="bi bi-box-arrow-up-right"></i>
+            Preview
+
+        </a>
+
+
+        <a
+            href="{% url 'admin_product_edit' product.pk %}"
+            class="btn btn-primary"
+        >
+
+            <i class="bi bi-pencil"></i>
+            Edit Product
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="row g-4">
+
+
+    <!-- IMAGE -->
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            {% if product.image %}
+
+                <img
+                    src="{{ product.image.url }}"
+                    alt="{{ product.name }}"
+                    class="img-fluid rounded"
+                    style="
+                        width: 100%;
+                        max-height: 400px;
+                        object-fit: contain;
+                    "
+                >
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- DETAILS -->
+
+    <div class="col-lg-8">
+
+        <div class="dashboard-card">
+
+            <div
+                class="
+                    d-flex
+                    justify-content-between
+                    align-items-start
+                "
+            >
+
+                <div>
+
+                    <h2 class="h4">
+                        {{ product.name }}
+                    </h2>
+
+                    <p class="text-muted">
+                        {{ product.category.name }}
+
+                        {% if product.brand %}
+                            · {{ product.brand.name }}
+                        {% endif %}
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    {% if product.is_active %}
+
+                        <span class="badge text-bg-success">
+                            Active
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge text-bg-secondary">
+                            Hidden
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <hr>
+
+
+            <div class="row g-4">
+
+                <div class="col-md-4">
+
+                    <span class="text-muted">
+                        Regular Price
+                    </span>
+
+                    <h5 class="mt-1">
+                        KES
+                        {{ product.price|floatformat:2 }}
+                    </h5>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <span class="text-muted">
+                        Selling Price
+                    </span>
+
+                    <h5 class="mt-1">
+                        KES
+                        {{ product.current_price|floatformat:2 }}
+                    </h5>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <span class="text-muted">
+                        SKU
+                    </span>
+
+                    <h5 class="mt-1">
+                        {{ product.sku }}
+                    </h5>
+
+                </div>
+
+            </div>
+
+
+            <hr>
+
+
+            <h3 class="h6">
+                Description
+            </h3>
+
+            <p class="text-muted">
+                {{ product.description|linebreaksbr }}
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- INVENTORY -->
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-4">
+                Inventory
+            </h2>
+
+
+            <div class="list-row">
+
+                <span>
+                    Physical Stock
+                </span>
+
+                <strong>
+                    {{ product.stock }}
+                </strong>
+
+            </div>
+
+
+            <div class="list-row">
+
+                <span>
+                    Reserved
+                </span>
+
+                <strong>
+                    {{ product.reserved_stock }}
+                </strong>
+
+            </div>
+
+
+            <div class="list-row">
+
+                <span>
+                    Available
+                </span>
+
+                <strong>
+                    {{ product.available_stock }}
+                </strong>
+
+            </div>
+
+
+            <div class="list-row">
+
+                <span>
+                    Variants
+                </span>
+
+                <strong>
+                    {{ variants|length }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- VISIBILITY -->
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-4">
+                Storefront
+            </h2>
+
+
+            <form
+                method="POST"
+                action="{% url 'admin_product_toggle_active' product.pk %}"
+                class="mb-3"
+            >
+
+                {% csrf_token %}
+
+
+                {% if product.is_active %}
+
+                    <button
+                        class="
+                            btn
+                            btn-outline-danger
+                            w-100
+                        "
+                    >
+                        <i class="bi bi-eye-slash"></i>
+                        Hide Product
+                    </button>
+
+                {% else %}
+
+                    <button
+                        class="
+                            btn
+                            btn-success
+                            w-100
+                        "
+                    >
+                        <i class="bi bi-eye"></i>
+                        Activate Product
+                    </button>
+
+                {% endif %}
+
+            </form>
+
+
+            <form
+                method="POST"
+                action="{% url 'admin_product_toggle_featured' product.pk %}"
+            >
+
+                {% csrf_token %}
+
+
+                {% if product.featured %}
+
+                    <button
+                        class="
+                            btn
+                            btn-outline-secondary
+                            w-100
+                        "
+                    >
+                        <i class="bi bi-star"></i>
+                        Remove Featured
+                    </button>
+
+                {% else %}
+
+                    <button
+                        class="
+                            btn
+                            btn-outline-warning
+                            w-100
+                        "
+                    >
+                        <i class="bi bi-star-fill"></i>
+                        Make Featured
+                    </button>
+
+                {% endif %}
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- MEDIA -->
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-4">
+                Product Media
+            </h2>
+
+
+            <div class="list-row">
+
+                <span>
+                    Gallery Images
+                </span>
+
+                <strong>
+                    {{ gallery_images|length }}
+                </strong>
+
+            </div>
+
+
+            <div class="list-row">
+
+                <span>
+                    Primary Image
+                </span>
+
+                <strong>
+                    {% if product.image %}
+                        Yes
+                    {% else %}
+                        No
+                    {% endif %}
+                </strong>
+
+            </div>
+
+
+            <div class="mt-3">
+
+                <button
+                    class="
+                        btn
+                        btn-outline-primary
+                        w-100
+                    "
+                    disabled
+                >
+                    Manage Gallery
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- VARIANTS -->
+
+    <div class="col-12">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+
+                    <h2>
+                        Variants
+                    </h2>
+
+                    <p>
+                        Product options such as size,
+                        storage or colour.
+                    </p>
+
+                </div>
+
+
+                <button
+                    class="
+                        btn
+                        btn-sm
+                        btn-primary
+                    "
+                    disabled
+                >
+                    Add Variant
+                </button>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Variant
+                            </th>
+
+                            <th>
+                                SKU
+                            </th>
+
+                            <th>
+                                Price
+                            </th>
+
+                            <th>
+                                Stock
+                            </th>
+
+                            <th>
+                                Available
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for variant in variants %}
+
+                            <tr>
+
+                                <td>
+                                    {{ variant.name }}
+                                </td>
+
+                                <td>
+                                    {{ variant.sku }}
+                                </td>
+
+                                <td>
+
+                                    KES
+                                    {{ variant.current_price|floatformat:2 }}
+
+                                </td>
+
+                                <td>
+                                    {{ variant.stock }}
+                                </td>
+
+                                <td>
+                                    {{ variant.available_stock }}
+                                </td>
+
+                                <td>
+
+                                    {% if variant.is_active %}
+
+                                        <span
+                                            class="
+                                                badge
+                                                text-bg-success
+                                            "
+                                        >
+                                            Active
+                                        </span>
+
+                                    {% else %}
+
+                                        <span
+                                            class="
+                                                badge
+                                                text-bg-secondary
+                                            "
+                                        >
+                                            Hidden
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="6"
+                                    class="
+                                        text-center
+                                        text-muted
+                                        py-4
+                                    "
+                                >
+                                    This product has no variants.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+{% endblock %}

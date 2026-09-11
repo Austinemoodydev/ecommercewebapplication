@@ -1,0 +1,137 @@
+from celery import shared_task
+
+from notifications.tasks import (
+    _send_order_notifications,
+)
+
+from .models import (
+    RefundRequest,
+    ReturnRequest,
+)
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_kwargs={
+        "max_retries": 3,
+    },
+)
+def send_return_status_notification(
+    self,
+    return_id,
+):
+
+    obj = (
+        ReturnRequest.objects
+        .select_related(
+            "order",
+            "order__user",
+        )
+        .get(
+            pk=return_id
+        )
+    )
+
+    order = obj.order
+
+    status = obj.get_status_display()
+
+    sms = (
+        f"Order {order.order_number}: "
+        f"your {obj.get_request_type_display().lower()} "
+        f"request is now {status.lower()}."
+    )
+
+    email = (
+        f"Hello {order.full_name},\n\n"
+        f"Your {obj.get_request_type_display().lower()} "
+        f"request for order "
+        f"{order.order_number} is now "
+        f"{status}.\n"
+    )
+
+    if obj.staff_note:
+
+        email += (
+            f"\nShop note:\n"
+            f"{obj.staff_note}\n"
+        )
+
+    _send_order_notifications(
+        order,
+        sms,
+        (
+            f"{obj.get_request_type_display()} "
+            f"request update"
+        ),
+        email,
+    )
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_kwargs={
+        "max_retries": 3,
+    },
+)
+def send_refund_status_notification(
+    self,
+    refund_id,
+):
+
+    obj = (
+        RefundRequest.objects
+        .select_related(
+            "order",
+            "order__user",
+        )
+        .get(
+            pk=refund_id
+        )
+    )
+
+    order = obj.order
+
+    status = obj.get_status_display()
+
+    sms = (
+        f"Order {order.order_number}: "
+        f"your refund of "
+        f"KES {obj.amount:.2f} is now "
+        f"{status.lower()}."
+    )
+
+    email = (
+        f"Hello {order.full_name},\n\n"
+        f"Your refund request for order "
+        f"{order.order_number} is now "
+        f"{status}.\n\n"
+        f"Amount: KES {obj.amount:.2f}\n"
+    )
+
+    if obj.external_reference:
+
+        email += (
+            f"Refund reference: "
+            f"{obj.external_reference}\n"
+        )
+
+    if obj.staff_note:
+
+        email += (
+            f"\nShop note:\n"
+            f"{obj.staff_note}\n"
+        )
+
+    _send_order_notifications(
+        order,
+        sms,
+        "Refund request update",
+        email,
+    )

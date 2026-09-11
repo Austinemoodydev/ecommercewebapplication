@@ -99,32 +99,141 @@
 
                         <div class="row">
 
+                            
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">County</label>
-                                <select name="county" class="form-select" required>
-                                    <option value="">Select County</option>
-                                    <option value="Nairobi">Nairobi</option>
-                                </select>
+
+                                <label class="form-label">
+                                    County
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="county"
+                                    id="checkout-county"
+                                    class="form-control"
+                                    value="{{ form.county.value|default:'' }}"
+                                    placeholder="e.g. Nairobi"
+                                    required
+                                >
+
                             </div>
+
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">City</label>
-                                <input type="text" name="city" class="form-control" value="Nairobi">
+                                <input type="text" name="city" id="checkout-city" class="form-control" value="Nairobi">
                             </div>
 
                         </div>
 
+                        
                         <div class="mb-3">
-                            <label class="form-label">Estate / Area</label>
-                            <select name="delivery_area" id="delivery-area" class="form-select" required>
-                                <option value="">Select your area</option>
-                                {% for area in delivery_areas %}
-                                <option value="{{ area.id }}" data-fee="{{ area.fee }}">
-                                    {{ area.name }} (KES {{ area.fee }})
-                                </option>
-                                {% endfor %}
-                            </select>
+
+                            <label class="form-label">
+                                Estate / Area
+                            </label>
+
+                            <input
+                                type="text"
+                                name="estate"
+                                class="form-control"
+                                value="{{ form.estate.value|default:'' }}"
+                                placeholder="e.g. Kilimani, Westlands, Rongo Town"
+                                required
+                            >
+
                         </div>
+
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Delivery Option
+                            </label>
+
+                            <select
+                                name="delivery_zone"
+                                id="delivery-zone"
+                                class="form-select"
+                                required
+                            >
+
+                                <option value="">
+                                    Select delivery option
+                                </option>
+
+                                {% for zone in delivery_zones %}
+
+                                    <option
+                                        value="{{ zone.id }}"
+                                        data-county="{{ zone.county }}"
+                                        data-town="{{ zone.town }}"
+                                        data-fee="{{ zone.fee }}"
+                                        data-free-threshold="{% if zone.free_delivery_threshold %}{{ zone.free_delivery_threshold }}{% endif %}"
+                                        data-pricing="{{ zone.pricing_mode }}"
+                                        data-method="{{ zone.get_method_display }}"
+                                        data-provider="{% if zone.provider %}{{ zone.provider.name }}{% endif %}"
+                                        data-pickup="{{ zone.pickup_point }}"
+                                    >
+
+                                        {{ zone.county }}
+
+                                        {% if zone.town %}
+                                            - {{ zone.town }}
+                                        {% endif %}
+
+                                        · {{ zone.get_method_display }}
+
+                                        {% if zone.provider %}
+                                            · {{ zone.provider.name }}
+                                        {% endif %}
+
+                                        {% if zone.pricing_mode == "fixed" %}
+
+                                            · KES {{ zone.fee }}
+
+                                        {% else %}
+
+                                            · Fee confirmed later
+
+                                        {% endif %}
+
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+
+                            <div
+                                id="delivery-option-info"
+                                class="
+                                    alert
+                                    alert-light
+                                    border
+                                    mt-3
+                                    mb-0
+                                    d-none
+                                "
+                            ></div>
+
+
+                            {% if form.delivery_zone.errors %}
+
+                                <div class="text-danger small mt-1">
+
+                                    {% for error in form.delivery_zone.errors %}
+
+                                        {{ error }}
+
+                                    {% endfor %}
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
 
                         <div class="mb-3">
                             <button type="button" id="detect-location-btn" class="btn btn-outline-primary btn-sm">
@@ -205,7 +314,9 @@
 
                     <div class="d-flex justify-content-between mt-2">
                         <span>Delivery</span>
-                        <strong>KES <span id="delivery-fee">0</span></strong>
+                        <strong id="delivery-fee-wrap">
+                            KES <span id="delivery-fee">0.00</span>
+                        </strong>
                     </div>
 
                     <hr>
@@ -238,12 +349,20 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    const areaSelect = document.getElementById("delivery-area");
+    const zoneSelect = document.getElementById("delivery-zone");
+    const countyInput = document.getElementById("checkout-county");
+    const cityInput = document.getElementById("checkout-city");
+    const deliveryInfo = document.getElementById("delivery-option-info");
+    const deliveryFeeWrap = document.getElementById("delivery-fee-wrap");
     const feeEl = document.getElementById("delivery-fee");
     const totalEl = document.getElementById("checkout-total");
     const subtotal = {{ cart.total_price|default:0 }};
 
     let currentFee = 0;
+
+    const checkoutSubtotal = parseFloat(
+        "{{ subtotal|default:'0' }}"
+    ) || 0;
     let currentDiscount = 0;
 
     function recalcTotal() {
@@ -257,18 +376,306 @@ document.addEventListener("DOMContentLoaded", function () {
         if (parts.length === 2) return parts.pop().split(";").shift();
     }
 
-    if (areaSelect) {
-        areaSelect.addEventListener("change", function () {
+    
 
-            const selected = areaSelect.options[areaSelect.selectedIndex];
-            currentFee = parseFloat(selected.dataset.fee || 0);
 
-            feeEl.textContent = currentFee.toFixed(2);
-            recalcTotal();
-        });
+    function filterDeliveryZones() {
+
+        if (
+            !zoneSelect
+            || !countyInput
+        ) {
+            return;
+        }
+
+        const selectedCounty = (
+            countyInput.value || ""
+        ).trim().toLowerCase();
+
+        const selectedTown = (
+            cityInput
+            ? (
+                cityInput.value || ""
+            ).trim().toLowerCase()
+            : ""
+        );
+
+
+        Array.from(
+            zoneSelect.options
+        ).forEach(
+            function(option) {
+
+                if (!option.value) {
+                    return;
+                }
+
+                const county = (
+                    option.dataset.county
+                    || ""
+                ).trim().toLowerCase();
+
+                const town = (
+                    option.dataset.town
+                    || ""
+                ).trim().toLowerCase();
+
+
+                const countyMatch = (
+                    !selectedCounty
+                    || county === selectedCounty
+                );
+
+                const townMatch = (
+                    !selectedTown
+                    || !town
+                    || town === selectedTown
+                );
+
+
+                option.hidden = !(
+                    countyMatch
+                    && townMatch
+                );
+            }
+        );
+
+
+        const selected = (
+            zoneSelect.options[
+                zoneSelect.selectedIndex
+            ]
+        );
+
+        if (
+            selected
+            && selected.value
+            && selected.hidden
+        ) {
+
+            zoneSelect.value = "";
+
+            updateDeliveryOption();
+        }
     }
 
-    const applyCouponBtn = document.getElementById("apply-coupon-btn");
+
+    if (countyInput) {
+
+        countyInput.addEventListener(
+            "input",
+            filterDeliveryZones
+        );
+    }
+
+
+    if (cityInput) {
+
+        cityInput.addEventListener(
+            "input",
+            filterDeliveryZones
+        );
+    }
+
+
+    function updateDeliveryOption() {
+
+        if (!zoneSelect) {
+            return;
+        }
+
+        const selected = (
+            zoneSelect.options[
+                zoneSelect.selectedIndex
+            ]
+        );
+
+        if (
+            !selected
+            || !selected.value
+        ) {
+
+            currentFee = 0;
+
+            feeEl.textContent = "0.00";
+
+            if (deliveryInfo) {
+                deliveryInfo.classList.add(
+                    "d-none"
+                );
+            }
+
+            recalcTotal();
+
+            return;
+        }
+
+
+        const pricing = (
+            selected.dataset.pricing
+            || "fixed"
+        );
+
+        const county = (
+            selected.dataset.county
+            || ""
+        );
+
+        const town = (
+            selected.dataset.town
+            || ""
+        );
+
+        const provider = (
+            selected.dataset.provider
+            || "Shop Delivery"
+        );
+
+        const method = (
+            selected.dataset.method
+            || ""
+        );
+
+        const pickup = (
+            selected.dataset.pickup
+            || ""
+        );
+
+
+        /*
+         * Keep checkout location synchronized
+         * with the selected delivery zone.
+         */
+        if (
+            countyInput
+            && county
+        ) {
+            countyInput.value = county;
+        }
+
+        if (
+            cityInput
+            && town
+        ) {
+            cityInput.value = town;
+        }
+
+
+        let info = (
+            "<strong>"
+            + method
+            + "</strong>"
+        );
+
+        if (provider) {
+
+            info += (
+                "<br>Provider: "
+                + provider
+            );
+        }
+
+        if (pickup) {
+
+            info += (
+                "<br>Pickup point: "
+                + pickup
+            );
+        }
+
+
+        if (pricing === "fixed") {
+
+            const normalFee = parseFloat(
+                selected.dataset.fee || 0
+            );
+
+            const threshold = parseFloat(
+                selected.dataset.freeThreshold || 0
+            );
+
+            if (
+                threshold > 0
+                && checkoutSubtotal >= threshold
+            ) {
+
+                currentFee = 0;
+
+                feeEl.textContent = "0.00";
+
+                info += (
+                    "<br><strong>"
+                    + "Free delivery applied."
+                    + "</strong>"
+                );
+
+            } else {
+
+                currentFee = normalFee;
+
+                feeEl.textContent = (
+                    currentFee.toFixed(2)
+                );
+            }
+
+            deliveryFeeWrap.classList.remove(
+                "text-warning"
+            );
+
+            info += (
+                "<br>Delivery fee: "
+                + "KES "
+                + currentFee.toFixed(2)
+            );
+
+        } else {
+
+            currentFee = 0;
+
+            feeEl.textContent = (
+                "Pending quote"
+            );
+
+            deliveryFeeWrap.classList.add(
+                "text-warning"
+            );
+
+            info += (
+                "<br><strong>"
+                + "Delivery fee will be confirmed "
+                + "by the shop before M-Pesa payment."
+                + "</strong>"
+            );
+        }
+
+
+        if (deliveryInfo) {
+
+            deliveryInfo.innerHTML = info;
+
+            deliveryInfo.classList.remove(
+                "d-none"
+            );
+        }
+
+        recalcTotal();
+    }
+
+
+    if (zoneSelect) {
+
+        zoneSelect.addEventListener(
+            "change",
+            updateDeliveryOption
+        );
+
+        filterDeliveryZones();
+        updateDeliveryOption();
+    }
+
+
+    const applyCouponBtn
+ = document.getElementById("apply-coupon-btn");
     const couponInput = document.getElementById("coupon-code");
     const couponMessage = document.getElementById("coupon-message");
     const discountRow = document.getElementById("discount-row");

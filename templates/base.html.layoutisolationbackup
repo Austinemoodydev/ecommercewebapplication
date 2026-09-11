@@ -1,0 +1,48 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Online Shop{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Shop quality products online with secure M-PESA payments and reliable delivery.{% endblock %}">
+    <link rel="canonical" href="{{ site_url }}{{ request.path }}">
+    {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+  </head>
+  <body>
+    {% include 'includes/navbar.html' %}
+
+    <main class="site-main"><div class="container">{% block content %}{% endblock %}</div></main>
+
+    {% include 'includes/footer.html' %}
+    <a
+      href="https://wa.me/254754042506"
+      class="whatsapp-float"
+      aria-label="Chat with us on WhatsApp"
+    >
+      <i class="bi bi-whatsapp fs-3"></i>
+    </a>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+    <script src="{% static 'js/wishlist.js' %}"></script>
+    <script src="{% static 'js/cart.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
+
+

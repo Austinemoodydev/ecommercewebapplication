@@ -18,7 +18,20 @@ class Order(models.Model):
         ("pending", "Pending"),
         ("paid", "Paid"),
         ("failed", "Failed"),
+        ("partially_refunded", "Partially Refunded"),
         ("refunded", "Refunded"),
+    ]
+
+    DELIVERY_PRICING_STATUS_CHOICES = [
+        ("fixed", "Fixed Delivery Price"),
+        ("quote_pending", "Delivery Quote Pending"),
+        ("quoted", "Delivery Quote Confirmed"),
+    ]
+
+    INVENTORY_STATUS_CHOICES = [
+        ("reserved", "Reserved"),
+        ("released", "Released"),
+        ("consumed", "Consumed"),
     ]
 
     user = models.ForeignKey(
@@ -44,6 +57,27 @@ class Order(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
+    delivery_zone = models.ForeignKey(
+        "delivery.DeliveryZone",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
+
+    delivery_pricing_status = models.CharField(
+        max_length=30,
+        choices=DELIVERY_PRICING_STATUS_CHOICES,
+        default="fixed",
+        db_index=True,
+    )
+
+
+    delivery_quote_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
     shipping_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     coupon = models.ForeignKey(
@@ -57,6 +91,38 @@ class Order(models.Model):
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")
+    inventory_status = models.CharField(max_length=20, choices=INVENTORY_STATUS_CHOICES, default="reserved")
+
+    reservation_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    payment_review_required = models.BooleanField(
+        default=False,
+    )
+
+    payment_review_reason = models.TextField(
+        blank=True,
+    )
+
+    payment_review_resolution = models.TextField(
+        blank=True,
+    )
+
+    payment_review_resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    payment_review_resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_payment_reviews",
+    )
+
     payment_method = models.CharField(max_length=30, default="mpesa")
     courier = models.CharField(max_length=100, blank=True)
     tracking_number = models.CharField(max_length=100, blank=True)
@@ -92,6 +158,25 @@ class OrderItem(models.Model):
     product_name = models.CharField(max_length=255)
     variant_name = models.CharField(max_length=100, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2)
+
+    # Historical accounting snapshot.
+    #
+    # These values are captured when the order is created.
+    # They must NOT change when Product.cost_price changes later.
+    unit_cost_at_sale = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    cost_subtotal_at_sale = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
     quantity = models.PositiveIntegerField()
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
 
@@ -112,10 +197,6 @@ class DeliveryArea(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.county}) - KES {self.fee}"
-
-
-
-
 
 
 class Coupon(models.Model):
@@ -177,4 +258,3 @@ class Coupon(models.Model):
             discount = self.discount_value
 
         return min(discount, subtotal)
-

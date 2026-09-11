@@ -1,0 +1,599 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+{{ product.name }} | Product
+{% endblock %}
+
+{% block page_heading %}
+Product
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+
+    <div>
+        <h1 class="h3 mb-1">
+            {{ product.name }}
+        </h1>
+
+        <span class="text-muted">
+            SKU: {{ product.sku }}
+        </span>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+
+        <a
+            href="{% url 'product_detail' product.slug %}"
+            target="_blank"
+            class="btn btn-outline-secondary"
+        >
+            <i class="bi bi-box-arrow-up-right"></i>
+            Preview
+        </a>
+
+        <a
+            href="{% url 'admin_product_edit' product.pk %}"
+            class="btn btn-primary"
+        >
+            <i class="bi bi-pencil"></i>
+            Edit Product
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="row g-4">
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            {% if product.image %}
+
+                <img
+                    src="{{ product.image.url }}"
+                    alt="{{ product.name }}"
+                    class="img-fluid rounded"
+                    style="
+                        width: 100%;
+                        max-height: 400px;
+                        object-fit: contain;
+                    "
+                >
+
+            {% else %}
+
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-image fs-1"></i>
+                    <p class="mt-2 mb-0">
+                        No primary image
+                    </p>
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-8">
+
+        <div class="dashboard-card">
+
+            <div class="d-flex justify-content-between align-items-start gap-3">
+
+                <div>
+
+                    <h2 class="h4">
+                        {{ product.name }}
+                    </h2>
+
+                    <p class="text-muted">
+                        {{ product.category.name }}
+
+                        {% if product.brand %}
+                            · {{ product.brand.name }}
+                        {% endif %}
+                    </p>
+
+                </div>
+
+                <div>
+
+                    {% if product.is_active %}
+
+                        <span class="badge text-bg-success">
+                            Active
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge text-bg-secondary">
+                            Hidden
+                        </span>
+
+                    {% endif %}
+
+                    {% if product.featured %}
+
+                        <span class="badge text-bg-warning">
+                            Featured
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <div class="row g-4">
+
+                <div class="col-md-4">
+
+                    <span class="text-muted">
+                        Regular Price
+                    </span>
+
+                    <h5 class="mt-1">
+                        KES {{ product.price|floatformat:2 }}
+                    </h5>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <span class="text-muted">
+                        Selling Price
+                    </span>
+
+                    <h5 class="mt-1">
+                        KES {{ product.current_price|floatformat:2 }}
+                    </h5>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <span class="text-muted">
+                        SKU
+                    </span>
+
+                    <h5 class="mt-1">
+                        {{ product.sku }}
+                    </h5>
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <h3 class="h6">
+                Description
+            </h3>
+
+            <div class="text-muted">
+                {{ product.description|linebreaksbr }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-4">
+                Inventory
+            </h2>
+
+            <div class="list-row">
+                <span>Physical Stock</span>
+                <strong>{{ product.stock }}</strong>
+            </div>
+
+            <div class="list-row">
+                <span>Reserved</span>
+                <strong>{{ product.reserved_stock }}</strong>
+            </div>
+
+            <div class="list-row">
+                <span>Available</span>
+                <strong>{{ product.available_stock }}</strong>
+            </div>
+
+            <div class="list-row">
+                <span>Variants</span>
+                <strong>{{ variants|length }}</strong>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-4">
+                Storefront
+            </h2>
+
+            <form
+                method="POST"
+                action="{% url 'admin_product_toggle_active' product.pk %}"
+                class="mb-3"
+            >
+
+                {% csrf_token %}
+
+                {% if product.is_active %}
+
+                    <button
+                        type="submit"
+                        class="btn btn-outline-danger w-100"
+                    >
+                        <i class="bi bi-eye-slash"></i>
+                        Hide Product
+                    </button>
+
+                {% else %}
+
+                    <button
+                        type="submit"
+                        class="btn btn-success w-100"
+                    >
+                        <i class="bi bi-eye"></i>
+                        Activate Product
+                    </button>
+
+                {% endif %}
+
+            </form>
+
+
+            <form
+                method="POST"
+                action="{% url 'admin_product_toggle_featured' product.pk %}"
+            >
+
+                {% csrf_token %}
+
+                {% if product.featured %}
+
+                    <button
+                        type="submit"
+                        class="btn btn-outline-secondary w-100"
+                    >
+                        <i class="bi bi-star"></i>
+                        Remove Featured
+                    </button>
+
+                {% else %}
+
+                    <button
+                        type="submit"
+                        class="btn btn-outline-warning w-100"
+                    >
+                        <i class="bi bi-star-fill"></i>
+                        Make Featured
+                    </button>
+
+                {% endif %}
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-4">
+                Product Media
+            </h2>
+
+            <div class="list-row">
+
+                <span>
+                    Gallery Images
+                </span>
+
+                <strong>
+                    {{ gallery_images|length }}
+                </strong>
+
+            </div>
+
+            <div class="list-row">
+
+                <span>
+                    Primary Image
+                </span>
+
+                <strong>
+                    {% if product.image %}
+                        Yes
+                    {% else %}
+                        No
+                    {% endif %}
+                </strong>
+
+            </div>
+
+            <div class="mt-3">
+
+                <a
+                    href="{% url 'admin_product_gallery' product.pk %}"
+                    class="btn btn-outline-primary w-100"
+                >
+                    <i class="bi bi-images"></i>
+                    Manage Gallery
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-12">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+
+                    <h2>
+                        Variants
+                    </h2>
+
+                    <p>
+                        Options such as size, colour,
+                        storage or configuration.
+                    </p>
+
+                </div>
+
+                <a
+                    href="{% url 'admin_product_variant_create' product.pk %}"
+                    class="btn btn-sm btn-primary"
+                >
+                    <i class="bi bi-plus-lg"></i>
+                    Add Variant
+                </a>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+                            <th>Variant</th>
+                            <th>SKU</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Reserved</th>
+                            <th>Available</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for variant in variants %}
+
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        {{ variant.name }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ variant.sku }}
+                                </td>
+
+                                <td>
+                                    KES {{ variant.current_price|floatformat:2 }}
+                                </td>
+
+                                <td>
+                                    {{ variant.stock }}
+                                </td>
+
+                                <td>
+                                    {{ variant.reserved_stock }}
+                                </td>
+
+                                <td>
+
+                                    {% if variant.available_stock == 0 %}
+
+                                        <span class="badge text-bg-danger">
+                                            0
+                                        </span>
+
+                                    {% elif variant.available_stock <= 5 %}
+
+                                        <span class="badge text-bg-warning">
+                                            {{ variant.available_stock }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge text-bg-success">
+                                            {{ variant.available_stock }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    {% if variant.is_active %}
+
+                                        <span class="badge text-bg-success">
+                                            Active
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge text-bg-secondary">
+                                            Hidden
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    <div class="dropdown">
+
+                                        <button
+                                            class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                            data-bs-toggle="dropdown"
+                                        >
+                                            Actions
+                                        </button>
+
+                                        <ul class="dropdown-menu dropdown-menu-end">
+
+                                            <li>
+
+                                                <a
+                                                    href="{% url 'admin_product_variant_edit' product.pk variant.pk %}"
+                                                    class="dropdown-item"
+                                                >
+                                                    <i class="bi bi-pencil"></i>
+                                                    Edit
+                                                </a>
+
+                                            </li>
+
+                                            <li>
+
+                                                <form
+                                                    method="POST"
+                                                    action="{% url 'admin_product_variant_toggle' product.pk variant.pk %}"
+                                                >
+                                                    {% csrf_token %}
+
+                                                    <button
+                                                        type="submit"
+                                                        class="dropdown-item"
+                                                    >
+                                                        {% if variant.is_active %}
+                                                            <i class="bi bi-eye-slash"></i>
+                                                            Hide
+                                                        {% else %}
+                                                            <i class="bi bi-eye"></i>
+                                                            Activate
+                                                        {% endif %}
+                                                    </button>
+
+                                                </form>
+
+                                            </li>
+
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+
+                                            <li>
+
+                                                <form
+                                                    method="POST"
+                                                    action="{% url 'admin_product_variant_archive' product.pk variant.pk %}"
+                                                    onsubmit="return confirm('Archive this variant? Historical order records will be preserved.');"
+                                                >
+
+                                                    {% csrf_token %}
+
+                                                    <button
+                                                        type="submit"
+                                                        class="dropdown-item text-danger"
+                                                    >
+                                                        <i class="bi bi-archive"></i>
+                                                        Archive
+                                                    </button>
+
+                                                </form>
+
+                                            </li>
+
+                                        </ul>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="8"
+                                    class="text-center text-muted py-5"
+                                >
+
+                                    <i class="bi bi-diagram-3 fs-1 d-block mb-2"></i>
+
+                                    No variants yet.
+
+                                    <div class="mt-3">
+
+                                        <a
+                                            href="{% url 'admin_product_variant_create' product.pk %}"
+                                            class="btn btn-sm btn-primary"
+                                        >
+                                            Add First Variant
+                                        </a>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

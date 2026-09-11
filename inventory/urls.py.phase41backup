@@ -1,0 +1,37 @@
+from django.urls import path
+
+from . import views
+
+
+urlpatterns = [
+
+    path(
+        "",
+        views.inventory_dashboard,
+        name="inventory_dashboard",
+    ),
+
+    path(
+        "movements/",
+        views.inventory_movement_list,
+        name="inventory_movement_list",
+    ),
+
+    path(
+        "products/<int:pk>/",
+        views.inventory_product_detail,
+        name="inventory_product_detail",
+    ),
+
+    path(
+        "products/<int:pk>/adjust/",
+        views.inventory_product_adjust,
+        name="inventory_product_adjust",
+    ),
+
+    path(
+        "products/<int:pk>/variants/<int:variant_id>/adjust/",
+        views.inventory_variant_adjust,
+        name="inventory_variant_adjust",
+    ),
+]

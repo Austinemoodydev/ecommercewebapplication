@@ -1,0 +1,1074 @@
+from decimal import Decimal, InvalidOperation
+from django.contrib import messages
+
+from django.contrib.admin.views.decorators import (
+    staff_member_required,
+)
+
+from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
+
+from django.db import transaction
+from django.db.models import Q
+
+from django.shortcuts import (
+    get_object_or_404,
+    redirect,
+    render,
+)
+
+from orders.models import Order
+
+from .forms import (
+    DeliveryAssignmentForm,
+    DeliveryAttemptForm,
+    DeliveryProviderForm,
+    DeliveryZoneForm,
+)
+
+from .models import (
+    Delivery,
+    DeliveryAttempt,
+    DeliveryEvent,
+    DeliveryProvider,
+    DeliveryZone,
+)
+
+from .services import (
+    allowed_delivery_statuses,
+    change_delivery_status,
+)
+
+
+# ============================================================
+# DELIVERY LIST
+# ============================================================
+
+@staff_member_required
+def delivery_list(request):
+
+    deliveries = (
+        Delivery.objects
+        .select_related(
+            "order",
+            "order__user",
+            "provider",
+        )
+        .order_by("-created_at")
+    )
+
+    q = request.GET.get(
+        "q",
+        "",
+    ).strip()
+
+    status = request.GET.get(
+        "status",
+        "",
+    )
+
+    management = request.GET.get(
+        "management",
+        "",
+    )
+
+    if q:
+
+        deliveries = deliveries.filter(
+
+            Q(
+                order__order_number__icontains=q
+            )
+
+            | Q(
+                order__full_name__icontains=q
+            )
+
+            | Q(
+                order__phone__icontains=q
+            )
+
+            | Q(
+                destination__icontains=q
+            )
+
+            | Q(
+                pickup_point__icontains=q
+            )
+
+            | Q(
+                transport_reference__icontains=q
+            )
+
+            | Q(
+                provider__name__icontains=q
+            )
+        )
+
+    valid_statuses = dict(
+        Delivery.STATUS_CHOICES
+    )
+
+    if status in valid_statuses:
+
+        deliveries = deliveries.filter(
+            status=status
+        )
+
+    if management in [
+        "internal",
+        "external",
+    ]:
+
+        deliveries = deliveries.filter(
+            management_type=management
+        )
+
+    page_obj = Paginator(
+        deliveries,
+        25,
+    ).get_page(
+        request.GET.get("page")
+    )
+
+    stats = {
+
+        "total": Delivery.objects.count(),
+
+        "active": (
+            Delivery.objects.exclude(
+                status__in=[
+                    "delivered",
+                    "collected",
+                    "returned",
+                    "cancelled",
+                ]
+            ).count()
+        ),
+
+        "in_transit": (
+            Delivery.objects.filter(
+                status__in=[
+                    "dispatched",
+                    "in_transit",
+                    "out_for_delivery",
+                ]
+            ).count()
+        ),
+
+        "ready_collection": (
+            Delivery.objects.filter(
+                status="ready_for_collection"
+            ).count()
+        ),
+
+        "completed": (
+            Delivery.objects.filter(
+                status__in=[
+                    "delivered",
+                    "collected",
+                ]
+            ).count()
+        ),
+    }
+
+    return render(
+        request,
+        "dashboard/admin/delivery/list.html",
+        {
+            "deliveries": (
+                page_obj.object_list
+            ),
+            "page_obj": page_obj,
+            "stats": stats,
+            "query": q,
+            "selected_status": status,
+            "selected_management": management,
+            "status_choices": Delivery.STATUS_CHOICES,
+        },
+    )
+
+
+# ============================================================
+# DELIVERY DETAIL
+# ============================================================
+
+@staff_member_required
+def delivery_detail(
+    request,
+    pk,
+):
+
+    delivery = get_object_or_404(
+        Delivery.objects
+        .select_related(
+            "order",
+            "order__user",
+            "provider",
+            "created_by",
+        )
+        .prefetch_related(
+            "events__created_by",
+            "attempts__created_by",
+        ),
+        pk=pk,
+    )
+
+    allowed_values = (
+        allowed_delivery_statuses(
+            delivery
+        )
+    )
+
+    status_labels = dict(
+        Delivery.STATUS_CHOICES
+    )
+
+    allowed_statuses = [
+        (
+            value,
+            status_labels[value],
+        )
+        for value in allowed_values
+    ]
+
+    return render(
+        request,
+        "dashboard/admin/delivery/detail.html",
+        {
+            "delivery": delivery,
+            "order": delivery.order,
+            "events": delivery.events.all(),
+            "attempts": delivery.attempts.all(),
+            "allowed_statuses": allowed_statuses,
+            "attempt_form": DeliveryAttemptForm(),
+        },
+    )
+
+
+# ============================================================
+# ASSIGN / EDIT DELIVERY
+# ============================================================
+
+@staff_member_required
+def delivery_assign(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        Order.objects.select_related(
+            "user"
+        ),
+        order_number=order_number,
+    )
+
+    delivery = getattr(
+        order,
+        "delivery",
+        None,
+    )
+
+    if order.status in [
+        "delivered",
+        "cancelled",
+    ]:
+
+        messages.error(
+            request,
+            (
+                "Delivery cannot be assigned "
+                "to a completed or cancelled order."
+            ),
+        )
+
+        return redirect(
+            "admin_order_detail",
+            order_number=order.order_number,
+        )
+
+    if request.method == "POST":
+
+        form = DeliveryAssignmentForm(
+            request.POST,
+            instance=delivery,
+        )
+
+        if form.is_valid():
+
+            obj = form.save(
+                commit=False
+            )
+
+            obj.order = order
+
+            if not obj.created_by_id:
+                obj.created_by = request.user
+
+            is_new = obj.pk is None
+
+            if (
+                is_new
+                and obj.status == "pending"
+            ):
+                obj.status = "assigned"
+
+            obj.save()
+
+            if is_new:
+
+                DeliveryEvent.objects.create(
+                    delivery=obj,
+                    status=obj.status,
+                    message=(
+                        "Delivery assigned."
+                    ),
+                    created_by=request.user,
+                )
+
+            # Keep old Order shipping fields synchronized
+            # for compatibility with existing screens.
+            order_fields = []
+
+            if obj.provider:
+
+                if order.courier != obj.provider.name:
+
+                    order.courier = (
+                        obj.provider.name
+                    )
+
+                    order_fields.append(
+                        "courier"
+                    )
+
+            if obj.transport_reference:
+
+                if (
+                    order.tracking_number
+                    != obj.transport_reference
+                ):
+
+                    order.tracking_number = (
+                        obj.transport_reference
+                    )
+
+                    order_fields.append(
+                        "tracking_number"
+                    )
+
+            if order_fields:
+
+                order_fields.append(
+                    "updated_at"
+                )
+
+                order.save(
+                    update_fields=order_fields
+                )
+
+            messages.success(
+                request,
+                (
+                    "Delivery information saved."
+                ),
+            )
+
+            return redirect(
+                "delivery_detail",
+                pk=obj.pk,
+            )
+
+    else:
+
+        initial = {}
+
+        if not delivery:
+
+            address_parts = [
+                order.estate,
+                order.city,
+                order.county,
+            ]
+
+            initial[
+                "destination"
+            ] = ", ".join(
+                x
+                for x in address_parts
+                if x
+            )
+
+            initial[
+                "customer_delivery_fee"
+            ] = order.shipping_cost
+
+        form = DeliveryAssignmentForm(
+            instance=delivery,
+            initial=initial,
+        )
+
+    return render(
+        request,
+        "dashboard/admin/delivery/assign.html",
+        {
+            "form": form,
+            "order": order,
+            "delivery": delivery,
+        },
+    )
+
+
+# ============================================================
+# STATUS UPDATE
+# ============================================================
+
+@staff_member_required
+def delivery_update_status(
+    request,
+    pk,
+):
+
+    delivery = get_object_or_404(
+        Delivery,
+        pk=pk,
+    )
+
+    if request.method != "POST":
+
+        return redirect(
+            "delivery_detail",
+            pk=delivery.pk,
+        )
+
+    status = request.POST.get(
+        "status",
+        "",
+    ).strip()
+
+    message = request.POST.get(
+        "message",
+        "",
+    ).strip()
+
+    try:
+
+        change_delivery_status(
+            delivery=delivery,
+            status=status,
+            user=request.user,
+            message=message,
+        )
+
+        messages.success(
+            request,
+            "Delivery status updated.",
+        )
+
+    except ValidationError as exc:
+
+        messages.error(
+            request,
+            " ".join(exc.messages),
+        )
+
+    return redirect(
+        "delivery_detail",
+        pk=delivery.pk,
+    )
+
+
+# ============================================================
+# FAILED ATTEMPT
+# ============================================================
+
+@staff_member_required
+def delivery_add_attempt(
+    request,
+    pk,
+):
+
+    delivery = get_object_or_404(
+        Delivery,
+        pk=pk,
+    )
+
+    if request.method != "POST":
+
+        return redirect(
+            "delivery_detail",
+            pk=delivery.pk,
+        )
+
+    form = DeliveryAttemptForm(
+        request.POST
+    )
+
+    if form.is_valid():
+
+        attempt = form.save(
+            commit=False
+        )
+
+        attempt.delivery = delivery
+        attempt.created_by = request.user
+        attempt.save()
+
+        if (
+            attempt.result
+            != "successful"
+            and delivery.status
+            not in [
+                "delivered",
+                "collected",
+                "returned",
+                "cancelled",
+            ]
+        ):
+
+            if (
+                "failed"
+                in allowed_delivery_statuses(
+                    delivery
+                )
+            ):
+
+                try:
+
+                    change_delivery_status(
+                        delivery=delivery,
+                        status="failed",
+                        user=request.user,
+                        message=(
+                            f"Delivery attempt failed: "
+                            f"{attempt.get_result_display()}."
+                        ),
+                    )
+
+                except ValidationError:
+                    pass
+
+        messages.success(
+            request,
+            "Delivery attempt recorded.",
+        )
+
+    else:
+
+        messages.error(
+            request,
+            "Please correct the delivery attempt.",
+        )
+
+    return redirect(
+        "delivery_detail",
+        pk=delivery.pk,
+    )
+
+
+# ============================================================
+# PROVIDERS
+# ============================================================
+
+@staff_member_required
+def provider_list(request):
+
+    providers = (
+        DeliveryProvider.objects
+        .order_by(
+            "-is_active",
+            "name",
+        )
+    )
+
+    return render(
+        request,
+        "dashboard/admin/delivery/providers.html",
+        {
+            "providers": providers,
+        },
+    )
+
+
+@staff_member_required
+def provider_create(request):
+
+    if request.method == "POST":
+
+        form = DeliveryProviderForm(
+            request.POST
+        )
+
+        if form.is_valid():
+
+            provider = form.save()
+
+            messages.success(
+                request,
+                (
+                    f"{provider.name} "
+                    f"has been added."
+                ),
+            )
+
+            return redirect(
+                "delivery_provider_list"
+            )
+
+    else:
+
+        form = DeliveryProviderForm()
+
+    return render(
+        request,
+        "dashboard/admin/delivery/provider_form.html",
+        {
+            "form": form,
+            "title": "Add Delivery Provider",
+        },
+    )
+
+
+@staff_member_required
+def provider_edit(
+    request,
+    pk,
+):
+
+    provider = get_object_or_404(
+        DeliveryProvider,
+        pk=pk,
+    )
+
+    if request.method == "POST":
+
+        form = DeliveryProviderForm(
+            request.POST,
+            instance=provider,
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            messages.success(
+                request,
+                "Delivery provider updated.",
+            )
+
+            return redirect(
+                "delivery_provider_list"
+            )
+
+    else:
+
+        form = DeliveryProviderForm(
+            instance=provider
+        )
+
+    return render(
+        request,
+        "dashboard/admin/delivery/provider_form.html",
+        {
+            "form": form,
+            "title": "Edit Delivery Provider",
+            "provider": provider,
+        },
+    )
+
+
+@staff_member_required
+def provider_toggle(
+    request,
+    pk,
+):
+
+    provider = get_object_or_404(
+        DeliveryProvider,
+        pk=pk,
+    )
+
+    if request.method == "POST":
+
+        provider.is_active = (
+            not provider.is_active
+        )
+
+        provider.save(
+            update_fields=[
+                "is_active",
+                "updated_at",
+            ]
+        )
+
+        messages.success(
+            request,
+            (
+                f"{provider.name} is now "
+                f"{'active' if provider.is_active else 'inactive'}."
+            ),
+        )
+
+    return redirect(
+        "delivery_provider_list"
+    )
+
+
+
+# ============================================================
+# DELIVERY ZONES
+# ============================================================
+
+@staff_member_required
+def delivery_zone_list(request):
+
+    zones = (
+        DeliveryZone.objects
+        .select_related(
+            "provider"
+        )
+        .order_by(
+            "county",
+            "town",
+            "method",
+        )
+    )
+
+    q = request.GET.get(
+        "q",
+        "",
+    ).strip()
+
+    if q:
+
+        zones = zones.filter(
+
+            Q(
+                county__icontains=q
+            )
+
+            | Q(
+                town__icontains=q
+            )
+
+            | Q(
+                provider__name__icontains=q
+            )
+
+            | Q(
+                pickup_point__icontains=q
+            )
+        )
+
+    return render(
+        request,
+        "dashboard/admin/delivery/zones.html",
+        {
+            "zones": zones,
+            "query": q,
+        },
+    )
+
+
+@staff_member_required
+def delivery_zone_create(request):
+
+    if request.method == "POST":
+
+        form = DeliveryZoneForm(
+            request.POST
+        )
+
+        if form.is_valid():
+
+            zone = form.save()
+
+            messages.success(
+                request,
+                (
+                    f"Delivery zone for "
+                    f"{zone.county} saved."
+                ),
+            )
+
+            return redirect(
+                "delivery_zone_list"
+            )
+
+    else:
+
+        form = DeliveryZoneForm()
+
+    return render(
+        request,
+        "dashboard/admin/delivery/zone_form.html",
+        {
+            "form": form,
+            "title": "Add Delivery Zone",
+        },
+    )
+
+
+@staff_member_required
+def delivery_zone_edit(
+    request,
+    pk,
+):
+
+    zone = get_object_or_404(
+        DeliveryZone,
+        pk=pk,
+    )
+
+    if request.method == "POST":
+
+        form = DeliveryZoneForm(
+            request.POST,
+            instance=zone,
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            messages.success(
+                request,
+                "Delivery zone updated.",
+            )
+
+            return redirect(
+                "delivery_zone_list"
+            )
+
+    else:
+
+        form = DeliveryZoneForm(
+            instance=zone
+        )
+
+    return render(
+        request,
+        "dashboard/admin/delivery/zone_form.html",
+        {
+            "form": form,
+            "title": "Edit Delivery Zone",
+            "zone": zone,
+        },
+    )
+
+
+@staff_member_required
+def delivery_zone_toggle(
+    request,
+    pk,
+):
+
+    zone = get_object_or_404(
+        DeliveryZone,
+        pk=pk,
+    )
+
+    if request.method == "POST":
+
+        zone.is_active = (
+            not zone.is_active
+        )
+
+        zone.save(
+            update_fields=[
+                "is_active",
+                "updated_at",
+            ]
+        )
+
+        messages.success(
+            request,
+            "Delivery zone status updated.",
+        )
+
+    return redirect(
+        "delivery_zone_list"
+    )
+
+
+
+# ============================================================
+# DELIVERY QUOTE
+# ============================================================
+
+@staff_member_required
+@transaction.atomic
+def delivery_set_quote(
+    request,
+    pk,
+):
+
+    delivery = get_object_or_404(
+        Delivery.objects
+        .select_for_update()
+        .select_related(
+            "order",
+            "provider",
+        ),
+        pk=pk,
+    )
+
+    if request.method != "POST":
+
+        return redirect(
+            "delivery_detail",
+            pk=delivery.pk,
+        )
+
+
+    order = (
+        Order.objects
+        .select_for_update()
+        .get(
+            pk=delivery.order_id
+        )
+    )
+
+
+    if (
+        order.payment_status
+        == "paid"
+    ):
+
+        messages.error(
+            request,
+            (
+                "Delivery price cannot be changed "
+                "after payment."
+            ),
+        )
+
+        return redirect(
+            "delivery_detail",
+            pk=delivery.pk,
+        )
+
+
+    if (
+        order.delivery_pricing_status
+        != "quote_pending"
+    ):
+
+        messages.error(
+            request,
+            (
+                "This order is not waiting "
+                "for a delivery quote."
+            ),
+        )
+
+        return redirect(
+            "delivery_detail",
+            pk=delivery.pk,
+        )
+
+
+    raw_amount = request.POST.get(
+        "delivery_fee",
+        "",
+    ).strip()
+
+
+    try:
+
+        amount = Decimal(
+            raw_amount
+        ).quantize(
+            Decimal("0.01")
+        )
+
+    except (
+        InvalidOperation,
+        ValueError,
+    ):
+
+        messages.error(
+            request,
+            "Enter a valid delivery fee.",
+        )
+
+        return redirect(
+            "delivery_detail",
+            pk=delivery.pk,
+        )
+
+
+    if amount < 0:
+
+        messages.error(
+            request,
+            (
+                "Delivery fee cannot be negative."
+            ),
+        )
+
+        return redirect(
+            "delivery_detail",
+            pk=delivery.pk,
+        )
+
+
+    order.shipping_cost = amount
+
+    order.total_amount = (
+        order.subtotal
+        + amount
+        - order.discount
+    )
+
+    order.delivery_pricing_status = (
+        "quoted"
+    )
+
+    order.save(
+        update_fields=[
+            "shipping_cost",
+            "total_amount",
+            "delivery_pricing_status",
+            "updated_at",
+        ]
+    )
+
+
+    delivery.customer_delivery_fee = (
+        amount
+    )
+
+    delivery.save(
+        update_fields=[
+            "customer_delivery_fee",
+            "updated_at",
+        ]
+    )
+
+
+    DeliveryEvent.objects.create(
+        delivery=delivery,
+        status=delivery.status,
+        message=(
+            f"Delivery fee confirmed at "
+            f"KES {amount:.2f}."
+        ),
+        created_by=request.user,
+    )
+
+
+    messages.success(
+        request,
+        (
+            f"Delivery quote confirmed: "
+            f"KES {amount:.2f}. "
+            f"The customer can now pay."
+        ),
+    )
+
+
+    return redirect(
+        "delivery_detail",
+        pk=delivery.pk,
+    )

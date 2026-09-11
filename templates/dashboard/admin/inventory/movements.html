@@ -1,0 +1,194 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Stock History
+{% endblock %}
+
+{% block page_heading %}
+Stock History
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            Inventory Movement Ledger
+        </h1>
+
+        <p class="text-muted mb-0">
+            Complete history of physical stock changes.
+        </p>
+
+    </div>
+
+    <a
+        href="{% url 'inventory_dashboard' %}"
+        class="btn btn-outline-secondary"
+    >
+        Inventory
+    </a>
+
+</div>
+
+
+<div class="dashboard-card mb-4">
+
+    <form method="GET">
+
+        <div class="row g-3">
+
+            <div class="col-md-8">
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control"
+                    placeholder="Product, variant, reference..."
+                >
+
+            </div>
+
+            <div class="col-md-4">
+
+                <select
+                    name="type"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All Movement Types
+                    </option>
+
+                    {% for value, label in movement_types %}
+
+                        <option
+                            value="{{ value }}"
+                            {% if selected_type == value %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ label }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <div class="mt-3">
+
+            <button
+                class="btn btn-primary"
+                type="submit"
+            >
+                Filter
+            </button>
+
+            <a
+                href="{% url 'inventory_movement_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                Reset
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<div class="dashboard-card">
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Item</th>
+                    <th>Type</th>
+                    <th>Quantity</th>
+                    <th>Before</th>
+                    <th>After</th>
+                    <th>Reference</th>
+                    <th>Staff</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for movement in movements %}
+
+                    <tr>
+
+                        <td>
+                            {{ movement.created_at|date:"d M Y H:i" }}
+                        </td>
+
+                        <td>
+                            {{ movement.item_name }}
+                        </td>
+
+                        <td>
+                            {{ movement.get_movement_type_display }}
+                        </td>
+
+                        <td>
+                            {{ movement.quantity }}
+                        </td>
+
+                        <td>
+                            {{ movement.stock_before }}
+                        </td>
+
+                        <td>
+                            {{ movement.stock_after }}
+                        </td>
+
+                        <td>
+                            {{ movement.reference|default:"—" }}
+                        </td>
+
+                        <td>
+
+                            {% if movement.created_by %}
+                                {{ movement.created_by }}
+                            {% else %}
+                                System
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+                        <td
+                            colspan="8"
+                            class="text-center text-muted py-5"
+                        >
+                            No inventory movements found.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

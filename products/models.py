@@ -11,6 +11,8 @@ class Brand(models.Model):
     slug = models.SlugField(unique=True)
     logo = models.ImageField(upload_to="brands/", blank=True, null=True)
 
+    is_active = models.BooleanField(default=True)
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
@@ -46,6 +48,13 @@ class Product(models.Model):
 
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    cost_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
     discount_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -55,6 +64,8 @@ class Product(models.Model):
 
     stock = models.PositiveIntegerField(default=0)
     reserved_stock = models.PositiveIntegerField(default=0)
+
+    low_stock_threshold = models.PositiveIntegerField(default=5)
 
     image = models.ImageField(upload_to="products/")
 
@@ -126,8 +137,17 @@ class ProductVariant(models.Model):
     name = models.CharField(max_length=100)
     sku = models.CharField(max_length=50, unique=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    cost_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     stock = models.PositiveIntegerField(default=0)
     reserved_stock = models.PositiveIntegerField(default=0)
+
+    low_stock_threshold = models.PositiveIntegerField(default=5)
     is_active = models.BooleanField(default=True)
 
     @property
@@ -140,4 +160,3 @@ class ProductVariant(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.name}"
-

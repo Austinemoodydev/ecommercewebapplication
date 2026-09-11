@@ -1,0 +1,420 @@
+from decimal import Decimal
+
+from django.conf import settings
+from django.db import models
+
+
+class DeliveryProvider(models.Model):
+
+    TYPE_CHOICES = [
+        ("ride_hailing", "Ride Hailing / App"),
+        ("bus_coach", "Bus / Coach"),
+        ("matatu_shuttle", "Matatu / Shuttle"),
+        ("personal_rider", "Personal Rider"),
+        ("shop_fleet", "Shop Rider / Fleet"),
+        ("courier", "Courier Company"),
+        ("other", "Other"),
+    ]
+
+    name = models.CharField(
+        max_length=150,
+        unique=True,
+    )
+
+    provider_type = models.CharField(
+        max_length=30,
+        choices=TYPE_CHOICES,
+        default="other",
+    )
+
+    phone = models.CharField(
+        max_length=30,
+        blank=True,
+    )
+
+    email = models.EmailField(
+        blank=True,
+    )
+
+    website = models.URLField(
+        blank=True,
+    )
+
+    notes = models.TextField(
+        blank=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+
+
+class DeliveryZone(models.Model):
+
+    PRICING_CHOICES = [
+        ("fixed", "Fixed Delivery Fee"),
+        ("confirm", "Fee Confirmed After Order"),
+    ]
+
+    METHOD_CHOICES = [
+        ("local_door", "Local Door Delivery"),
+        ("long_distance", "Long Distance Delivery"),
+        ("station_pickup", "Station / Parcel Office Pickup"),
+        ("store_pickup", "Store Pickup"),
+        ("personal_rider", "Personal Rider / Bike"),
+        ("other", "Other"),
+    ]
+
+    county = models.CharField(
+        max_length=100,
+        db_index=True,
+    )
+
+    town = models.CharField(
+        max_length=150,
+        blank=True,
+        db_index=True,
+    )
+
+    method = models.CharField(
+        max_length=30,
+        choices=METHOD_CHOICES,
+        default="local_door",
+    )
+
+    provider = models.ForeignKey(
+        DeliveryProvider,
+        on_delete=models.SET_NULL,
+        related_name="zones",
+        null=True,
+        blank=True,
+    )
+
+    pickup_point = models.CharField(
+        max_length=255,
+        blank=True,
+    )
+
+    pricing_mode = models.CharField(
+        max_length=20,
+        choices=PRICING_CHOICES,
+        default="fixed",
+    )
+
+    fee = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    estimated_time = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text=(
+            "Example: Same day, 1-2 days, "
+            "Next day."
+        ),
+    )
+
+    instructions = models.TextField(
+        blank=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = [
+            "county",
+            "town",
+            "method",
+        ]
+
+    def __str__(self):
+
+        location = self.county
+
+        if self.town:
+            location += f" / {self.town}"
+
+        return (
+            f"{location} - "
+            f"{self.get_method_display()}"
+        )
+
+
+class Delivery(models.Model):
+
+    MANAGEMENT_CHOICES = [
+        ("internal", "Shop Managed"),
+        ("external", "External Provider"),
+    ]
+
+    METHOD_CHOICES = [
+        ("local_door", "Local Door Delivery"),
+        ("long_distance", "Long Distance Delivery"),
+        ("station_pickup", "Station / Parcel Office Pickup"),
+        ("store_pickup", "Store Pickup"),
+        ("personal_rider", "Personal Rider / Bike"),
+        ("other", "Other"),
+    ]
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("assigned", "Assigned"),
+        ("ready_for_dispatch", "Ready for Dispatch"),
+        ("dispatched", "Dispatched"),
+        ("in_transit", "In Transit"),
+        ("arrived", "Arrived at Destination"),
+        ("ready_for_collection", "Ready for Collection"),
+        ("out_for_delivery", "Out for Delivery"),
+        ("delivered", "Delivered"),
+        ("collected", "Collected"),
+        ("failed", "Delivery Attempt Failed"),
+        ("returned", "Returned"),
+        ("cancelled", "Delivery Cancelled"),
+    ]
+
+    order = models.OneToOneField(
+        "orders.Order",
+        on_delete=models.PROTECT,
+        related_name="delivery",
+    )
+
+    management_type = models.CharField(
+        max_length=20,
+        choices=MANAGEMENT_CHOICES,
+        default="external",
+        db_index=True,
+    )
+
+    method = models.CharField(
+        max_length=30,
+        choices=METHOD_CHOICES,
+        default="local_door",
+    )
+
+    provider = models.ForeignKey(
+        DeliveryProvider,
+        on_delete=models.PROTECT,
+        related_name="deliveries",
+        null=True,
+        blank=True,
+    )
+
+    status = models.CharField(
+        max_length=30,
+        choices=STATUS_CHOICES,
+        default="pending",
+        db_index=True,
+    )
+
+    origin = models.CharField(
+        max_length=200,
+        blank=True,
+    )
+
+    destination = models.CharField(
+        max_length=255,
+    )
+
+    pickup_point = models.CharField(
+        max_length=255,
+        blank=True,
+    )
+
+    transport_reference = models.CharField(
+        max_length=120,
+        blank=True,
+        db_index=True,
+    )
+
+    driver_name = models.CharField(
+        max_length=150,
+        blank=True,
+    )
+
+    driver_phone = models.CharField(
+        max_length=30,
+        blank=True,
+    )
+
+    customer_delivery_fee = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    actual_delivery_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    expected_arrival = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    dispatched_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    arrived_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    delivered_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    collected_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    notes = models.TextField(
+        blank=True,
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="deliveries_created",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.order.order_number} - {self.get_status_display()}"
+
+    @property
+    def delivery_margin(self):
+        return (
+            self.customer_delivery_fee
+            - self.actual_delivery_cost
+        )
+
+
+class DeliveryEvent(models.Model):
+
+    delivery = models.ForeignKey(
+        Delivery,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
+
+    status = models.CharField(
+        max_length=30,
+        choices=Delivery.STATUS_CHOICES,
+    )
+
+    message = models.TextField(
+        blank=True,
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_events_created",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.delivery} - {self.get_status_display()}"
+
+
+class DeliveryAttempt(models.Model):
+
+    RESULT_CHOICES = [
+        ("successful", "Successful"),
+        ("customer_unavailable", "Customer Unavailable"),
+        ("unreachable", "Customer Unreachable"),
+        ("wrong_address", "Wrong Address"),
+        ("transport_delay", "Transport Delay"),
+        ("parcel_not_collected", "Parcel Not Collected"),
+        ("other", "Other"),
+    ]
+
+    delivery = models.ForeignKey(
+        Delivery,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+    )
+
+    result = models.CharField(
+        max_length=40,
+        choices=RESULT_CHOICES,
+    )
+
+    notes = models.TextField(
+        blank=True,
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_attempts_created",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.delivery.order.order_number} - {self.get_result_display()}"

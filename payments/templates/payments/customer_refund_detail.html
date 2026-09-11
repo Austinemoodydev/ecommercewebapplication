@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <a
+        href="{% url 'customer_returns_refunds' %}"
+        class="btn btn-outline-secondary btn-sm mb-4"
+    >
+        &larr; Returns & Refunds
+    </a>
+
+
+    <div class="row g-4">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body">
+
+                    <h3>
+                        Refund Request
+                    </h3>
+
+                    <p class="text-muted">
+                        Order {{ order.order_number }}
+                    </p>
+
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <small class="text-muted">
+                                Amount
+                            </small>
+
+                            <div class="fs-4 fw-bold">
+                                KES {{ refund.amount|floatformat:2 }}
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <small class="text-muted">
+                                Status
+                            </small>
+
+                            <div class="fw-semibold">
+                                {{ refund.get_status_display }}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {% if refund.external_reference %}
+
+                        <hr>
+
+                        <strong>
+                            Refund Reference
+                        </strong>
+
+                        <div>
+                            <code>
+                                {{ refund.external_reference }}
+                            </code>
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>
+                        Refund Timeline
+                    </h5>
+
+                    {% for event in refund.events.all %}
+
+                        <div class="border-start ps-3 py-2">
+
+                            <strong>
+                                {{ event.status|title }}
+                            </strong>
+
+                            <div class="small text-muted">
+                                {{ event.created_at|date:"d M Y H:i" }}
+                            </div>
+
+                            {% if event.message %}
+
+                                <div>
+                                    {{ event.message }}
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% empty %}
+
+                        <p class="text-muted">
+                            No timeline activity.
+                        </p>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-lg-4">
+
+            {% if refund.staff_note %}
+
+                <div class="card shadow-sm">
+
+                    <div class="card-body">
+
+                        <h5>
+                            Shop Note
+                        </h5>
+
+                        <p class="mb-0">
+                            {{ refund.staff_note }}
+                        </p>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

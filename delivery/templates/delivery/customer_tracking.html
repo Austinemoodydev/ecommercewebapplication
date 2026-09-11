@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div
+        class="
+            d-flex
+            justify-content-between
+            align-items-start
+            flex-wrap
+            gap-3
+            mb-4
+        "
+    >
+
+        <div>
+
+            <a
+                href="{% url 'order_detail' order.order_number %}"
+                class="btn btn-sm btn-outline-secondary mb-3"
+            >
+                &larr; Back to Order
+            </a>
+
+            <h2 class="mb-1">
+                Track Delivery
+            </h2>
+
+            <div class="text-muted">
+                Order {{ order.order_number }}
+            </div>
+
+        </div>
+
+        <span
+            class="
+                badge
+                bg-primary
+                fs-6
+            "
+        >
+            {{ delivery.get_status_display }}
+        </span>
+
+    </div>
+
+
+    {% if delivery.status == "ready_for_collection" %}
+
+        <div class="alert alert-success">
+
+            <strong>
+                Your parcel is ready for collection.
+            </strong>
+
+            {% if delivery.pickup_point %}
+
+                <div class="mt-2">
+
+                    Pickup Point:
+                    <strong>
+                        {{ delivery.pickup_point }}
+                    </strong>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="row g-4">
+
+        <div class="col-lg-5">
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body p-4">
+
+                    <h5 class="mb-4">
+                        Delivery Information
+                    </h5>
+
+                    <div class="mb-3">
+
+                        <small class="text-muted">
+                            Delivery Type
+                        </small>
+
+                        <div class="fw-semibold">
+                            {{ delivery.get_method_display }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <small class="text-muted">
+                            Managed By
+                        </small>
+
+                        <div class="fw-semibold">
+                            {{ delivery.get_management_type_display }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <small class="text-muted">
+                            Provider
+                        </small>
+
+                        <div class="fw-semibold">
+
+                            {% if delivery.provider %}
+
+                                {{ delivery.provider.name }}
+
+                            {% else %}
+
+                                Shop Delivery Team
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    {% if delivery.transport_reference %}
+
+                        <div class="mb-3">
+
+                            <small class="text-muted">
+                                Parcel / Transport Reference
+                            </small>
+
+                            <div>
+                                <code class="fs-6">
+                                    {{ delivery.transport_reference }}
+                                </code>
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <div class="mb-3">
+
+                        <small class="text-muted">
+                            Destination
+                        </small>
+
+                        <div class="fw-semibold">
+                            {{ delivery.destination }}
+                        </div>
+
+                    </div>
+
+
+                    {% if delivery.pickup_point %}
+
+                        <div class="mb-3">
+
+                            <small class="text-muted">
+                                Pickup Point
+                            </small>
+
+                            <div class="fw-semibold">
+                                {{ delivery.pickup_point }}
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    {% if delivery.expected_arrival %}
+
+                        <div class="mb-3">
+
+                            <small class="text-muted">
+                                Expected Arrival
+                            </small>
+
+                            <div class="fw-semibold">
+                                {{ delivery.expected_arrival|date:"d M Y H:i" }}
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    {% if delivery.provider.phone %}
+
+                        <div class="mt-4">
+
+                            <a
+                                href="tel:{{ delivery.provider.phone }}"
+                                class="btn btn-outline-primary"
+                            >
+                                <i class="bi bi-telephone"></i>
+                                Contact Provider
+                            </a>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body p-4">
+
+                    <h5 class="mb-4">
+                        Delivery Progress
+                    </h5>
+
+
+                    {% for event in events %}
+
+                        <div
+                            class="
+                                d-flex
+                                gap-3
+                                pb-4
+                            "
+                        >
+
+                            <div>
+
+                                <div
+                                    class="
+                                        rounded-circle
+                                        bg-success
+                                        text-white
+                                        d-flex
+                                        align-items-center
+                                        justify-content-center
+                                    "
+                                    style="
+                                        width:38px;
+                                        height:38px;
+                                    "
+                                >
+                                    <i class="bi bi-check-lg"></i>
+                                </div>
+
+                            </div>
+
+
+                            <div class="flex-grow-1">
+
+                                <div class="fw-semibold">
+                                    {{ event.get_status_display }}
+                                </div>
+
+                                <small class="text-muted">
+                                    {{ event.created_at|date:"d M Y H:i" }}
+                                </small>
+
+                                {% if event.message %}
+
+                                    <p class="mb-0 mt-2">
+                                        {{ event.message }}
+                                    </p>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    {% empty %}
+
+                        <div class="text-muted">
+                            Delivery tracking information
+                            will appear here once your parcel
+                            is assigned.
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

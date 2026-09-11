@@ -1,0 +1,241 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Inventory | {{ product.name }}
+{% endblock %}
+
+{% block page_heading %}
+Inventory
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            {{ product.name }}
+        </h1>
+
+        <p class="text-muted mb-0">
+            SKU: {{ product.sku }}
+        </p>
+
+    </div>
+
+    <div class="d-flex gap-2">
+
+        <a
+            href="{% url 'inventory_dashboard' %}"
+            class="btn btn-outline-secondary"
+        >
+            <i class="bi bi-arrow-left"></i>
+            Inventory
+        </a>
+
+        <a
+            href="{% url 'inventory_product_adjust' product.pk %}"
+            class="btn btn-primary"
+        >
+            <i class="bi bi-plus-slash-minus"></i>
+            Adjust Stock
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4">
+        <div class="dashboard-card mini-stat">
+            <span>Physical Stock</span>
+            <strong>{{ product.stock }}</strong>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="dashboard-card mini-stat">
+            <span>Reserved</span>
+            <strong>{{ product.reserved_stock }}</strong>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="dashboard-card mini-stat">
+            <span>Available</span>
+            <strong>{{ product.available_stock }}</strong>
+        </div>
+    </div>
+
+</div>
+
+
+{% if variants %}
+
+<div class="dashboard-card mb-4">
+
+    <h2 class="h5 mb-3">
+        Variant Inventory
+    </h2>
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+                <tr>
+                    <th>Variant</th>
+                    <th>SKU</th>
+                    <th>Physical</th>
+                    <th>Reserved</th>
+                    <th>Available</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for variant in variants %}
+
+                    <tr>
+
+                        <td>
+                            {{ variant.name }}
+                        </td>
+
+                        <td>
+                            {{ variant.sku }}
+                        </td>
+
+                        <td>
+                            {{ variant.stock }}
+                        </td>
+
+                        <td>
+                            {{ variant.reserved_stock }}
+                        </td>
+
+                        <td>
+                            {{ variant.available_stock }}
+                        </td>
+
+                        <td>
+
+                            <a
+                                href="{% url 'inventory_variant_adjust' product.pk variant.pk %}"
+                                class="btn btn-sm btn-outline-primary"
+                            >
+                                Adjust
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<div class="dashboard-card">
+
+    <h2 class="h5 mb-3">
+        Stock History
+    </h2>
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Item</th>
+                    <th>Movement</th>
+                    <th>Qty</th>
+                    <th>Before</th>
+                    <th>After</th>
+                    <th>Reference</th>
+                    <th>Staff</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for movement in movements %}
+
+                    <tr>
+
+                        <td>
+                            {{ movement.created_at|date:"d M Y H:i" }}
+                        </td>
+
+                        <td>
+                            {{ movement.item_name }}
+                        </td>
+
+                        <td>
+                            {{ movement.get_movement_type_display }}
+                        </td>
+
+                        <td>
+                            {{ movement.quantity }}
+                        </td>
+
+                        <td>
+                            {{ movement.stock_before }}
+                        </td>
+
+                        <td>
+                            {{ movement.stock_after }}
+                        </td>
+
+                        <td>
+                            {{ movement.reference|default:"—" }}
+                        </td>
+
+                        <td>
+
+                            {% if movement.created_by %}
+                                {{ movement.created_by }}
+                            {% else %}
+                                System
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+                        <td
+                            colspan="8"
+                            class="text-center text-muted py-5"
+                        >
+                            No stock history yet.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

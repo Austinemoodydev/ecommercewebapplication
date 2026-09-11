@@ -1,0 +1,829 @@
+{% extends "dashboard/admin/base.html" %}
+
+
+{% block title %}
+Products | Store Management
+{% endblock %}
+
+
+{% block page_heading %}
+Products
+{% endblock %}
+
+
+{% block admin_content %}
+
+
+<div
+    class="
+        d-flex
+        justify-content-between
+        align-items-center
+        flex-wrap
+        gap-3
+        mb-4
+    "
+>
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            Product Management
+        </h1>
+
+        <p class="text-muted mb-0">
+            Manage products, prices,
+            availability and storefront visibility.
+        </p>
+
+    </div>
+
+
+    <a
+        href="{% url 'admin_product_create' %}"
+        class="btn btn-primary"
+    >
+
+        <i class="bi bi-plus-lg"></i>
+
+        Add Product
+
+    </a>
+
+</div>
+
+
+<!-- ======================================================
+     SUMMARY
+====================================================== -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-xl-2 col-md-4 col-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>All Products</span>
+
+            <strong>
+                {{ counts.all }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Active</span>
+
+            <strong>
+                {{ counts.active }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Inactive</span>
+
+            <strong>
+                {{ counts.inactive }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Low Stock</span>
+
+            <strong>
+                {{ counts.low_stock }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Out of Stock</span>
+
+            <strong>
+                {{ counts.out_of_stock }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Featured</span>
+
+            <strong>
+                {{ counts.featured }}
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     FILTERS
+====================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <form method="GET">
+
+        <div class="row g-3">
+
+            <div class="col-lg-4">
+
+                <label class="form-label">
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control"
+                    placeholder="Product name, SKU, brand..."
+                >
+
+            </div>
+
+
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    Category
+                </label>
+
+                <select
+                    name="category"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+
+                    {% for category in categories %}
+
+                        <option
+                            value="{{ category.id }}"
+                            {% if selected_category == category.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+
+                            {{ category.name }}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    Brand
+                </label>
+
+                <select
+                    name="brand"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All Brands
+                    </option>
+
+
+                    {% for brand in brands %}
+
+                        <option
+                            value="{{ brand.id }}"
+                            {% if selected_brand == brand.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+
+                            {{ brand.name }}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    Status
+                </label>
+
+                <select
+                    name="status"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All
+                    </option>
+
+                    <option
+                        value="active"
+                        {% if selected_status == "active" %}
+                            selected
+                        {% endif %}
+                    >
+                        Active
+                    </option>
+
+                    <option
+                        value="inactive"
+                        {% if selected_status == "inactive" %}
+                            selected
+                        {% endif %}
+                    >
+                        Inactive
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    Stock
+                </label>
+
+                <select
+                    name="stock"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All
+                    </option>
+
+                    <option
+                        value="available"
+                        {% if selected_stock == "available" %}
+                            selected
+                        {% endif %}
+                    >
+                        Available
+                    </option>
+
+                    <option
+                        value="out"
+                        {% if selected_stock == "out" %}
+                            selected
+                        {% endif %}
+                    >
+                        Out of Stock
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <div class="mt-3">
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                <i class="bi bi-search"></i>
+                Filter
+            </button>
+
+
+            <a
+                href="{% url 'admin_product_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                Reset
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- ======================================================
+     PRODUCT TABLE
+====================================================== -->
+
+<div class="dashboard-card">
+
+    <div class="table-responsive">
+
+        <table
+            class="
+                table
+                dashboard-table
+                align-middle
+            "
+        >
+
+            <thead>
+
+                <tr>
+
+                    <th>Product</th>
+
+                    <th>
+                        Category
+                    </th>
+
+                    <th>
+                        Price
+                    </th>
+
+                    <th>
+                        Stock
+                    </th>
+
+                    <th>
+                        Available
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Featured
+                    </th>
+
+                    <th></th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for product in products %}
+
+                    <tr>
+
+                        <!-- PRODUCT -->
+
+                        <td>
+
+                            <div
+                                class="
+                                    d-flex
+                                    align-items-center
+                                    gap-3
+                                "
+                            >
+
+                                {% if product.image %}
+
+                                    <img
+                                        src="{{ product.image.url }}"
+                                        alt="{{ product.name }}"
+                                        width="55"
+                                        height="55"
+                                        style="
+                                            object-fit: cover;
+                                            border-radius: 8px;
+                                        "
+                                    >
+
+                                {% endif %}
+
+
+                                <div>
+
+                                    <strong>
+                                        {{ product.name }}
+                                    </strong>
+
+                                    <small
+                                        class="
+                                            d-block
+                                            text-muted
+                                        "
+                                    >
+                                        SKU:
+                                        {{ product.sku }}
+                                    </small>
+
+                                    {% if product.brand %}
+
+                                        <small
+                                            class="
+                                                d-block
+                                                text-muted
+                                            "
+                                        >
+                                            {{ product.brand.name }}
+                                        </small>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- CATEGORY -->
+
+                        <td>
+
+                            {{ product.category.name }}
+
+                        </td>
+
+
+                        <!-- PRICE -->
+
+                        <td>
+
+                            {% if product.discount_price %}
+
+                                <strong>
+                                    KES
+                                    {{ product.discount_price|floatformat:2 }}
+                                </strong>
+
+                                <small
+                                    class="
+                                        d-block
+                                        text-muted
+                                        text-decoration-line-through
+                                    "
+                                >
+                                    KES
+                                    {{ product.price|floatformat:2 }}
+                                </small>
+
+                            {% else %}
+
+                                <strong>
+                                    KES
+                                    {{ product.price|floatformat:2 }}
+                                </strong>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- STOCK -->
+
+                        <td>
+
+                            {{ product.stock }}
+
+                            {% if product.reserved_stock %}
+
+                                <small
+                                    class="
+                                        d-block
+                                        text-muted
+                                    "
+                                >
+                                    {{ product.reserved_stock }}
+                                    reserved
+                                </small>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- AVAILABLE -->
+
+                        <td>
+
+                            {% if product.available_stock == 0 %}
+
+                                <span
+                                    class="
+                                        badge
+                                        text-bg-danger
+                                    "
+                                >
+                                    Out of stock
+                                </span>
+
+                            {% elif product.available_stock <= 5 %}
+
+                                <span
+                                    class="
+                                        badge
+                                        text-bg-warning
+                                    "
+                                >
+                                    {{ product.available_stock }}
+                                    left
+                                </span>
+
+                            {% else %}
+
+                                <span
+                                    class="
+                                        badge
+                                        text-bg-success
+                                    "
+                                >
+                                    {{ product.available_stock }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- ACTIVE -->
+
+                        <td>
+
+                            {% if product.is_active %}
+
+                                <span
+                                    class="
+                                        badge
+                                        text-bg-success
+                                    "
+                                >
+                                    Active
+                                </span>
+
+                            {% else %}
+
+                                <span
+                                    class="
+                                        badge
+                                        text-bg-secondary
+                                    "
+                                >
+                                    Hidden
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- FEATURED -->
+
+                        <td>
+
+                            {% if product.featured %}
+
+                                <i
+                                    class="
+                                        bi
+                                        bi-star-fill
+                                        text-warning
+                                    "
+                                ></i>
+
+                            {% else %}
+
+                                <span class="text-muted">
+                                    —
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- ACTION -->
+
+                        <td>
+
+                            <div class="dropdown">
+
+                                <button
+                                    class="
+                                        btn
+                                        btn-sm
+                                        btn-outline-secondary
+                                        dropdown-toggle
+                                    "
+                                    data-bs-toggle="dropdown"
+                                >
+                                    Actions
+                                </button>
+
+
+                                <ul
+                                    class="
+                                        dropdown-menu
+                                        dropdown-menu-end
+                                    "
+                                >
+
+                                    <li>
+
+                                        <a
+                                            class="dropdown-item"
+                                            href="{% url 'admin_product_detail' product.pk %}"
+                                        >
+                                            <i class="bi bi-eye"></i>
+                                            View
+                                        </a>
+
+                                    </li>
+
+
+                                    <li>
+
+                                        <a
+                                            class="dropdown-item"
+                                            href="{% url 'admin_product_edit' product.pk %}"
+                                        >
+                                            <i class="bi bi-pencil"></i>
+                                            Edit
+                                        </a>
+
+                                    </li>
+
+
+                                    <li>
+
+                                        <a
+                                            class="dropdown-item"
+                                            target="_blank"
+                                            href="{% url 'product_detail' product.slug %}"
+                                        >
+                                            <i
+                                                class="
+                                                    bi
+                                                    bi-box-arrow-up-right
+                                                "
+                                            ></i>
+
+                                            Store Preview
+
+                                        </a>
+
+                                    </li>
+
+                                </ul>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="8"
+                            class="
+                                text-center
+                                text-muted
+                                py-5
+                            "
+                        >
+
+                            <i
+                                class="
+                                    bi
+                                    bi-box-seam
+                                    fs-1
+                                    d-block
+                                    mb-2
+                                "
+                            ></i>
+
+                            No products found.
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- PAGINATION -->
+
+    {% if page_obj.has_other_pages %}
+
+        <nav class="mt-4">
+
+            <ul class="pagination mb-0">
+
+                {% if page_obj.has_previous %}
+
+                    <li class="page-item">
+
+                        <a
+                            class="page-link"
+                            href="?page={{ page_obj.previous_page_number }}&q={{ query }}&category={{ selected_category }}&brand={{ selected_brand }}&status={{ selected_status }}&stock={{ selected_stock }}"
+                        >
+                            Previous
+                        </a>
+
+                    </li>
+
+                {% endif %}
+
+
+                <li
+                    class="
+                        page-item
+                        active
+                    "
+                >
+
+                    <span class="page-link">
+
+                        {{ page_obj.number }}
+                        /
+                        {{ page_obj.paginator.num_pages }}
+
+                    </span>
+
+                </li>
+
+
+                {% if page_obj.has_next %}
+
+                    <li class="page-item">
+
+                        <a
+                            class="page-link"
+                            href="?page={{ page_obj.next_page_number }}&q={{ query }}&category={{ selected_category }}&brand={{ selected_brand }}&status={{ selected_status }}&stock={{ selected_stock }}"
+                        >
+                            Next
+                        </a>
+
+                    </li>
+
+                {% endif %}
+
+            </ul>
+
+        </nav>
+
+    {% endif %}
+
+</div>
+
+
+{% endblock %}

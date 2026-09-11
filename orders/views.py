@@ -1,5 +1,8 @@
 from decimal import Decimal
+from datetime import timedelta
 
+from django.conf import settings
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django_ratelimit.decorators import ratelimit
@@ -14,7 +17,8 @@ from django.http import JsonResponse
 from .models import Coupon, DeliveryArea, Order, OrderItem
 from .utils import generate_order_number
 from products.models import Product
-
+from delivery.models import Delivery, DeliveryZone
+from .inventory import release_order_inventory
 
 @login_required
 @ratelimit(key="user", rate="10/m", method="POST", block=True)
@@ -31,7 +35,16 @@ def checkout(request):
 
     default_address = addresses.filter(is_default=True).first()
 
-    delivery_areas = DeliveryArea.objects.filter(is_active=True)
+    delivery_zones = (
+        DeliveryZone.objects
+        .filter(is_active=True)
+        .select_related("provider")
+        .order_by(
+            "county",
+            "town",
+            "method",
+        )
+    )
 
     form = CheckoutForm(request.POST or None)
 
@@ -51,10 +64,55 @@ def checkout(request):
 
             with transaction.atomic():
 
-                delivery_area = form.cleaned_data["delivery_area"]
+                delivery_zone = (
+                    DeliveryZone.objects
+                    .select_for_update()
+                    .select_related("provider")
+                    .get(
+                        pk=form.cleaned_data[
+                            "delivery_zone"
+                        ].pk,
+                        is_active=True,
+                    )
+                )
 
                 subtotal = cart.total_price
-                shipping_cost = delivery_area.fee
+
+                if (
+                    delivery_zone.pricing_mode
+                    == "fixed"
+                ):
+
+                    if (
+                        delivery_zone.free_delivery_threshold
+                        is not None
+                        and subtotal
+                        >= delivery_zone.free_delivery_threshold
+                    ):
+
+                        shipping_cost = (
+                            Decimal("0.00")
+                        )
+
+                    else:
+
+                        shipping_cost = (
+                            delivery_zone.fee
+                        )
+
+                    delivery_pricing_status = (
+                        "fixed"
+                    )
+
+                else:
+
+                    # The final transport cost will be
+                    # entered by staff before payment.
+                    shipping_cost = Decimal("0.00")
+
+                    delivery_pricing_status = (
+                        "quote_pending"
+                    )
 
                 discount = Decimal("0")
                 coupon_obj = None
@@ -75,23 +133,133 @@ def checkout(request):
                 order = Order.objects.create(
                     user=request.user,
                     order_number=generate_order_number(),
+
                     full_name=form.cleaned_data["full_name"],
                     phone=form.cleaned_data["phone"],
                     email=form.cleaned_data.get("email", ""),
+
                     county=form.cleaned_data["county"],
                     city=form.cleaned_data["city"],
-                    estate=delivery_area.name,
+                    estate=form.cleaned_data["estate"],
                     house_number=form.cleaned_data["house_number"],
-                    landmark=form.cleaned_data.get("landmark", ""),
-                    delivery_notes=form.cleaned_data.get("delivery_notes", ""),
+
+                    delivery_zone=delivery_zone,
+                    delivery_pricing_status=(
+                        delivery_pricing_status
+                    ),
+
+                    landmark=form.cleaned_data.get(
+                        "landmark",
+                        "",
+                    ),
+
+                    delivery_notes=form.cleaned_data.get(
+                        "delivery_notes",
+                        "",
+                    ),
+
                     latitude=form.cleaned_data.get("latitude"),
                     longitude=form.cleaned_data.get("longitude"),
+
                     subtotal=subtotal,
                     shipping_cost=shipping_cost,
                     discount=discount,
                     coupon=coupon_obj,
                     total_amount=total_amount,
+
+                    inventory_status="reserved",
+
+                    reservation_expires_at=(
+                        timezone.now()
+                        + timedelta(
+                            minutes=settings.ORDER_RESERVATION_MINUTES
+                        )
+                    ),
                 )
+
+
+                # -------------------------------------------------
+                # CREATE DELIVERY RECORD
+                # -------------------------------------------------
+
+                internal_provider_types = {
+                    "personal_rider",
+                    "shop_fleet",
+                }
+
+                if (
+                    delivery_zone.method
+                    == "store_pickup"
+                ):
+
+                    management_type = "internal"
+
+                elif (
+                    delivery_zone.provider
+                    and
+                    delivery_zone.provider.provider_type
+                    in internal_provider_types
+                ):
+
+                    management_type = "internal"
+
+                else:
+
+                    management_type = "external"
+
+                destination_parts = [
+                    form.cleaned_data[
+                        "house_number"
+                    ],
+                    form.cleaned_data[
+                        "estate"
+                    ],
+                    form.cleaned_data[
+                        "city"
+                    ],
+                    form.cleaned_data[
+                        "county"
+                    ],
+                ]
+
+                destination = ", ".join(
+                    part.strip()
+                    for part in destination_parts
+                    if part
+                )
+
+                Delivery.objects.create(
+                    order=order,
+
+                    management_type=(
+                        management_type
+                    ),
+
+                    method=(
+                        delivery_zone.method
+                    ),
+
+                    provider=(
+                        delivery_zone.provider
+                    ),
+
+                    status="pending",
+
+                    destination=destination,
+
+                    pickup_point=(
+                        delivery_zone.pickup_point
+                    ),
+
+                    customer_delivery_fee=(
+                        shipping_cost
+                    ),
+
+                    notes=(
+                        delivery_zone.instructions
+                    ),
+                )
+
 
                 for item in items:
                     inventory = item.variant.__class__.objects.select_for_update().get(id=item.variant_id) if item.variant else Product.objects.select_for_update().get(id=item.product_id)
@@ -111,7 +279,7 @@ def checkout(request):
                             "items": items,
                             "addresses": addresses,
                             "default_address": default_address,
-                            "delivery_areas": delivery_areas,
+                            "delivery_zones": delivery_zones,
                             "form": form,
                             "stock_error": stock_error,
                         },
@@ -123,6 +291,49 @@ def checkout(request):
                     request.session.pop("coupon_code", None)
 
                 for item in items:
+
+                    # -----------------------------------------
+                    # HISTORICAL COST SNAPSHOT
+                    # -----------------------------------------
+
+                    if (
+                        item.variant
+                        and getattr(
+                            item.variant,
+                            "cost_price",
+                            None,
+                        )
+                        is not None
+                    ):
+
+                        unit_cost_at_sale = (
+                            item.variant.cost_price
+                        )
+
+                    else:
+
+                        unit_cost_at_sale = (
+                            getattr(
+                                item.product,
+                                "cost_price",
+                                None,
+                            )
+                        )
+
+
+                    cost_subtotal_at_sale = None
+
+                    if (
+                        unit_cost_at_sale
+                        is not None
+                    ):
+
+                        cost_subtotal_at_sale = (
+                            unit_cost_at_sale
+                            * item.quantity
+                        )
+
+
                     OrderItem.objects.create(
                         order=order,
                         product=item.product,
@@ -130,6 +341,15 @@ def checkout(request):
                         product_name=item.product.name,
                         variant_name=item.variant.name if item.variant else "",
                         price=item.variant.current_price if item.variant else item.product.current_price,
+
+                        unit_cost_at_sale=(
+                            unit_cost_at_sale
+                        ),
+
+                        cost_subtotal_at_sale=(
+                            cost_subtotal_at_sale
+                        ),
+
                         quantity=item.quantity,
                         subtotal=item.subtotal,
                     )
@@ -146,7 +366,7 @@ def checkout(request):
             "items": items,
             "addresses": addresses,
             "default_address": default_address,
-            "delivery_areas": delivery_areas,
+            "delivery_zones": delivery_zones,
             "form": form,
             "stock_error": stock_error,
         },
@@ -170,33 +390,55 @@ def order_confirmation(request, order_number):
 @login_required
 @ratelimit(key="user", rate="10/m", method="POST", block=True)
 def cancel_order(request, order_number):
+
     if request.method != "POST":
-        return redirect("order_detail", order_number=order_number)
+        return redirect(
+            "order_detail",
+            order_number=order_number,
+        )
 
     with transaction.atomic():
+
         order = get_object_or_404(
             Order.objects.select_for_update(),
             order_number=order_number,
             user=request.user,
         )
 
-        if order.status != "pending" or order.payment_status != "pending":
-            messages.error(request, "Only unpaid pending orders can be cancelled.")
-            return redirect("order_detail", order_number=order.order_number)
+        if (
+            order.status != "pending"
+            or order.payment_status != "pending"
+        ):
+            messages.error(
+                request,
+                "Only unpaid pending orders can be cancelled.",
+            )
 
-        for order_item in order.items.all():
-            inventory = order_item.variant.__class__.objects.select_for_update().get(id=order_item.variant_id) if order_item.variant_id else Product.objects.select_for_update().get(id=order_item.product_id)
-            inventory.reserved_stock = max(inventory.reserved_stock - order_item.quantity, 0)
-            inventory.save(update_fields=["reserved_stock"] + (["updated_at"] if not order_item.variant_id else []))
+            return redirect(
+                "order_detail",
+                order_number=order.order_number,
+            )
+
+        release_order_inventory(order)
 
         order.status = "cancelled"
-        order.save(update_fields=["status", "updated_at"])
 
-    messages.success(request, "Your order has been cancelled.")
-    return redirect("order_detail", order_number=order.order_number)
+        order.save(
+            update_fields=[
+                "status",
+                "updated_at",
+            ]
+        )
 
+    messages.success(
+        request,
+        "Your order has been cancelled.",
+    )
 
-
+    return redirect(
+        "order_detail",
+        order_number=order.order_number,
+    )
 
 
 @login_required
@@ -240,7 +482,3 @@ def remove_coupon(request):
     request.session.pop("coupon_code", None)
 
     return JsonResponse({"success": True})
-
-
-
-

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <a
+        href="{% url 'customer_returns_refunds' %}"
+        class="btn btn-outline-secondary btn-sm mb-4"
+    >
+        &larr; Returns & Refunds
+    </a>
+
+
+    <div class="row g-4">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body">
+
+                    <h3>
+                        {{ return_request.get_request_type_display }}
+                    </h3>
+
+                    <p class="text-muted">
+                        Order {{ order.order_number }}
+                    </p>
+
+
+                    <div class="mb-3">
+
+                        <strong>Status:</strong>
+
+                        {{ return_request.get_status_display }}
+
+                    </div>
+
+
+                    <h5>
+                        Items
+                    </h5>
+
+                    <div class="table-responsive">
+
+                        <table class="table">
+
+                            <thead>
+
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                {% for line in return_request.items.all %}
+
+                                    <tr>
+
+                                        <td>
+                                            {{ line.order_item.product_name }}
+                                        </td>
+
+                                        <td>
+                                            {{ line.quantity }}
+                                        </td>
+
+                                    </tr>
+
+                                {% empty %}
+
+                                    <tr>
+
+                                        <td colspan="2">
+                                            Whole-order legacy request
+                                        </td>
+
+                                    </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+
+                    <h5>
+                        Reason
+                    </h5>
+
+                    <p>
+                        {{ return_request.reason }}
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>
+                        Request Timeline
+                    </h5>
+
+                    {% for event in return_request.events.all %}
+
+                        <div class="border-start ps-3 py-2">
+
+                            <strong>
+                                {{ event.status|title }}
+                            </strong>
+
+                            <div class="small text-muted">
+                                {{ event.created_at|date:"d M Y H:i" }}
+                            </div>
+
+                            {% if event.message %}
+
+                                <div>
+                                    {{ event.message }}
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% empty %}
+
+                        <p class="text-muted">
+                            No timeline activity.
+                        </p>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-lg-4">
+
+            {% if return_deadline %}
+
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-body">
+
+                        <small class="text-muted">
+                            Return Window
+                        </small>
+
+                        <div class="fw-semibold">
+                            {{ return_deadline|date:"d M Y H:i" }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+
+            {% if return_request.staff_note %}
+
+                <div class="card shadow-sm">
+
+                    <div class="card-body">
+
+                        <h5>
+                            Shop Note
+                        </h5>
+
+                        <p class="mb-0">
+                            {{ return_request.staff_note }}
+                        </p>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

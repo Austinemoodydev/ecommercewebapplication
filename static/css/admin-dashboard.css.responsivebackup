@@ -1,0 +1,1038 @@
+:root {
+    --sidebar-width: 260px;
+    --sidebar-bg: #111827;
+    --sidebar-hover: #1f2937;
+    --page-bg: #f5f7fb;
+    --card-bg: #ffffff;
+    --border-color: #e5e7eb;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --primary: #2563eb;
+}
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--text-primary);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+
+.admin-layout {
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.admin-sidebar {
+    position: fixed;
+
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    width: var(--sidebar-width);
+
+    background: var(--sidebar-bg);
+
+    color: #ffffff;
+
+    overflow-y: auto;
+
+    z-index: 1000;
+}
+
+
+.sidebar-brand {
+    height: 76px;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 0 22px;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+.sidebar-brand i {
+    font-size: 26px;
+}
+
+
+.sidebar-brand strong,
+.sidebar-brand small {
+    display: block;
+}
+
+
+.sidebar-brand small {
+    color: #9ca3af;
+}
+
+
+.sidebar-nav {
+    padding: 18px 12px;
+}
+
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    padding: 12px 14px;
+
+    margin-bottom: 5px;
+
+    border-radius: 8px;
+
+    color: #d1d5db;
+
+    text-decoration: none;
+
+    transition: 0.2s ease;
+}
+
+
+.sidebar-link i {
+    width: 24px;
+
+    font-size: 18px;
+}
+
+
+.sidebar-link:hover,
+.sidebar-link.active {
+    background: var(--sidebar-hover);
+
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   MAIN AREA
+========================================================= */
+
+.admin-main {
+    margin-left: var(--sidebar-width);
+
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   TOP NAVBAR
+========================================================= */
+
+.admin-topbar {
+    height: 76px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 28px;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid var(--border-color);
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 900;
+}
+
+
+.topbar-title {
+    font-weight: 700;
+
+    font-size: 19px;
+}
+
+
+.topbar-actions {
+    margin-left: auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+}
+
+
+.sidebar-toggle {
+    display: none;
+
+    border: 0;
+
+    background: transparent;
+
+    font-size: 28px;
+
+    margin-right: 15px;
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.admin-content {
+    padding: 28px;
+}
+
+
+.dashboard-heading {
+    margin-bottom: 25px;
+}
+
+
+.dashboard-heading h1 {
+    margin-bottom: 5px;
+
+    font-size: 28px;
+
+    font-weight: 700;
+}
+
+
+.dashboard-heading p {
+    color: var(--text-secondary);
+
+    margin-bottom: 0;
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.dashboard-card {
+    background: var(--card-bg);
+
+    border: 1px solid var(--border-color);
+
+    border-radius: 12px;
+
+    padding: 20px;
+
+    height: 100%;
+}
+
+
+.stat-card {
+    display: flex;
+
+    align-items: center;
+
+    gap: 18px;
+}
+
+
+.stat-icon {
+    width: 52px;
+    height: 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: #eff6ff;
+
+    color: var(--primary);
+
+    font-size: 24px;
+}
+
+
+.stat-label {
+    display: block;
+
+    color: var(--text-secondary);
+
+    font-size: 14px;
+
+    margin-bottom: 3px;
+}
+
+
+.stat-card h3 {
+    font-size: 23px;
+
+    margin: 0;
+
+    font-weight: 700;
+}
+
+
+.stat-card small {
+    color: var(--text-secondary);
+}
+
+
+.mini-stat {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+}
+
+
+.mini-stat span {
+    color: var(--text-secondary);
+}
+
+
+.mini-stat strong {
+    font-size: 24px;
+}
+
+
+/* =========================================================
+   CARD HEADER
+========================================================= */
+
+.card-header-custom {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 18px;
+}
+
+
+.card-header-custom h2 {
+    font-size: 18px;
+
+    margin-bottom: 4px;
+
+    font-weight: 700;
+}
+
+
+.card-header-custom p {
+    margin: 0;
+
+    color: var(--text-secondary);
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.dashboard-table {
+    margin-bottom: 0;
+}
+
+
+.dashboard-table th {
+    color: var(--text-secondary);
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+
+.dashboard-table td {
+    vertical-align: middle;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status-badge {
+    display: inline-block;
+
+    border-radius: 30px;
+
+    padding: 5px 10px;
+
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+
+.status-pending {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+
+.status-confirmed {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+
+.status-processing {
+    background: #fefce8;
+    color: #a16207;
+}
+
+
+.status-shipped {
+    background: #f5f3ff;
+    color: #6d28d9;
+}
+
+
+.status-delivered {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+
+.status-cancelled {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+
+/* =========================================================
+   LISTS
+========================================================= */
+
+.stock-item,
+.list-row {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 13px 0;
+
+    border-bottom: 1px solid var(--border-color);
+}
+
+
+.stock-item:last-child,
+.list-row:last-child {
+    border-bottom: 0;
+}
+
+
+.stock-item strong,
+.stock-item small,
+.list-row strong,
+.list-row small {
+    display: block;
+}
+
+
+.stock-item small,
+.list-row small {
+    color: var(--text-secondary);
+}
+
+
+.stock-count {
+    white-space: nowrap;
+
+    color: #dc2626;
+
+    font-weight: 600;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 991px) {
+
+    .admin-sidebar {
+        transform: translateX(-100%);
+
+        transition: transform 0.25s ease;
+    }
+
+
+    .admin-main {
+        margin-left: 0;
+    }
+
+
+    .sidebar-toggle {
+        display: block;
+    }
+
+
+    body.sidebar-open .admin-sidebar {
+        transform: translateX(0);
+    }
+
+
+    .admin-content {
+        padding: 18px;
+    }
+
+
+    .topbar-actions .btn-outline-secondary {
+        display: none;
+    }
+
+}
+
+/* === PROFESSIONAL RESPONSIVE ADMIN V2 === */
+/* === PROFESSIONAL RESPONSIVE ADMIN V2 === */
+
+
+/* =========================================================
+   GLOBAL LAYOUT SAFETY
+========================================================= */
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+
+.admin-layout {
+    width: 100%;
+}
+
+
+.admin-main {
+    width: calc(
+        100% - var(--sidebar-width)
+    );
+
+    max-width: calc(
+        100% - var(--sidebar-width)
+    );
+
+    transition:
+        margin-left 0.25s ease,
+        width 0.25s ease,
+        max-width 0.25s ease;
+}
+
+
+.admin-content {
+    width: 100%;
+    min-width: 0;
+}
+
+
+.admin-content img {
+    max-width: 100%;
+}
+
+
+.admin-content .row {
+    min-width: 0;
+}
+
+
+.table-responsive {
+    width: 100%;
+    max-width: 100%;
+}
+
+
+/* =========================================================
+   SIDEBAR ENHANCEMENTS
+========================================================= */
+
+.admin-sidebar {
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+
+.sidebar-brand {
+    position: sticky;
+    top: 0;
+
+    z-index: 2;
+
+    background: var(--sidebar-bg);
+}
+
+
+.sidebar-close {
+    display: none;
+
+    width: 38px;
+    height: 38px;
+
+    flex-shrink: 0;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 8px;
+
+    background:
+        rgba(255, 255, 255, 0.08);
+
+    color: #ffffff;
+
+    font-size: 18px;
+
+    cursor: pointer;
+}
+
+
+.sidebar-close:hover {
+    background:
+        rgba(255, 255, 255, 0.14);
+}
+
+
+.sidebar-overlay {
+    display: none;
+}
+
+
+/* =========================================================
+   TOPBAR SAFETY
+========================================================= */
+
+.admin-topbar {
+    min-width: 0;
+}
+
+
+.topbar-title {
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.topbar-actions {
+    min-width: 0;
+}
+
+
+.user-menu-button {
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    max-width: 240px;
+}
+
+
+.topbar-username {
+    display: inline-block;
+
+    max-width: 170px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   TABLE / CARD RESPONSIVENESS
+========================================================= */
+
+.dashboard-card {
+    max-width: 100%;
+    min-width: 0;
+}
+
+
+.dashboard-table {
+    min-width: 720px;
+}
+
+
+.dashboard-table td,
+.dashboard-table th {
+    vertical-align: middle;
+}
+
+
+/* =========================================================
+   TABLET + MOBILE
+========================================================= */
+
+@media (max-width: 991.98px) {
+
+    body.sidebar-open {
+        overflow: hidden;
+    }
+
+
+    .admin-main {
+        margin-left: 0;
+
+        width: 100%;
+
+        max-width: 100%;
+    }
+
+
+    .admin-sidebar {
+        width: min(
+            300px,
+            86vw
+        );
+
+        transform: translateX(-105%);
+
+        z-index: 1050;
+
+        box-shadow: none;
+    }
+
+
+    body.sidebar-open .admin-sidebar {
+        transform: translateX(0);
+
+        box-shadow:
+            14px 0 40px
+            rgba(0, 0, 0, 0.28);
+    }
+
+
+    .sidebar-toggle {
+        display: inline-flex;
+
+        align-items: center;
+        justify-content: center;
+
+        width: 42px;
+        height: 42px;
+
+        padding: 0;
+
+        margin-right: 12px;
+
+        border-radius: 9px;
+
+        color: var(--text-primary);
+    }
+
+
+    .sidebar-toggle:hover {
+        background: #f3f4f6;
+    }
+
+
+    .sidebar-close {
+        display: inline-flex;
+    }
+
+
+    .sidebar-overlay {
+        display: block;
+
+        position: fixed;
+
+        inset: 0;
+
+        z-index: 1040;
+
+        padding: 0;
+
+        border: 0;
+
+        visibility: hidden;
+
+        opacity: 0;
+
+        pointer-events: none;
+
+        background:
+            rgba(15, 23, 42, 0.55);
+
+        backdrop-filter: blur(1px);
+
+        transition:
+            opacity 0.25s ease,
+            visibility 0.25s ease;
+    }
+
+
+    body.sidebar-open
+    .sidebar-overlay {
+        visibility: visible;
+
+        opacity: 1;
+
+        pointer-events: auto;
+    }
+
+
+    .admin-topbar {
+        height: 68px;
+
+        padding:
+            0
+            18px;
+    }
+
+
+    .admin-content {
+        padding: 20px;
+    }
+
+
+    .dashboard-heading h1 {
+        font-size: 25px;
+    }
+
+
+    .dashboard-card {
+        padding: 18px;
+    }
+
+
+    .card-header-custom {
+        gap: 12px;
+
+        flex-wrap: wrap;
+    }
+
+}
+
+
+/* =========================================================
+   PHONE
+========================================================= */
+
+@media (max-width: 767.98px) {
+
+    .admin-topbar {
+        padding:
+            0
+            14px;
+    }
+
+
+    .admin-content {
+        padding:
+            16px
+            14px
+            24px;
+    }
+
+
+    .topbar-title {
+        font-size: 16px;
+    }
+
+
+    .view-store-button {
+        display: none !important;
+    }
+
+
+    .topbar-username {
+        display: none;
+    }
+
+
+    .user-menu-button {
+        width: 40px;
+        height: 40px;
+
+        display: inline-flex;
+
+        justify-content: center;
+
+        padding: 0;
+
+        border-radius: 50%;
+    }
+
+
+    .user-menu-button::after {
+        display: none;
+    }
+
+
+    .user-menu-button i {
+        margin: 0;
+
+        font-size: 21px;
+    }
+
+
+    .dashboard-heading {
+        margin-bottom: 18px;
+    }
+
+
+    .dashboard-heading h1 {
+        font-size: 22px;
+    }
+
+
+    .dashboard-heading p {
+        font-size: 14px;
+    }
+
+
+    .dashboard-card {
+        padding: 15px;
+
+        border-radius: 10px;
+    }
+
+
+    .mini-stat {
+        gap: 12px;
+    }
+
+
+    .mini-stat strong {
+        font-size: 21px;
+    }
+
+
+    .card-header-custom {
+        align-items: flex-start;
+    }
+
+
+    .card-header-custom h2 {
+        font-size: 17px;
+    }
+
+
+    .btn {
+        max-width: 100%;
+    }
+
+
+    .input-group {
+        max-width: 100%;
+    }
+
+
+    .form-control,
+    .form-select {
+        max-width: 100%;
+    }
+
+
+    .pagination {
+        flex-wrap: wrap;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL PHONE
+========================================================= */
+
+@media (max-width: 479.98px) {
+
+    .admin-sidebar {
+        width: min(
+            290px,
+            90vw
+        );
+    }
+
+
+    .admin-content {
+        padding:
+            14px
+            10px
+            22px;
+    }
+
+
+    .admin-topbar {
+        padding:
+            0
+            10px;
+    }
+
+
+    .sidebar-toggle {
+        width: 38px;
+        height: 38px;
+
+        margin-right: 8px;
+    }
+
+
+    .topbar-actions {
+        gap: 6px;
+    }
+
+
+    .dashboard-card {
+        padding: 13px;
+    }
+
+
+    .dashboard-heading h1 {
+        font-size: 20px;
+    }
+
+}
+
+
+/* =========================================================
+   DESKTOP
+========================================================= */
+
+@media (min-width: 992px) {
+
+    .admin-sidebar {
+        transform: none !important;
+    }
+
+
+    .sidebar-toggle,
+    .sidebar-close,
+    .sidebar-overlay {
+        display: none !important;
+    }
+
+
+    body {
+        overflow-y: auto !important;
+    }
+
+}

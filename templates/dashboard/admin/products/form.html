@@ -1,0 +1,416 @@
+{% extends "dashboard/admin/base.html" %}
+
+
+{% block title %}
+{{ page_title }} | Store Management
+{% endblock %}
+
+
+{% block page_heading %}
+{{ page_title }}
+{% endblock %}
+
+
+{% block admin_content %}
+
+
+<div
+    class="
+        d-flex
+        justify-content-between
+        align-items-center
+        mb-4
+    "
+>
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            {{ page_title }}
+        </h1>
+
+        <p class="text-muted mb-0">
+
+            {% if product %}
+
+                Update product information.
+
+            {% else %}
+
+                Add a new product to your store.
+
+            {% endif %}
+
+        </p>
+
+    </div>
+
+
+    <a
+        href="{% url 'admin_product_list' %}"
+        class="btn btn-outline-secondary"
+    >
+
+        <i class="bi bi-arrow-left"></i>
+        Products
+
+    </a>
+
+</div>
+
+
+<form
+    method="POST"
+    enctype="multipart/form-data"
+>
+
+    {% csrf_token %}
+
+
+    {% if form.non_field_errors %}
+
+        <div class="alert alert-danger">
+
+            {{ form.non_field_errors }}
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="row g-4">
+
+
+        <!-- ==================================================
+             BASIC INFORMATION
+        =================================================== -->
+
+        <div class="col-lg-8">
+
+            <div class="dashboard-card mb-4">
+
+                <h2 class="h5 mb-4">
+                    Product Information
+                </h2>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Product Name *
+                    </label>
+
+                    {{ form.name }}
+
+                    {% for error in form.name.errors %}
+
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Description *
+                    </label>
+
+                    {{ form.description }}
+
+                    {% for error in form.description.errors %}
+
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Category *
+                        </label>
+
+                        {{ form.category }}
+
+                        {% for error in form.category.errors %}
+
+                            <div class="text-danger small">
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Brand
+                        </label>
+
+                        {{ form.brand }}
+
+                        {% for error in form.brand.errors %}
+
+                            <div class="text-danger small">
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- PRICE -->
+
+            <div class="dashboard-card mb-4">
+
+                <h2 class="h5 mb-4">
+                    Pricing
+                </h2>
+
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Regular Price (KES) *
+                        </label>
+
+                        {{ form.price }}
+
+                        {% for error in form.price.errors %}
+
+                            <div class="text-danger small">
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Sale Price (KES)
+                        </label>
+
+                        {{ form.discount_price }}
+
+                        <div class="form-text">
+                            Leave empty when the product
+                            is not on sale.
+                        </div>
+
+                        {% for error in form.discount_price.errors %}
+
+                            <div class="text-danger small">
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- INVENTORY -->
+
+            <div class="dashboard-card">
+
+                <h2 class="h5 mb-4">
+                    Inventory
+                </h2>
+
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            SKU *
+                        </label>
+
+                        {{ form.sku }}
+
+                        {% for error in form.sku.errors %}
+
+                            <div class="text-danger small">
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Physical Stock *
+                        </label>
+
+                        {{ form.stock }}
+
+                        {% for error in form.stock.errors %}
+
+                            <div class="text-danger small">
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+
+                        {% if product %}
+
+                            <div class="form-text">
+
+                                Reserved:
+                                {{ product.reserved_stock }}
+
+                                &nbsp; | &nbsp;
+
+                                Available:
+                                {{ product.available_stock }}
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             RIGHT COLUMN
+        =================================================== -->
+
+        <div class="col-lg-4">
+
+
+            <!-- IMAGE -->
+
+            <div class="dashboard-card mb-4">
+
+                <h2 class="h5 mb-3">
+                    Primary Image
+                </h2>
+
+
+                {% if product and product.image %}
+
+                    <img
+                        src="{{ product.image.url }}"
+                        alt="{{ product.name }}"
+                        class="
+                            img-fluid
+                            rounded
+                            mb-3
+                        "
+                        style="
+                            max-height: 260px;
+                            width: 100%;
+                            object-fit: contain;
+                        "
+                    >
+
+                {% endif %}
+
+
+                {{ form.image }}
+
+
+                {% for error in form.image.errors %}
+
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- VISIBILITY -->
+
+            <div class="dashboard-card mb-4">
+
+                <h2 class="h5 mb-3">
+                    Storefront
+                </h2>
+
+
+                <div class="form-check mb-3">
+
+                    {{ form.is_active }}
+
+                    <label
+                        class="form-check-label"
+                        for="{{ form.is_active.id_for_label }}"
+                    >
+                        Active Product
+                    </label>
+
+                </div>
+
+
+                <div class="form-check">
+
+                    {{ form.featured }}
+
+                    <label
+                        class="form-check-label"
+                        for="{{ form.featured.id_for_label }}"
+                    >
+                        Featured Product
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary btn-lg w-100"
+            >
+
+                <i class="bi bi-check-lg"></i>
+
+                {{ submit_text }}
+
+            </button>
+
+        </div>
+
+    </div>
+
+</form>
+
+
+{% endblock %}

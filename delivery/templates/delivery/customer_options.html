@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <h2>
+        Delivery Options
+    </h2>
+
+    <p class="text-muted">
+        Available delivery methods for your area.
+    </p>
+
+
+    <form
+        method="GET"
+        class="card card-body shadow-sm mb-4"
+    >
+
+        <div class="row g-3">
+
+            <div class="col-md-5">
+
+                <label class="form-label">
+                    County
+                </label>
+
+                <input
+                    type="text"
+                    name="county"
+                    value="{{ county }}"
+                    class="form-control"
+                    placeholder="e.g. Kisii"
+                >
+
+            </div>
+
+            <div class="col-md-5">
+
+                <label class="form-label">
+                    Town
+                </label>
+
+                <input
+                    type="text"
+                    name="town"
+                    value="{{ town }}"
+                    class="form-control"
+                    placeholder="e.g. Kisii Town"
+                >
+
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+
+                <button
+                    class="btn btn-primary w-100"
+                >
+                    Check
+                </button>
+
+            </div>
+
+        </div>
+
+    </form>
+
+
+    <div class="row g-3">
+
+        {% for zone in zones %}
+
+            <div class="col-md-6 col-xl-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <h5>
+                            {{ zone.get_method_display }}
+                        </h5>
+
+                        <div class="text-muted mb-3">
+
+                            {{ zone.county }}
+
+                            {% if zone.town %}
+                                · {{ zone.town }}
+                            {% endif %}
+
+                        </div>
+
+
+                        {% if zone.provider %}
+
+                            <div class="mb-2">
+
+                                Provider:
+                                <strong>
+                                    {{ zone.provider.name }}
+                                </strong>
+
+                            </div>
+
+                        {% endif %}
+
+
+                        {% if zone.pickup_point %}
+
+                            <div class="mb-2">
+
+                                Pickup:
+                                <strong>
+                                    {{ zone.pickup_point }}
+                                </strong>
+
+                            </div>
+
+                        {% endif %}
+
+
+                        {% if zone.pricing_mode == "fixed" %}
+
+                            <div class="fs-5 fw-bold">
+
+                                KES
+                                {{ zone.fee|floatformat:2 }}
+
+                            </div>
+
+                        {% else %}
+
+                            <div class="fw-semibold text-primary">
+                                Delivery fee confirmed after order
+                            </div>
+
+                        {% endif %}
+
+
+                        {% if zone.estimated_time %}
+
+                            <div class="mt-2">
+
+                                Estimated:
+                                {{ zone.estimated_time }}
+
+                            </div>
+
+                        {% endif %}
+
+
+                        {% if zone.instructions %}
+
+                            <p class="small text-muted mt-3 mb-0">
+                                {{ zone.instructions }}
+                            </p>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% empty %}
+
+            <div class="col-12">
+
+                <div class="alert alert-light border">
+
+                    No configured delivery options
+                    match this location yet.
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

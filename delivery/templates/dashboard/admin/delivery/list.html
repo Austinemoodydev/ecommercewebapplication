@@ -1,0 +1,414 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Delivery Management
+{% endblock %}
+
+{% block page_heading %}
+Delivery
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+
+        <div>
+
+            <h1>
+                Delivery Management
+            </h1>
+
+            <p>
+                Manage shop riders, external transport providers,
+                parcel references and delivery progress.
+            </p>
+
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+
+            <a
+                href="{% url 'delivery_zone_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                <i class="bi bi-geo-alt"></i>
+                Zones & Pricing
+            </a>
+
+            <a
+                href="{% url 'delivery_provider_list' %}"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-truck"></i>
+                Delivery Providers
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl">
+
+        <div class="dashboard-card mini-stat">
+            <span>Total Deliveries</span>
+            <strong>{{ stats.total }}</strong>
+        </div>
+
+    </div>
+
+    <div class="col-md-6 col-xl">
+
+        <div class="dashboard-card mini-stat">
+            <span>Active</span>
+            <strong>{{ stats.active }}</strong>
+        </div>
+
+    </div>
+
+    <div class="col-md-6 col-xl">
+
+        <div class="dashboard-card mini-stat">
+            <span>In Transit</span>
+            <strong>{{ stats.in_transit }}</strong>
+        </div>
+
+    </div>
+
+    <div class="col-md-6 col-xl">
+
+        <div class="dashboard-card mini-stat">
+            <span>Ready Collection</span>
+            <strong>{{ stats.ready_collection }}</strong>
+        </div>
+
+    </div>
+
+    <div class="col-md-6 col-xl">
+
+        <div class="dashboard-card mini-stat">
+            <span>Completed</span>
+            <strong>{{ stats.completed }}</strong>
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="dashboard-card mb-4">
+
+    <div class="card-header-custom">
+
+        <div>
+            <h2>Find Deliveries</h2>
+            <p>Search order, customer, provider, destination or parcel reference.</p>
+        </div>
+
+    </div>
+
+    <form method="GET">
+
+        <div class="row g-3">
+
+            <div class="col-lg-6">
+
+                <label class="form-label">
+                    Search
+                </label>
+
+                <input
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control"
+                    placeholder="Order, phone, provider, destination, parcel reference..."
+                >
+
+            </div>
+
+            <div class="col-lg-3">
+
+                <label class="form-label">
+                    Management
+                </label>
+
+                <select
+                    name="management"
+                    class="form-select"
+                >
+
+                    <option value="">All</option>
+
+                    <option
+                        value="internal"
+                        {% if selected_management == "internal" %}selected{% endif %}
+                    >
+                        Shop Managed
+                    </option>
+
+                    <option
+                        value="external"
+                        {% if selected_management == "external" %}selected{% endif %}
+                    >
+                        External Provider
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="col-lg-3">
+
+                <label class="form-label">
+                    Status
+                </label>
+
+                <select
+                    name="status"
+                    class="form-select"
+                >
+
+                    <option value="">All Statuses</option>
+
+                    {% for value, label in status_choices %}
+
+                        <option
+                            value="{{ value }}"
+                            {% if selected_status == value %}selected{% endif %}
+                        >
+                            {{ label }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <div class="mt-3">
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                <i class="bi bi-funnel"></i>
+                Apply Filters
+            </button>
+
+            <a
+                href="{% url 'delivery_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                Reset
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<div class="dashboard-card">
+
+    <div class="card-header-custom">
+
+        <div>
+            <h2>Deliveries</h2>
+            <p>Current parcel and rider activity.</p>
+        </div>
+
+    </div>
+
+    <div class="table-responsive">
+
+        <table class="table dashboard-table align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Type</th>
+                    <th>Provider</th>
+                    <th>Destination</th>
+                    <th>Reference</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for delivery in deliveries %}
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            {{ delivery.order.order_number }}
+                        </strong>
+                    </td>
+
+                    <td>
+
+                        {{ delivery.order.full_name }}
+
+                        <small class="d-block text-muted">
+                            {{ delivery.order.phone }}
+                        </small>
+
+                    </td>
+
+                    <td>
+                        {{ delivery.get_management_type_display }}
+                    </td>
+
+                    <td>
+                        {{ delivery.provider.name|default:"Shop / Internal" }}
+                    </td>
+
+                    <td>
+                        {{ delivery.destination }}
+                    </td>
+
+                    <td>
+
+                        {% if delivery.transport_reference %}
+
+                            <code>
+                                {{ delivery.transport_reference }}
+                            </code>
+
+                        {% else %}
+                            —
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% if delivery.status == "delivered" or delivery.status == "collected" %}
+
+                            <span class="badge text-bg-success">
+                                {{ delivery.get_status_display }}
+                            </span>
+
+                        {% elif delivery.status == "failed" %}
+
+                            <span class="badge text-bg-danger">
+                                {{ delivery.get_status_display }}
+                            </span>
+
+                        {% elif delivery.status == "ready_for_collection" %}
+
+                            <span class="badge text-bg-info">
+                                Ready for Collection
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge text-bg-primary">
+                                {{ delivery.get_status_display }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td class="text-end">
+
+                        <a
+                            href="{% url 'delivery_detail' delivery.pk %}"
+                            class="btn btn-sm btn-outline-primary"
+                        >
+                            View
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td
+                        colspan="8"
+                        class="text-center py-5"
+                    >
+
+                        <i class="bi bi-truck fs-1 text-muted"></i>
+
+                        <h5 class="mt-3">
+                            No deliveries yet
+                        </h5>
+
+                        <p class="text-muted mb-0">
+                            Assign delivery from an order.
+                        </p>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    {% if page_obj.paginator.num_pages > 1 %}
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 pt-3 border-top">
+
+            <small class="text-muted">
+                Page {{ page_obj.number }}
+                of {{ page_obj.paginator.num_pages }}
+            </small>
+
+            <div class="d-flex gap-2">
+
+                {% if page_obj.has_previous %}
+
+                    <a
+                        class="btn btn-sm btn-outline-secondary"
+                        href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}&status={{ selected_status|urlencode }}&management={{ selected_management|urlencode }}"
+                    >
+                        Previous
+                    </a>
+
+                {% endif %}
+
+                {% if page_obj.has_next %}
+
+                    <a
+                        class="btn btn-sm btn-outline-secondary"
+                        href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}&status={{ selected_status|urlencode }}&management={{ selected_management|urlencode }}"
+                    >
+                        Next
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

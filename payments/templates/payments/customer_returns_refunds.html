@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2 class="mb-1">
+                Returns & Refunds
+            </h2>
+
+            <p class="text-muted mb-0">
+                Track your return, replacement and refund requests.
+            </p>
+
+        </div>
+
+        <a
+            href="{% url 'order_history' %}"
+            class="btn btn-outline-secondary"
+        >
+            My Orders
+        </a>
+
+    </div>
+
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            <strong>
+                Returns & Replacements
+            </strong>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table mb-0 align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Order</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th></th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for item in returns %}
+
+                        <tr>
+
+                            <td>
+                                {{ item.order.order_number }}
+                            </td>
+
+                            <td>
+                                {{ item.get_request_type_display }}
+                            </td>
+
+                            <td>
+                                {{ item.get_status_display }}
+                            </td>
+
+                            <td>
+                                {{ item.created_at|date:"d M Y H:i" }}
+                            </td>
+
+                            <td class="text-end">
+
+                                <a
+                                    href="{% url 'customer_return_detail' item.pk %}"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
+                                    View
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="5"
+                                class="text-center text-muted py-4"
+                            >
+                                No return requests yet.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+            <strong>
+                Refunds
+            </strong>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table mb-0 align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Order</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th></th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for item in refunds %}
+
+                        <tr>
+
+                            <td>
+                                {{ item.order.order_number }}
+                            </td>
+
+                            <td>
+                                KES {{ item.amount|floatformat:2 }}
+                            </td>
+
+                            <td>
+                                {{ item.get_status_display }}
+                            </td>
+
+                            <td>
+                                {{ item.created_at|date:"d M Y H:i" }}
+                            </td>
+
+                            <td class="text-end">
+
+                                <a
+                                    href="{% url 'customer_refund_detail' item.pk %}"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
+                                    View
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="5"
+                                class="text-center text-muted py-4"
+                            >
+                                No refund requests yet.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

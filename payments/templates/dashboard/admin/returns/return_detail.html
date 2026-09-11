@@ -1,0 +1,297 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Return {{ order.order_number }}
+{% endblock %}
+
+{% block page_heading %}
+Return Request
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div>
+
+        <a
+            href="{% url 'admin_returns_refunds' %}"
+            class="btn btn-sm btn-outline-secondary mb-3"
+        >
+            &larr; Returns
+        </a>
+
+        <h1>
+            {{ return_request.get_request_type_display }}
+            — {{ order.order_number }}
+        </h1>
+
+        <p>
+            {{ order.full_name }}
+            · {{ order.phone }}
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="row g-4">
+
+    <div class="col-lg-8">
+
+        <div class="dashboard-card mb-4">
+
+            <h2 class="h5">
+                Returned Items
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Product</th>
+
+                            <th>Qty</th>
+
+                            <th>Purchased</th>
+
+                            <th>Restock?</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for item in return_request.items.all %}
+
+                            <tr>
+
+                                <td>
+
+                                    <strong>
+                                        {{ item.order_item.product_name }}
+                                    </strong>
+
+                                    {% if item.order_item.variant_name %}
+
+                                        <div class="small text-muted">
+                                            {{ item.order_item.variant_name }}
+                                        </div>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ item.quantity }}
+                                </td>
+
+                                <td>
+                                    {{ item.order_item.quantity }}
+                                </td>
+
+                                <td>
+
+                                    {% if return_request.status == "approved" %}
+
+                                        <input
+                                            form="complete-return-form"
+                                            type="checkbox"
+                                            name="restock_{{ item.pk }}"
+                                            value="1"
+                                            class="form-check-input"
+                                        >
+
+                                    {% else %}
+
+                                        {% if item.restock %}
+                                            Yes
+                                        {% else %}
+                                            No
+                                        {% endif %}
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <div class="dashboard-card mb-4">
+
+            <h2 class="h5">
+                Customer Reason
+            </h2>
+
+            <p class="mb-0">
+                {{ return_request.reason }}
+            </p>
+
+        </div>
+
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-3">
+                Timeline
+            </h2>
+
+            {% for event in return_request.events.all %}
+
+                <div class="border-start ps-3 mb-3">
+
+                    <strong>
+                        {{ event.status|title }}
+                    </strong>
+
+                    <small class="d-block text-muted">
+                        {{ event.created_at|date:"d M Y H:i" }}
+
+                        {% if event.created_by %}
+                            · {{ event.created_by.username }}
+                        {% endif %}
+                    </small>
+
+                    {% if event.message %}
+                        <div class="mt-1">
+                            {{ event.message }}
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No timeline entries.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card mb-4">
+
+            <h2 class="h5">
+                Status
+            </h2>
+
+            <span class="badge text-bg-primary">
+                {{ return_request.get_status_display }}
+            </span>
+
+        </div>
+
+
+        {% if return_request.status == "requested" %}
+
+            <div class="dashboard-card mb-4">
+
+                <h2 class="h5">
+                    Review Request
+                </h2>
+
+                <form
+                    method="POST"
+                    action="{% url 'admin_return_review' return_request.pk %}"
+                >
+
+                    {% csrf_token %}
+
+                    <textarea
+                        name="staff_note"
+                        rows="4"
+                        class="form-control mb-3"
+                        placeholder="Staff note / rejection reason"
+                    ></textarea>
+
+                    <div class="d-grid gap-2">
+
+                        <button
+                            name="action"
+                            value="approve"
+                            class="btn btn-success"
+                        >
+                            Approve Return
+                        </button>
+
+                        <button
+                            name="action"
+                            value="reject"
+                            class="btn btn-outline-danger"
+                        >
+                            Reject
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        {% endif %}
+
+
+        {% if return_request.status == "approved" %}
+
+            <div class="dashboard-card">
+
+                <h2 class="h5">
+                    Complete Return
+                </h2>
+
+                <p class="small text-muted">
+
+                    Tick only items that have physically
+                    returned in sellable condition.
+
+                </p>
+
+                <form
+                    id="complete-return-form"
+                    method="POST"
+                    action="{% url 'admin_return_complete' return_request.pk %}"
+                >
+
+                    {% csrf_token %}
+
+                    <button
+                        class="btn btn-success w-100"
+                        onclick="return confirm('Complete this return and restore selected inventory?');"
+                    >
+                        Complete Return
+                    </button>
+
+                </form>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,463 @@
+{% extends "dashboard/admin/base.html" %}
+
+
+{% block title %}
+Orders | Store Management
+{% endblock %}
+
+
+{% block page_heading %}
+Orders
+{% endblock %}
+
+
+{% block admin_content %}
+
+
+<div class="dashboard-heading">
+
+    <h1>Order Management</h1>
+
+    <p>
+        Search, monitor and process customer orders.
+    </p>
+
+</div>
+
+
+<!-- STATUS SUMMARY -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-xl col-md-4 col-6">
+        <a
+            href="{% url 'admin_order_list' %}"
+            class="text-decoration-none"
+        >
+            <div class="dashboard-card mini-stat">
+                <span>All</span>
+                <strong>{{ counts.all }}</strong>
+            </div>
+        </a>
+    </div>
+
+
+    <div class="col-xl col-md-4 col-6">
+        <a
+            href="?status=pending"
+            class="text-decoration-none"
+        >
+            <div class="dashboard-card mini-stat">
+                <span>Pending</span>
+                <strong>{{ counts.pending }}</strong>
+            </div>
+        </a>
+    </div>
+
+
+    <div class="col-xl col-md-4 col-6">
+        <a
+            href="?status=confirmed"
+            class="text-decoration-none"
+        >
+            <div class="dashboard-card mini-stat">
+                <span>Confirmed</span>
+                <strong>{{ counts.confirmed }}</strong>
+            </div>
+        </a>
+    </div>
+
+
+    <div class="col-xl col-md-4 col-6">
+        <a
+            href="?status=processing"
+            class="text-decoration-none"
+        >
+            <div class="dashboard-card mini-stat">
+                <span>Processing</span>
+                <strong>{{ counts.processing }}</strong>
+            </div>
+        </a>
+    </div>
+
+
+    <div class="col-xl col-md-4 col-6">
+        <a
+            href="?status=shipped"
+            class="text-decoration-none"
+        >
+            <div class="dashboard-card mini-stat">
+                <span>Shipped</span>
+                <strong>{{ counts.shipped }}</strong>
+            </div>
+        </a>
+    </div>
+
+
+    <div class="col-xl col-md-4 col-6">
+        <a
+            href="?status=delivered"
+            class="text-decoration-none"
+        >
+            <div class="dashboard-card mini-stat">
+                <span>Delivered</span>
+                <strong>{{ counts.delivered }}</strong>
+            </div>
+        </a>
+    </div>
+
+</div>
+
+
+<!-- FILTERS -->
+
+<div class="dashboard-card mb-4">
+
+    <form method="GET">
+
+        <div class="row g-3">
+
+            <div class="col-lg-4">
+
+                <label class="form-label">
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control"
+                    placeholder="Order, customer, phone, M-Pesa receipt..."
+                >
+
+            </div>
+
+
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    Status
+                </label>
+
+                <select
+                    name="status"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All statuses
+                    </option>
+
+                    {% for value, label in status_choices %}
+
+                        <option
+                            value="{{ value }}"
+                            {% if selected_status == value %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ label }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    Payment
+                </label>
+
+                <select
+                    name="payment_status"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All payments
+                    </option>
+
+                    {% for value, label in payment_status_choices %}
+
+                        <option
+                            value="{{ value }}"
+                            {% if selected_payment_status == value %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ label }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    From
+                </label>
+
+                <input
+                    type="date"
+                    name="start_date"
+                    value="{{ start_date }}"
+                    class="form-control"
+                >
+
+            </div>
+
+
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    To
+                </label>
+
+                <input
+                    type="date"
+                    name="end_date"
+                    value="{{ end_date }}"
+                    class="form-control"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="mt-3">
+
+            <button
+                class="btn btn-primary"
+                type="submit"
+            >
+                <i class="bi bi-search"></i>
+                Filter
+            </button>
+
+
+            <a
+                href="{% url 'admin_order_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                Reset
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- ORDER TABLE -->
+
+<div class="dashboard-card">
+
+    <div class="table-responsive">
+
+        <table class="table dashboard-table align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for order in orders %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ order.order_number }}
+                            </strong>
+                        </td>
+
+
+                        <td>
+
+                            {{ order.full_name }}
+
+                            <small class="d-block text-muted">
+                                {{ order.phone }}
+                            </small>
+
+                        </td>
+
+
+                        <td>
+
+                            {{ order.created_at|date:"d M Y" }}
+
+                            <small class="d-block text-muted">
+                                {{ order.created_at|date:"H:i" }}
+                            </small>
+
+                        </td>
+
+
+                        <td>
+
+                            <span
+                                class="
+                                    status-badge
+                                    status-{{ order.status }}
+                                "
+                            >
+                                {{ order.get_status_display }}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            {% if order.payment_status == "paid" %}
+
+                                <span class="badge text-bg-success">
+                                    Paid
+                                </span>
+
+                            {% elif order.payment_status == "failed" %}
+
+                                <span class="badge text-bg-danger">
+                                    Failed
+                                </span>
+
+                            {% elif order.payment_status == "refunded" %}
+
+                                <span class="badge text-bg-info">
+                                    Refunded
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-warning">
+                                    Pending
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            <strong>
+                                KES {{ order.total_amount|floatformat:2 }}
+                            </strong>
+                        </td>
+
+
+                        <td>
+
+                            <a
+                                href="{% url 'admin_order_detail' order.order_number %}"
+                                class="btn btn-sm btn-outline-primary"
+                            >
+                                View
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="text-center py-5"
+                        >
+                            No orders match your search.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    {% if page_obj.has_other_pages %}
+
+        <nav class="mt-4">
+
+            <ul class="pagination">
+
+                {% if page_obj.has_previous %}
+
+                    <li class="page-item">
+
+                        <a
+                            class="page-link"
+                            href="?page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ selected_status }}&payment_status={{ selected_payment_status }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                        >
+                            Previous
+                        </a>
+
+                    </li>
+
+                {% endif %}
+
+
+                <li class="page-item active">
+
+                    <span class="page-link">
+                        {{ page_obj.number }}
+                        /
+                        {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                </li>
+
+
+                {% if page_obj.has_next %}
+
+                    <li class="page-item">
+
+                        <a
+                            class="page-link"
+                            href="?page={{ page_obj.next_page_number }}&q={{ query }}&status={{ selected_status }}&payment_status={{ selected_payment_status }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                        >
+                            Next
+                        </a>
+
+                    </li>
+
+                {% endif %}
+
+            </ul>
+
+        </nav>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

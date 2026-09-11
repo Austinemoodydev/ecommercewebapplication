@@ -1,0 +1,292 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Brands | Store Management
+{% endblock %}
+
+{% block page_heading %}
+Brands
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            Brand Management
+        </h1>
+
+        <p class="text-muted mb-0">
+            Manage brands used across your product catalogue.
+        </p>
+
+    </div>
+
+    <a
+        href="{% url 'admin_brand_create' %}"
+        class="btn btn-primary"
+    >
+        <i class="bi bi-plus-lg"></i>
+        Add Brand
+    </a>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4">
+        <div class="dashboard-card mini-stat">
+            <span>All Brands</span>
+            <strong>{{ counts.all }}</strong>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="dashboard-card mini-stat">
+            <span>Active</span>
+            <strong>{{ counts.active }}</strong>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="dashboard-card mini-stat">
+            <span>Hidden</span>
+            <strong>{{ counts.inactive }}</strong>
+        </div>
+    </div>
+
+</div>
+
+
+<div class="dashboard-card mb-4">
+
+    <form method="GET">
+
+        <div class="row g-3">
+
+            <div class="col-md-8">
+
+                <label class="form-label">
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control"
+                    placeholder="Search brand..."
+                >
+
+            </div>
+
+            <div class="col-md-4">
+
+                <label class="form-label">
+                    Status
+                </label>
+
+                <select
+                    name="status"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All
+                    </option>
+
+                    <option
+                        value="active"
+                        {% if selected_status == "active" %}
+                            selected
+                        {% endif %}
+                    >
+                        Active
+                    </option>
+
+                    <option
+                        value="inactive"
+                        {% if selected_status == "inactive" %}
+                            selected
+                        {% endif %}
+                    >
+                        Hidden
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <div class="mt-3">
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Filter
+            </button>
+
+            <a
+                href="{% url 'admin_brand_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                Reset
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<div class="dashboard-card">
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Brand</th>
+                    <th>Products</th>
+                    <th>Active Products</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for brand in brands %}
+
+                    <tr>
+
+                        <td>
+
+                            <div class="d-flex align-items-center gap-3">
+
+                                {% if brand.logo %}
+
+                                    <img
+                                        src="{{ brand.logo.url }}"
+                                        alt="{{ brand.name }}"
+                                        width="50"
+                                        height="50"
+                                        class="rounded"
+                                        style="object-fit:contain;"
+                                    >
+
+                                {% endif %}
+
+                                <strong>
+                                    {{ brand.name }}
+                                </strong>
+
+                            </div>
+
+                        </td>
+
+                        <td>
+                            {{ brand.product_count }}
+                        </td>
+
+                        <td>
+                            {{ brand.active_product_count }}
+                        </td>
+
+                        <td>
+
+                            {% if brand.is_active %}
+
+                                <span class="badge text-bg-success">
+                                    Active
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    Hidden
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            <div class="d-flex gap-2 justify-content-end">
+
+                                <a
+                                    href="{% url 'admin_brand_edit' brand.pk %}"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
+                                    Edit
+                                </a>
+
+                                <form
+                                    method="POST"
+                                    action="{% url 'admin_brand_toggle' brand.pk %}"
+                                >
+
+                                    {% csrf_token %}
+
+                                    {% if brand.is_active %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                        >
+                                            Hide
+                                        </button>
+
+                                    {% else %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm btn-success"
+                                        >
+                                            Activate
+                                        </button>
+
+                                    {% endif %}
+
+                                </form>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            class="text-center text-muted py-5"
+                        >
+                            No brands found.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

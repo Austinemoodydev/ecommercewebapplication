@@ -1,0 +1,316 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Delivery | {{ order.order_number }}
+{% endblock %}
+
+{% block page_heading %}
+Assign Delivery
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+
+        <div>
+
+            <h1>
+                {% if delivery %}
+                    Edit Delivery
+                {% else %}
+                    Assign Delivery
+                {% endif %}
+            </h1>
+
+            <p>
+                Order {{ order.order_number }}
+                · {{ order.full_name }}
+            </p>
+
+        </div>
+
+        <a
+            href="{% url 'admin_order_detail' order.order_number %}"
+            class="btn btn-outline-secondary"
+        >
+            <i class="bi bi-arrow-left"></i>
+            Back to Order
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3">
+
+    <div class="col-xl-8">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Delivery Assignment</h2>
+                    <p>
+                        Choose whether this delivery is controlled
+                        by the shop or an external provider.
+                    </p>
+                </div>
+
+            </div>
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Managed By
+                        </label>
+
+                        {{ form.management_type }}
+
+                        {% for error in form.management_type.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Delivery Method
+                        </label>
+
+                        {{ form.method }}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Transport Provider
+                        </label>
+
+                        {{ form.provider }}
+
+                        <div class="form-text">
+                            Required for external delivery.
+                        </div>
+
+                        {% for error in form.provider.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Provider / Parcel Reference
+                        </label>
+
+                        {{ form.transport_reference }}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Origin
+                        </label>
+
+                        {{ form.origin }}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Destination
+                        </label>
+
+                        {{ form.destination }}
+
+                    </div>
+
+                    <div class="col-12">
+
+                        <label class="form-label">
+                            Pickup Point / Parcel Office
+                        </label>
+
+                        {{ form.pickup_point }}
+
+                        {% for error in form.pickup_point.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Rider / Driver Name
+                        </label>
+
+                        {{ form.driver_name }}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Rider / Driver Phone
+                        </label>
+
+                        {{ form.driver_phone }}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Customer Delivery Fee
+                        </label>
+
+                        {{ form.customer_delivery_fee }}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Actual Delivery Cost
+                        </label>
+
+                        {{ form.actual_delivery_cost }}
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Expected Arrival
+                        </label>
+
+                        {{ form.expected_arrival }}
+
+                    </div>
+
+                    <div class="col-12">
+
+                        <label class="form-label">
+                            Delivery Notes
+                        </label>
+
+                        {{ form.notes }}
+
+                    </div>
+
+                </div>
+
+                {% if form.non_field_errors %}
+
+                    <div class="alert alert-danger mt-3">
+                        {{ form.non_field_errors }}
+                    </div>
+
+                {% endif %}
+
+                <div class="mt-4">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        <i class="bi bi-check-lg"></i>
+
+                        {% if delivery %}
+                            Save Delivery
+                        {% else %}
+                            Assign Delivery
+                        {% endif %}
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-4">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Customer Destination</h2>
+                </div>
+
+            </div>
+
+            <strong>
+                {{ order.full_name }}
+            </strong>
+
+            <div class="mt-2">
+                {{ order.phone }}
+            </div>
+
+            <hr>
+
+            <div>
+                {{ order.house_number }}
+            </div>
+
+            <div>
+                {{ order.estate }}
+            </div>
+
+            <div>
+                {{ order.city }}
+            </div>
+
+            <div>
+                {{ order.county }}
+            </div>
+
+            {% if order.landmark %}
+
+                <div class="mt-2 text-muted">
+                    Landmark:
+                    {{ order.landmark }}
+                </div>
+
+            {% endif %}
+
+            <hr>
+
+            <div class="small text-muted">
+
+                External providers do not use
+                the shop's delivery PIN.
+
+                Their parcel/reference number
+                and pickup information are recorded instead.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

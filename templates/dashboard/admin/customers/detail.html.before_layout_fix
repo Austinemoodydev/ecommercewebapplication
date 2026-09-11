@@ -1,0 +1,669 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Customer | {{ customer.username }}
+{% endblock %}
+
+{% block page_heading %}
+Customer Profile
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+
+    <div class="d-flex align-items-center gap-3">
+
+        {% if customer.avatar %}
+
+            <img
+                src="{{ customer.avatar.url }}"
+                width="70"
+                height="70"
+                class="rounded-circle"
+                style="object-fit:cover;"
+                alt=""
+            >
+
+        {% else %}
+
+            <div
+                class="rounded-circle bg-body-secondary d-flex align-items-center justify-content-center"
+                style="width:70px;height:70px;"
+            >
+                <i class="bi bi-person fs-2"></i>
+            </div>
+
+        {% endif %}
+
+
+        <div>
+
+            <h1 class="h3 mb-1">
+
+                {% if customer.get_full_name %}
+
+                    {{ customer.get_full_name }}
+
+                {% else %}
+
+                    {{ customer.username }}
+
+                {% endif %}
+
+            </h1>
+
+            <p class="text-muted mb-0">
+                Customer since
+                {{ customer.date_joined|date:"d M Y" }}
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="d-flex gap-2 flex-wrap">
+
+        <a
+            href="{% url 'crm_customer_list' %}"
+            class="btn btn-outline-secondary"
+        >
+            <i class="bi bi-arrow-left"></i>
+            Customers
+        </a>
+
+        {% if customer.email %}
+
+            <a
+                href="mailto:{{ customer.email }}"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-envelope"></i>
+                Email
+            </a>
+
+        {% endif %}
+
+        {% if customer.phone %}
+
+            <a
+                href="tel:{{ customer.phone }}"
+                class="btn btn-outline-success"
+            >
+                <i class="bi bi-telephone"></i>
+                Call
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Total Orders</span>
+
+            <strong>
+                {{ total_orders }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Paid Orders</span>
+
+            <strong>
+                {{ paid_order_count }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Lifetime Spend</span>
+
+            <strong>
+                KES {{ lifetime_spend|floatformat:2 }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Last Order</span>
+
+            <strong class="fs-6">
+
+                {% if last_order %}
+
+                    {{ last_order.created_at|date:"d M Y" }}
+
+                {% else %}
+
+                    Never
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row g-4 mb-4">
+
+    <div class="col-xl-6">
+
+        <div class="dashboard-card h-100">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <h2 class="h5 mb-0">
+                    Customer Information
+                </h2>
+
+                {% if customer.is_active %}
+
+                    <span class="badge text-bg-success">
+                        Active
+                    </span>
+
+                {% else %}
+
+                    <span class="badge text-bg-secondary">
+                        Inactive
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+
+            <dl class="row mb-0">
+
+                <dt class="col-sm-4">
+                    Username
+                </dt>
+
+                <dd class="col-sm-8">
+                    {{ customer.username }}
+                </dd>
+
+
+                <dt class="col-sm-4">
+                    Email
+                </dt>
+
+                <dd class="col-sm-8">
+                    {{ customer.email|default:"—" }}
+                </dd>
+
+
+                <dt class="col-sm-4">
+                    Phone
+                </dt>
+
+                <dd class="col-sm-8">
+                    {{ customer.phone|default:"—" }}
+                </dd>
+
+
+                <dt class="col-sm-4">
+                    Email Verified
+                </dt>
+
+                <dd class="col-sm-8">
+
+                    {% if customer.email_verified %}
+
+                        <span class="badge text-bg-success">
+                            Yes
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge text-bg-warning">
+                            No
+                        </span>
+
+                    {% endif %}
+
+                </dd>
+
+
+                <dt class="col-sm-4">
+                    Email Alerts
+                </dt>
+
+                <dd class="col-sm-8">
+
+                    {% if customer.email_notifications %}
+                        Enabled
+                    {% else %}
+                        Disabled
+                    {% endif %}
+
+                </dd>
+
+
+                <dt class="col-sm-4">
+                    SMS Alerts
+                </dt>
+
+                <dd class="col-sm-8">
+
+                    {% if customer.sms_notifications %}
+                        Enabled
+                    {% else %}
+                        Disabled
+                    {% endif %}
+
+                </dd>
+
+            </dl>
+
+
+            <hr>
+
+
+            <form
+                method="POST"
+                action="{% url 'crm_customer_toggle_status' customer.pk %}"
+            >
+
+                {% csrf_token %}
+
+                {% if customer.is_active %}
+
+                    <button
+                        type="submit"
+                        class="btn btn-outline-danger"
+                    >
+                        <i class="bi bi-person-x"></i>
+                        Deactivate Account
+                    </button>
+
+                {% else %}
+
+                    <button
+                        type="submit"
+                        class="btn btn-success"
+                    >
+                        <i class="bi bi-person-check"></i>
+                        Activate Account
+                    </button>
+
+                {% endif %}
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Saved Addresses
+            </h2>
+
+            {% for address in addresses %}
+
+                <div class="border rounded p-3 mb-3">
+
+                    <div class="d-flex justify-content-between">
+
+                        <strong>
+                            {{ address.full_name }}
+                        </strong>
+
+                        {% if address.is_default %}
+
+                            <span class="badge text-bg-primary">
+                                Default
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="text-muted mt-2">
+
+                        {{ address.phone }}<br>
+
+                        {{ address.house_number }},
+                        {{ address.estate }}<br>
+
+                        {{ address.city }},
+                        {{ address.county }}
+
+                        {% if address.landmark %}
+
+                            <br>
+                            Landmark:
+                            {{ address.landmark }}
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted mb-0">
+                    No saved addresses.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="dashboard-card mb-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <h2 class="h5 mb-0">
+            Internal CRM Notes
+        </h2>
+
+        <span class="text-muted small">
+            Staff only
+        </span>
+
+    </div>
+
+
+    <form
+        method="POST"
+        action="{% url 'crm_customer_note_add' customer.pk %}"
+        class="mb-4"
+    >
+
+        {% csrf_token %}
+
+        <div class="mb-3">
+
+            {{ note_form.note }}
+
+        </div>
+
+        <div class="form-check mb-3">
+
+            {{ note_form.is_pinned }}
+
+            <label
+                class="form-check-label"
+                for="{{ note_form.is_pinned.id_for_label }}"
+            >
+                Pin this note
+            </label>
+
+        </div>
+
+        <button
+            class="btn btn-primary"
+            type="submit"
+        >
+            <i class="bi bi-plus-lg"></i>
+            Add Note
+        </button>
+
+    </form>
+
+
+    {% for note in notes %}
+
+        <div
+            class="
+                border rounded p-3 mb-3
+                {% if note.is_pinned %}
+                    border-warning
+                {% endif %}
+            "
+        >
+
+            <div class="d-flex justify-content-between gap-3">
+
+                <div>
+
+                    {% if note.is_pinned %}
+
+                        <span class="badge text-bg-warning mb-2">
+                            <i class="bi bi-pin-angle"></i>
+                            Pinned
+                        </span>
+
+                    {% endif %}
+
+                    <div style="white-space:pre-wrap;">{{ note.note }}</div>
+
+                    <small class="text-muted d-block mt-2">
+
+                        {{ note.created_at|date:"d M Y H:i" }}
+
+                        {% if note.created_by %}
+
+                            • {{ note.created_by }}
+
+                        {% endif %}
+
+                    </small>
+
+                </div>
+
+
+                <div class="d-flex gap-2 align-items-start">
+
+                    <form
+                        method="POST"
+                        action="{% url 'crm_customer_note_toggle_pin' customer.pk note.pk %}"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="btn btn-sm btn-outline-secondary"
+                            title="Pin or unpin"
+                        >
+                            <i class="bi bi-pin-angle"></i>
+                        </button>
+
+                    </form>
+
+
+                    <form
+                        method="POST"
+                        action="{% url 'crm_customer_note_delete' customer.pk note.pk %}"
+                        onsubmit="return confirm('Delete this customer note?');"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="btn btn-sm btn-outline-danger"
+                        >
+                            <i class="bi bi-trash"></i>
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    {% empty %}
+
+        <p class="text-muted">
+            No internal customer notes yet.
+        </p>
+
+    {% endfor %}
+
+</div>
+
+
+<div class="dashboard-card">
+
+    <h2 class="h5 mb-3">
+        Order History
+    </h2>
+
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Order</th>
+                    <th>Date</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for order in orders %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ order.order_number }}
+                            </strong>
+                        </td>
+
+
+                        <td>
+                            {{ order.created_at|date:"d M Y H:i" }}
+                        </td>
+
+
+                        <td>
+                            {{ order.items.count }}
+                        </td>
+
+
+                        <td>
+                            KES {{ order.total_amount|floatformat:2 }}
+                        </td>
+
+
+                        <td>
+
+                            {% if order.payment_status == "paid" %}
+
+                                <span class="badge text-bg-success">
+                                    Paid
+                                </span>
+
+                            {% elif order.payment_status == "failed" %}
+
+                                <span class="badge text-bg-danger">
+                                    Failed
+                                </span>
+
+                            {% elif order.payment_status == "refunded" %}
+
+                                <span class="badge text-bg-info">
+                                    Refunded
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-warning">
+                                    Pending
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ order.get_status_display }}
+                        </td>
+
+
+                        <td>
+
+                            <a
+                                href="{% url 'admin_order_detail' order.order_number %}"
+                                class="btn btn-sm btn-outline-primary"
+                            >
+                                View
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="text-center text-muted py-5"
+                        >
+                            This customer has not placed any orders.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

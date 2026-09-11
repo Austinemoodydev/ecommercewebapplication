@@ -1,0 +1,383 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Returns & Refunds
+{% endblock %}
+
+{% block page_heading %}
+Returns & Refunds
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div>
+
+        <h1>
+            Returns & Refunds
+        </h1>
+
+        <p>
+            Review customer returns, replacements
+            and refund requests.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Returns Waiting
+            </span>
+
+            <strong>
+                {{ counts.return_requested }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Returns Approved
+            </span>
+
+            <strong>
+                {{ counts.return_approved }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Refunds Waiting
+            </span>
+
+            <strong>
+                {{ counts.refund_requested }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-3">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Refunds Approved
+            </span>
+
+            <strong>
+                {{ counts.refund_approved }}
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="dashboard-card mb-4">
+
+    <div class="d-flex gap-2 mb-3">
+
+        <a
+            href="?tab=returns"
+            class="
+                btn
+                {% if tab == 'returns' %}
+                    btn-primary
+                {% else %}
+                    btn-outline-primary
+                {% endif %}
+            "
+        >
+            Returns
+        </a>
+
+        <a
+            href="?tab=refunds"
+            class="
+                btn
+                {% if tab == 'refunds' %}
+                    btn-primary
+                {% else %}
+                    btn-outline-primary
+                {% endif %}
+            "
+        >
+            Refunds
+        </a>
+
+    </div>
+
+
+    <form method="GET">
+
+        <input
+            type="hidden"
+            name="tab"
+            value="{{ tab }}"
+        >
+
+        <div class="row g-2">
+
+            <div class="col-lg-7">
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control"
+                    placeholder="Search order, customer or phone..."
+                >
+
+            </div>
+
+            <div class="col-lg-3">
+
+                <select
+                    name="status"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All Statuses
+                    </option>
+
+                    <option value="requested">
+                        Requested
+                    </option>
+
+                    <option value="approved">
+                        Approved
+                    </option>
+
+                    {% if tab == "returns" %}
+
+                        <option value="completed">
+                            Completed
+                        </option>
+
+                    {% else %}
+
+                        <option value="processed">
+                            Processed
+                        </option>
+
+                    {% endif %}
+
+                    <option value="rejected">
+                        Rejected
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="col-lg-2">
+
+                <button class="btn btn-primary w-100">
+                    Filter
+                </button>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<div class="dashboard-card">
+
+    <div class="table-responsive">
+
+        <table
+            class="
+                table
+                dashboard-table
+                align-middle
+            "
+        >
+
+            <thead>
+
+                <tr>
+
+                    <th>Order</th>
+
+                    <th>Customer</th>
+
+                    {% if tab == "returns" %}
+                        <th>Type</th>
+                        <th>Items</th>
+                    {% else %}
+                        <th>Amount</th>
+                    {% endif %}
+
+                    <th>Status</th>
+
+                    <th>Date</th>
+
+                    <th class="text-end">
+                        Action
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for record in records %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ record.order.order_number }}
+                            </strong>
+                        </td>
+
+                        <td>
+
+                            {{ record.order.full_name }}
+
+                            <small class="d-block text-muted">
+                                {{ record.order.phone }}
+                            </small>
+
+                        </td>
+
+
+                        {% if tab == "returns" %}
+
+                            <td>
+                                {{ record.get_request_type_display }}
+                            </td>
+
+                            <td>
+                                {{ record.items.count }}
+                            </td>
+
+                        {% else %}
+
+                            <td>
+                                KES {{ record.amount|floatformat:2 }}
+                            </td>
+
+                        {% endif %}
+
+
+                        <td>
+
+                            {% if record.status == "requested" %}
+
+                                <span class="badge text-bg-warning">
+                                    Requested
+                                </span>
+
+                            {% elif record.status == "approved" %}
+
+                                <span class="badge text-bg-primary">
+                                    Approved
+                                </span>
+
+                            {% elif record.status == "rejected" %}
+
+                                <span class="badge text-bg-danger">
+                                    Rejected
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-success">
+                                    {{ record.get_status_display }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ record.created_at|date:"d M Y H:i" }}
+                        </td>
+
+
+                        <td class="text-end">
+
+                            {% if tab == "returns" %}
+
+                                <a
+                                    href="{% url 'admin_return_detail' record.pk %}"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
+                                    Review
+                                </a>
+
+                            {% else %}
+
+                                <a
+                                    href="{% url 'admin_refund_detail' record.pk %}"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
+                                    Review
+                                </a>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="text-center text-muted py-5"
+                        >
+                            No requests found.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

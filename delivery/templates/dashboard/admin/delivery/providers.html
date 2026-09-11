@@ -1,0 +1,167 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Delivery Providers
+{% endblock %}
+
+{% block page_heading %}
+Delivery Providers
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+
+        <div>
+
+            <h1>
+                Delivery Providers
+            </h1>
+
+            <p>
+                Manage transport companies, riders,
+                coaches, shuttles and courier services.
+            </p>
+
+        </div>
+
+        <div class="d-flex gap-2">
+
+            <a
+                href="{% url 'delivery_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                Delivery
+            </a>
+
+            <a
+                href="{% url 'delivery_provider_create' %}"
+                class="btn btn-primary"
+            >
+                <i class="bi bi-plus-lg"></i>
+                Add Provider
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="dashboard-card">
+
+    <div class="table-responsive">
+
+        <table class="table dashboard-table align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Provider</th>
+                    <th>Type</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for provider in providers %}
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            {{ provider.name }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        {{ provider.get_provider_type_display }}
+                    </td>
+
+                    <td>
+                        {{ provider.phone|default:"—" }}
+                    </td>
+
+                    <td>
+
+                        {% if provider.is_active %}
+
+                            <span class="badge text-bg-success">
+                                Active
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge text-bg-secondary">
+                                Inactive
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td class="text-end">
+
+                        <a
+                            href="{% url 'delivery_provider_edit' provider.pk %}"
+                            class="btn btn-sm btn-outline-primary"
+                        >
+                            Edit
+                        </a>
+
+                        <form
+                            method="POST"
+                            action="{% url 'delivery_provider_toggle' provider.pk %}"
+                            class="d-inline"
+                        >
+
+                            {% csrf_token %}
+
+                            <button
+                                type="submit"
+                                class="btn btn-sm btn-outline-secondary"
+                            >
+                                {% if provider.is_active %}
+                                    Disable
+                                {% else %}
+                                    Enable
+                                {% endif %}
+                            </button>
+
+                        </form>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td
+                        colspan="5"
+                        class="text-center py-5"
+                    >
+                        No delivery providers added yet.
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

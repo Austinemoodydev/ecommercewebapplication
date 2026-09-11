@@ -1,0 +1,199 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+{{ title }}
+{% endblock %}
+
+{% block page_heading %}
+Delivery Zone
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div>
+
+        <h1>
+            {{ title }}
+        </h1>
+
+        <p>
+            Configure location-based delivery options
+            without requiring a transport API.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="dashboard-card">
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    County
+                </label>
+
+                {{ form.county }}
+
+                {{ form.county.errors }}
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    Town / Area
+                </label>
+
+                {{ form.town }}
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    Delivery Method
+                </label>
+
+                {{ form.method }}
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    Preferred Provider
+                </label>
+
+                {{ form.provider }}
+
+            </div>
+
+
+            <div class="col-12">
+
+                <label class="form-label">
+                    Pickup Point / Parcel Office
+                </label>
+
+                {{ form.pickup_point }}
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    Pricing
+                </label>
+
+                {{ form.pricing_mode }}
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    Delivery Fee
+                </label>
+
+                {{ form.fee }}
+
+                {{ form.fee.errors }}
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    Free Delivery Threshold
+                </label>
+
+                {{ form.free_delivery_threshold }}
+
+                <div class="form-text">
+
+                    Optional. Example: enter 5000
+                    to make delivery free when the
+                    order subtotal reaches KES 5,000.
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+                    Estimated Time
+                </label>
+
+                {{ form.estimated_time }}
+
+            </div>
+
+
+            <div class="col-12">
+
+                <label class="form-label">
+                    Customer Instructions
+                </label>
+
+                {{ form.instructions }}
+
+            </div>
+
+
+            <div class="col-12">
+
+                <div class="form-check">
+
+                    {{ form.is_active }}
+
+                    <label class="form-check-label">
+                        Active
+                    </label>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="mt-4">
+
+            <button
+                class="btn btn-primary"
+            >
+                Save Delivery Zone
+            </button>
+
+            <a
+                href="{% url 'delivery_zone_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

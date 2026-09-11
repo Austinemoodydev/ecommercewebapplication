@@ -1,0 +1,279 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Refund {{ order.order_number }}
+{% endblock %}
+
+{% block page_heading %}
+Refund Request
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div>
+
+        <a
+            href="{% url 'admin_returns_refunds' %}?tab=refunds"
+            class="btn btn-sm btn-outline-secondary mb-3"
+        >
+            &larr; Refunds
+        </a>
+
+        <h1>
+            Refund — {{ order.order_number }}
+        </h1>
+
+        <p>
+            {{ order.full_name }}
+            · {{ order.phone }}
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="row g-4">
+
+    <div class="col-lg-8">
+
+        <div class="dashboard-card mb-4">
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+
+                    <small class="text-muted">
+                        Requested
+                    </small>
+
+                    <div class="fs-4 fw-bold">
+                        KES {{ refund.amount|floatformat:2 }}
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <small class="text-muted">
+                        Order Total
+                    </small>
+
+                    <div class="fw-semibold">
+                        KES {{ order.total_amount|floatformat:2 }}
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <small class="text-muted">
+                        Already Processed
+                    </small>
+
+                    <div class="fw-semibold">
+                        KES {{ processed_total|floatformat:2 }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="dashboard-card mb-4">
+
+            <h2 class="h5">
+                Customer Reason
+            </h2>
+
+            <p class="mb-0">
+                {{ refund.reason }}
+            </p>
+
+        </div>
+
+
+        {% if refund.external_reference %}
+
+            <div class="dashboard-card mb-4">
+
+                <h2 class="h5">
+                    Refund Reference
+                </h2>
+
+                <code>
+                    {{ refund.external_reference }}
+                </code>
+
+            </div>
+
+        {% endif %}
+
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-3">
+                Timeline
+            </h2>
+
+            {% for event in refund.events.all %}
+
+                <div class="border-start ps-3 mb-3">
+
+                    <strong>
+                        {{ event.status|title }}
+                    </strong>
+
+                    <small class="d-block text-muted">
+
+                        {{ event.created_at|date:"d M Y H:i" }}
+
+                        {% if event.created_by %}
+                            · {{ event.created_by.username }}
+                        {% endif %}
+
+                    </small>
+
+                    {% if event.message %}
+
+                        <div class="mt-1">
+                            {{ event.message }}
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No timeline entries.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card mb-4">
+
+            <h2 class="h5">
+                Status
+            </h2>
+
+            <span class="badge text-bg-primary">
+                {{ refund.get_status_display }}
+            </span>
+
+        </div>
+
+
+        {% if refund.status == "requested" %}
+
+            <div class="dashboard-card">
+
+                <h2 class="h5">
+                    Review Refund
+                </h2>
+
+                <form
+                    method="POST"
+                    action="{% url 'admin_refund_review' refund.pk %}"
+                >
+
+                    {% csrf_token %}
+
+                    <textarea
+                        name="staff_note"
+                        rows="4"
+                        class="form-control mb-3"
+                        placeholder="Staff note / rejection reason"
+                    ></textarea>
+
+                    <div class="d-grid gap-2">
+
+                        <button
+                            name="action"
+                            value="approve"
+                            class="btn btn-success"
+                        >
+                            Approve
+                        </button>
+
+                        <button
+                            name="action"
+                            value="reject"
+                            class="btn btn-outline-danger"
+                        >
+                            Reject
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        {% endif %}
+
+
+        {% if refund.status == "approved" %}
+
+            <div class="dashboard-card">
+
+                <h2 class="h5">
+                    Record Actual Refund
+                </h2>
+
+                <p class="small text-muted">
+
+                    Do this only after the money has
+                    actually been returned to the customer.
+
+                </p>
+
+                <form
+                    method="POST"
+                    action="{% url 'admin_refund_process' refund.pk %}"
+                >
+
+                    {% csrf_token %}
+
+                    <label class="form-label">
+                        Refund Reference
+                    </label>
+
+                    <input
+                        type="text"
+                        name="external_reference"
+                        class="form-control mb-3"
+                        placeholder="M-PESA / bank / cash reference"
+                        required
+                    >
+
+                    <button
+                        class="btn btn-success w-100"
+                        onclick="return confirm('Confirm that this refund has actually been paid?');"
+                    >
+                        Mark Refund Processed
+                    </button>
+
+                </form>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

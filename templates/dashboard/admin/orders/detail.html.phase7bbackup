@@ -1,0 +1,654 @@
+{% extends "dashboard/admin/base.html" %}
+
+
+{% block title %}
+{{ order.order_number }} | Order
+{% endblock %}
+
+
+{% block page_heading %}
+Order {{ order.order_number }}
+{% endblock %}
+
+
+{% block admin_content %}
+
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            {{ order.order_number }}
+        </h1>
+
+        <div class="text-muted">
+            Placed {{ order.created_at|date:"d M Y H:i" }}
+        </div>
+
+    </div>
+
+
+    <a
+        href="{% url 'admin_order_list' %}"
+        class="btn btn-outline-secondary"
+    >
+        <i class="bi bi-arrow-left"></i>
+        Orders
+    </a>
+
+</div>
+
+
+<!-- STATUS -->
+
+<div class="dashboard-card mb-4">
+
+    <div
+        class="
+            d-flex
+            justify-content-between
+            flex-wrap
+            gap-3
+            align-items-center
+        "
+    >
+
+        <div>
+
+            <span class="text-muted">
+                Order Status
+            </span>
+
+            <div class="mt-2">
+
+                <span
+                    class="
+                        status-badge
+                        status-{{ order.status }}
+                    "
+                >
+                    {{ order.get_status_display }}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div>
+
+            <span class="text-muted">
+                Payment
+            </span>
+
+            <div class="mt-2">
+
+                {% if order.payment_status == "paid" %}
+
+                    <span class="badge text-bg-success">
+                        Paid
+                    </span>
+
+                {% elif order.payment_status == "failed" %}
+
+                    <span class="badge text-bg-danger">
+                        Failed
+                    </span>
+
+                {% elif order.payment_status == "refunded" %}
+
+                    <span class="badge text-bg-info">
+                        Refunded
+                    </span>
+
+                {% else %}
+
+                    <span class="badge text-bg-warning">
+                        Pending
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <div class="d-flex gap-2 flex-wrap">
+
+            {% if order.status == "confirmed" %}
+
+                <form
+                    method="POST"
+                    action="{% url 'admin_order_update_status' order.order_number %}"
+                >
+
+                    {% csrf_token %}
+
+                    <input
+                        type="hidden"
+                        name="status"
+                        value="processing"
+                    >
+
+                    <button class="btn btn-primary">
+                        Start Processing
+                    </button>
+
+                </form>
+
+            {% endif %}
+
+
+            {% if order.status == "processing" %}
+
+                <form
+                    method="POST"
+                    action="{% url 'admin_order_update_status' order.order_number %}"
+                >
+
+                    {% csrf_token %}
+
+                    <input
+                        type="hidden"
+                        name="status"
+                        value="shipped"
+                    >
+
+                    <button class="btn btn-primary">
+                        Mark Shipped
+                    </button>
+
+                </form>
+
+            {% endif %}
+
+
+            {% if order.status == "shipped" %}
+
+                <form
+                    method="POST"
+                    action="{% url 'admin_order_update_status' order.order_number %}"
+                >
+
+                    {% csrf_token %}
+
+                    <input
+                        type="hidden"
+                        name="status"
+                        value="delivered"
+                    >
+
+                    <button class="btn btn-success">
+                        Mark Delivered
+                    </button>
+
+                </form>
+
+            {% endif %}
+
+
+            {% if order.status == "pending" and order.payment_status == "pending" %}
+
+                <form
+                    method="POST"
+                    action="{% url 'admin_order_update_status' order.order_number %}"
+                    onsubmit="return confirm('Cancel this unpaid order?');"
+                >
+
+                    {% csrf_token %}
+
+                    <input
+                        type="hidden"
+                        name="status"
+                        value="cancelled"
+                    >
+
+                    <button class="btn btn-outline-danger">
+                        Cancel Order
+                    </button>
+
+                </form>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row g-4">
+
+
+    <!-- CUSTOMER -->
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-3">
+                Customer
+            </h2>
+
+            <p>
+                <strong>{{ order.full_name }}</strong>
+            </p>
+
+            <p>
+                <i class="bi bi-phone"></i>
+                {{ order.phone }}
+            </p>
+
+            {% if order.email %}
+
+                <p>
+                    <i class="bi bi-envelope"></i>
+                    {{ order.email }}
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- DELIVERY ADDRESS -->
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-3">
+                Delivery Address
+            </h2>
+
+            <p class="mb-1">
+                {{ order.estate }}
+            </p>
+
+            <p class="mb-1">
+                {{ order.house_number }}
+            </p>
+
+            <p class="mb-1">
+                {{ order.city }},
+                {{ order.county }}
+            </p>
+
+            {% if order.landmark %}
+
+                <p>
+                    Landmark:
+                    {{ order.landmark }}
+                </p>
+
+            {% endif %}
+
+
+            {% if order.delivery_notes %}
+
+                <hr>
+
+                <strong>
+                    Delivery instructions
+                </strong>
+
+                <p class="mb-0 mt-2">
+                    {{ order.delivery_notes }}
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ITEMS -->
+
+    <div class="col-lg-8">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-4">
+                Order Items
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th class="text-end">
+                                Total
+                            </th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for item in items %}
+
+                            <tr>
+
+                                <td>
+
+                                    <strong>
+                                        {{ item.product_name }}
+                                    </strong>
+
+                                    {% if item.variant_name %}
+
+                                        <small class="d-block text-muted">
+                                            {{ item.variant_name }}
+                                        </small>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+                                    KES {{ item.price|floatformat:2 }}
+                                </td>
+
+
+                                <td>
+                                    {{ item.quantity }}
+                                </td>
+
+
+                                <td class="text-end">
+                                    KES {{ item.subtotal|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <hr>
+
+
+            <div class="row justify-content-end">
+
+                <div class="col-md-6 col-lg-5">
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span>
+                        <strong>
+                            KES {{ order.subtotal|floatformat:2 }}
+                        </strong>
+                    </div>
+
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Delivery</span>
+                        <strong>
+                            KES {{ order.shipping_cost|floatformat:2 }}
+                        </strong>
+                    </div>
+
+
+                    {% if order.discount %}
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Discount</span>
+                            <strong>
+                                - KES {{ order.discount|floatformat:2 }}
+                            </strong>
+                        </div>
+
+                    {% endif %}
+
+
+                    <hr>
+
+
+                    <div class="d-flex justify-content-between">
+
+                        <strong>Total</strong>
+
+                        <strong class="fs-5">
+                            KES {{ order.total_amount|floatformat:2 }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- SHIPPING -->
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-3">
+                Shipping
+            </h2>
+
+            <form
+                method="POST"
+                action="{% url 'admin_order_update_shipping' order.order_number %}"
+            >
+
+                {% csrf_token %}
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Courier
+                    </label>
+
+                    {{ shipping_form.courier }}
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Tracking Number
+                    </label>
+
+                    {{ shipping_form.tracking_number }}
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Tracking URL
+                    </label>
+
+                    {{ shipping_form.tracking_url }}
+
+                </div>
+
+
+                {% if order.status != "delivered" and order.status != "cancelled" %}
+
+                    <button class="btn btn-primary w-100">
+                        Save Shipping
+                    </button>
+
+                {% endif %}
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- PAYMENT -->
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-3">
+                M-Pesa Payment
+            </h2>
+
+
+            {% if latest_payment %}
+
+                <div class="list-row">
+
+                    <span>Status</span>
+
+                    <strong>
+                        {{ latest_payment.get_status_display }}
+                    </strong>
+
+                </div>
+
+
+                <div class="list-row">
+
+                    <span>Phone</span>
+
+                    <strong>
+                        {{ latest_payment.phone_number }}
+                    </strong>
+
+                </div>
+
+
+                <div class="list-row">
+
+                    <span>Amount</span>
+
+                    <strong>
+                        KES {{ latest_payment.amount|floatformat:2 }}
+                    </strong>
+
+                </div>
+
+
+                <div class="list-row">
+
+                    <span>Receipt</span>
+
+                    <strong>
+                        {{ latest_payment.mpesa_receipt_number|default:"—" }}
+                    </strong>
+
+                </div>
+
+
+                <div class="list-row">
+
+                    <span>Result</span>
+
+                    <strong>
+                        {{ latest_payment.result_description|default:"—" }}
+                    </strong>
+
+                </div>
+
+            {% else %}
+
+                <p class="text-muted mb-0">
+                    No M-Pesa transaction recorded.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ORDER INFO -->
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card">
+
+            <h2 class="h5 mb-3">
+                Order Information
+            </h2>
+
+
+            <div class="list-row">
+
+                <span>Payment Method</span>
+
+                <strong>
+                    {{ order.payment_method|title }}
+                </strong>
+
+            </div>
+
+
+            <div class="list-row">
+
+                <span>Created</span>
+
+                <strong>
+                    {{ order.created_at|date:"d M Y H:i" }}
+                </strong>
+
+            </div>
+
+
+            <div class="list-row">
+
+                <span>Last Updated</span>
+
+                <strong>
+                    {{ order.updated_at|date:"d M Y H:i" }}
+                </strong>
+
+            </div>
+
+
+            {% if order.coupon %}
+
+                <div class="list-row">
+
+                    <span>Coupon</span>
+
+                    <strong>
+                        {{ order.coupon.code }}
+                    </strong>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
