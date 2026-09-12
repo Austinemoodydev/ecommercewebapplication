@@ -1,0 +1,317 @@
+{% extends "orders/documents/base.html" %}
+
+
+{% block document_content %}
+
+
+<header class="header">
+
+    <div class="brand">
+
+        <h1>
+            {{ store_name }}
+        </h1>
+
+        {% if store_address %}
+            <p>{{ store_address }}</p>
+        {% endif %}
+
+        {% if store_phone %}
+            <p>{{ store_phone }}</p>
+        {% endif %}
+
+        {% if store_email %}
+            <p>{{ store_email }}</p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="document-meta">
+
+        <h2>
+            Receipt
+        </h2>
+
+        <p>
+            <strong>
+                {{ document_number }}
+            </strong>
+        </p>
+
+        <p>
+            Order:
+            {{ order.order_number }}
+        </p>
+
+        <p>
+            Date:
+            {{ order.created_at|date:"d M Y H:i" }}
+        </p>
+
+        <span class="status">
+            {{ order.get_payment_status_display }}
+        </span>
+
+    </div>
+
+</header>
+
+
+<section class="grid">
+
+    <div class="info-block">
+
+        <h3 class="section-title">
+            Received From
+        </h3>
+
+        <p>
+            <strong>
+                {{ order.full_name }}
+            </strong>
+        </p>
+
+        <p>
+            {{ order.phone }}
+        </p>
+
+        {% if order.email %}
+            <p>{{ order.email }}</p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="info-block">
+
+        <h3 class="section-title">
+            Payment Details
+        </h3>
+
+        <p>
+            Method:
+            {{ order.payment_method|upper }}
+        </p>
+
+        {% if successful_payment %}
+
+            {% if successful_payment.mpesa_receipt_number %}
+
+                <p>
+                    M-PESA Receipt:
+                    <strong>
+                        {{ successful_payment.mpesa_receipt_number }}
+                    </strong>
+                </p>
+
+            {% endif %}
+
+
+            <p>
+                Payment Phone:
+                {{ successful_payment.phone_number }}
+            </p>
+
+
+            <p>
+                Payment Amount:
+                KES
+                {{ successful_payment.amount|floatformat:2 }}
+            </p>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<table>
+
+    <thead>
+
+        <tr>
+
+            <th>
+                Item
+            </th>
+
+            <th class="text-right">
+                Price
+            </th>
+
+            <th class="text-right">
+                Qty
+            </th>
+
+            <th class="text-right">
+                Amount
+            </th>
+
+        </tr>
+
+    </thead>
+
+
+    <tbody>
+
+        {% for item in items %}
+
+            <tr>
+
+                <td>
+
+                    <strong>
+                        {{ item.product_name }}
+                    </strong>
+
+                    {% if item.variant_name %}
+
+                        <div class="small">
+                            {{ item.variant_name }}
+                        </div>
+
+                    {% endif %}
+
+                </td>
+
+                <td class="text-right">
+                    KES {{ item.price|floatformat:2 }}
+                </td>
+
+                <td class="text-right">
+                    {{ item.quantity }}
+                </td>
+
+                <td class="text-right">
+                    KES {{ item.subtotal|floatformat:2 }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+
+<div class="totals">
+
+    <div class="total-row">
+
+        <span>
+            Order Total
+        </span>
+
+        <strong>
+            KES {{ order.total_amount|floatformat:2 }}
+        </strong>
+
+    </div>
+
+
+    {% if processed_refund_total %}
+
+        <div class="total-row refund-row">
+
+            <span>
+                Refunded
+            </span>
+
+            <strong>
+                - KES
+                {{ processed_refund_total|floatformat:2 }}
+            </strong>
+
+        </div>
+
+
+        <div class="total-row grand-total">
+
+            <span>
+                Net Amount
+            </span>
+
+            <span>
+                KES {{ net_amount|floatformat:2 }}
+            </span>
+
+        </div>
+
+    {% else %}
+
+        <div class="total-row grand-total">
+
+            <span>
+                Amount Paid
+            </span>
+
+            <span>
+                KES {{ order.total_amount|floatformat:2 }}
+            </span>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+{% if processed_refunds %}
+
+    <div class="payment-box">
+
+        <h3>
+            Refund History
+        </h3>
+
+
+        {% for refund in processed_refunds %}
+
+            <p>
+
+                KES
+                {{ refund.amount|floatformat:2 }}
+
+                {% if refund.processed_at %}
+
+                    —
+                    {{ refund.processed_at|date:"d M Y H:i" }}
+
+                {% endif %}
+
+                {% if refund.external_reference %}
+
+                    —
+                    Ref:
+                    {{ refund.external_reference }}
+
+                {% endif %}
+
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+{% endif %}
+
+
+<div class="footer">
+
+    <p>
+        Payment receipt for order
+        {{ order.order_number }}.
+    </p>
+
+    <p>
+        Thank you for shopping with
+        {{ store_name }}.
+    </p>
+
+</div>
+
+
+{% endblock %}

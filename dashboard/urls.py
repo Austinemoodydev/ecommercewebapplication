@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 from . import reports_views
+from orders import document_views
+from orders import credit_note_views
 from delivery.customer_views import (
     customer_delivery_tracking,
     available_delivery_options,
@@ -61,6 +63,36 @@ urlpatterns = [
         name="order_detail",
     ),
 
+    path(
+        "orders/<str:order_number>/invoice/",
+        document_views.customer_invoice,
+        name="customer_order_invoice",
+    ),
+
+    path(
+        "orders/<str:order_number>/receipt/",
+        document_views.customer_receipt,
+        name="customer_order_receipt",
+    ),
+
+    path(
+        "orders/<str:order_number>/documents/<str:document_type>/email/",
+        document_views.customer_document_email,
+        name="customer_order_document_email",
+    ),
+
+    path(
+        "credit-notes/<int:refund_id>/",
+        credit_note_views.customer_credit_note,
+        name="customer_credit_note",
+    ),
+
+    path(
+        "credit-notes/<int:refund_id>/email/",
+        credit_note_views.customer_credit_note_email,
+        name="customer_credit_note_email",
+    ),
+
 
     # =========================================================
     # STORE MANAGEMENT DASHBOARD
@@ -87,6 +119,36 @@ urlpatterns = [
         "admin/orders/<str:order_number>/",
         views.admin_order_detail,
         name="admin_order_detail",
+    ),
+
+    path(
+        "admin/orders/<str:order_number>/invoice/",
+        document_views.admin_invoice,
+        name="admin_order_invoice",
+    ),
+
+    path(
+        "admin/orders/<str:order_number>/receipt/",
+        document_views.admin_receipt,
+        name="admin_order_receipt",
+    ),
+
+    path(
+        "admin/orders/<str:order_number>/documents/<str:document_type>/email/",
+        document_views.admin_document_email,
+        name="admin_order_document_email",
+    ),
+
+    path(
+        "admin/credit-notes/<int:refund_id>/",
+        credit_note_views.admin_credit_note,
+        name="admin_credit_note",
+    ),
+
+    path(
+        "admin/credit-notes/<int:refund_id>/email/",
+        credit_note_views.admin_credit_note_email,
+        name="admin_credit_note_email",
     ),
 
     path(

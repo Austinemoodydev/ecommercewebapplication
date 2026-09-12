@@ -1,0 +1,301 @@
+from decimal import Decimal
+
+from django.conf import settings
+from django.contrib.admin.views.decorators import (
+    staff_member_required,
+)
+from django.contrib.auth.decorators import (
+    login_required,
+)
+from django.db.models import Sum
+from django.http import Http404
+from django.shortcuts import (
+    get_object_or_404,
+    render,
+)
+
+from orders.models import Order
+
+
+ZERO = Decimal("0.00")
+
+
+SETTLED_PAYMENT_STATUSES = {
+    "paid",
+    "partially_refunded",
+    "refunded",
+}
+
+
+def _document_queryset():
+
+    return (
+        Order.objects
+        .select_related(
+            "user",
+            "coupon",
+            "delivery",
+            "delivery__provider",
+            "delivery_zone",
+        )
+        .prefetch_related(
+            "items__product",
+            "items__variant",
+            "mpesa_transactions",
+            "refund_requests",
+        )
+    )
+
+
+def _store_details():
+
+    return {
+        "store_name": getattr(
+            settings,
+            "STORE_NAME",
+            "Online Shop",
+        ),
+
+        "store_email": getattr(
+            settings,
+            "STORE_EMAIL",
+            "",
+        ),
+
+        "store_phone": getattr(
+            settings,
+            "STORE_PHONE",
+            "",
+        ),
+
+        "store_address": getattr(
+            settings,
+            "STORE_ADDRESS",
+            "",
+        ),
+
+        "store_website": getattr(
+            settings,
+            "STORE_WEBSITE",
+            "",
+        ),
+    }
+
+
+def _build_document_context(
+    order,
+    document_type,
+):
+
+    items = order.items.all()
+
+    successful_payment = (
+        order.mpesa_transactions
+        .filter(
+            status="success",
+        )
+        .order_by(
+            "-updated_at"
+        )
+        .first()
+    )
+
+
+    processed_refunds = (
+        order.refund_requests
+        .filter(
+            status="processed",
+        )
+        .order_by(
+            "processed_at",
+            "created_at",
+        )
+    )
+
+
+    processed_refund_total = (
+        processed_refunds
+        .aggregate(
+            total=Sum(
+                "amount"
+            )
+        )[
+            "total"
+        ]
+        or ZERO
+    )
+
+
+    net_amount = (
+        order.total_amount
+        - processed_refund_total
+    )
+
+
+    if net_amount < ZERO:
+        net_amount = ZERO
+
+
+    context = {
+        "order": order,
+        "items": items,
+        "document_type": document_type,
+
+        "successful_payment":
+            successful_payment,
+
+        "processed_refunds":
+            processed_refunds,
+
+        "processed_refund_total":
+            processed_refund_total,
+
+        "net_amount":
+            net_amount,
+
+        **_store_details(),
+    }
+
+
+    if document_type == "invoice":
+
+        context[
+            "document_number"
+        ] = (
+            f"INV-{order.order_number}"
+        )
+
+        context[
+            "document_title"
+        ] = "Invoice"
+
+
+    elif document_type == "receipt":
+
+        context[
+            "document_number"
+        ] = (
+            f"RCP-{order.order_number}"
+        )
+
+        context[
+            "document_title"
+        ] = "Payment Receipt"
+
+
+    return context
+
+
+def _render_document(
+    request,
+    order,
+    document_type,
+):
+
+    if (
+        document_type == "receipt"
+        and order.payment_status
+        not in SETTLED_PAYMENT_STATUSES
+    ):
+        raise Http404(
+            "Receipt is not available "
+            "for an unpaid order."
+        )
+
+
+    template = (
+        "orders/documents/"
+        f"{document_type}.html"
+    )
+
+
+    return render(
+        request,
+        template,
+        _build_document_context(
+            order,
+            document_type,
+        ),
+    )
+
+
+# ============================================================
+# CUSTOMER DOCUMENTS
+# ============================================================
+
+@login_required
+def customer_invoice(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+        user=request.user,
+    )
+
+    return _render_document(
+        request,
+        order,
+        "invoice",
+    )
+
+
+@login_required
+def customer_receipt(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+        user=request.user,
+    )
+
+    return _render_document(
+        request,
+        order,
+        "receipt",
+    )
+
+
+# ============================================================
+# ADMIN DOCUMENTS
+# ============================================================
+
+@staff_member_required
+def admin_invoice(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+    )
+
+    return _render_document(
+        request,
+        order,
+        "invoice",
+    )
+
+
+@staff_member_required
+def admin_receipt(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+    )
+
+    return _render_document(
+        request,
+        order,
+        "receipt",
+    )

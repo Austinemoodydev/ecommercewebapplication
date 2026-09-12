@@ -1,0 +1,324 @@
+{% extends "orders/documents/base.html" %}
+
+
+{% block document_content %}
+
+
+<header class="header">
+
+    <div class="brand">
+
+        <h1>
+            {{ store_name }}
+        </h1>
+
+        {% if store_address %}
+            <p>{{ store_address }}</p>
+        {% endif %}
+
+        {% if store_phone %}
+            <p>{{ store_phone }}</p>
+        {% endif %}
+
+        {% if store_email %}
+            <p>{{ store_email }}</p>
+        {% endif %}
+
+        {% if store_website %}
+            <p>{{ store_website }}</p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="document-meta">
+
+        <h2>
+            Invoice
+        </h2>
+
+        <p>
+            <strong>
+                {{ document_number }}
+            </strong>
+        </p>
+
+        <p>
+            Order:
+            {{ order.order_number }}
+        </p>
+
+        <p>
+            Date:
+            {{ order.created_at|date:"d M Y H:i" }}
+        </p>
+
+        <span class="status">
+            Payment:
+            {{ order.get_payment_status_display }}
+        </span>
+
+    </div>
+
+</header>
+
+
+<section class="grid">
+
+    <div class="info-block">
+
+        <h3 class="section-title">
+            Bill To
+        </h3>
+
+        <p>
+            <strong>
+                {{ order.full_name }}
+            </strong>
+        </p>
+
+        <p>
+            {{ order.phone }}
+        </p>
+
+        {% if order.email %}
+            <p>{{ order.email }}</p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="info-block">
+
+        <h3 class="section-title">
+            Delivery Address
+        </h3>
+
+        {% if order.house_number %}
+            <p>{{ order.house_number }}</p>
+        {% endif %}
+
+        {% if order.estate %}
+            <p>{{ order.estate }}</p>
+        {% endif %}
+
+        <p>
+            {{ order.city }},
+            {{ order.county }}
+        </p>
+
+        {% if order.landmark %}
+            <p>
+                Landmark:
+                {{ order.landmark }}
+            </p>
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<table>
+
+    <thead>
+
+        <tr>
+
+            <th>
+                Item
+            </th>
+
+            <th class="text-right">
+                Unit Price
+            </th>
+
+            <th class="text-right">
+                Qty
+            </th>
+
+            <th class="text-right">
+                Amount
+            </th>
+
+        </tr>
+
+    </thead>
+
+
+    <tbody>
+
+        {% for item in items %}
+
+            <tr>
+
+                <td>
+
+                    <strong>
+                        {{ item.product_name }}
+                    </strong>
+
+                    {% if item.variant_name %}
+
+                        <div class="small">
+                            {{ item.variant_name }}
+                        </div>
+
+                    {% endif %}
+
+                </td>
+
+                <td class="text-right">
+                    KES {{ item.price|floatformat:2 }}
+                </td>
+
+                <td class="text-right">
+                    {{ item.quantity }}
+                </td>
+
+                <td class="text-right">
+                    KES {{ item.subtotal|floatformat:2 }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+
+<div class="totals">
+
+    <div class="total-row">
+
+        <span>
+            Subtotal
+        </span>
+
+        <strong>
+            KES {{ order.subtotal|floatformat:2 }}
+        </strong>
+
+    </div>
+
+
+    {% if order.discount %}
+
+        <div class="total-row">
+
+            <span>
+                Discount
+            </span>
+
+            <strong>
+                - KES {{ order.discount|floatformat:2 }}
+            </strong>
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="total-row">
+
+        <span>
+            Delivery
+        </span>
+
+        <strong>
+            KES {{ order.shipping_cost|floatformat:2 }}
+        </strong>
+
+    </div>
+
+
+    <div class="total-row grand-total">
+
+        <span>
+            Total
+        </span>
+
+        <span>
+            KES {{ order.total_amount|floatformat:2 }}
+        </span>
+
+    </div>
+
+</div>
+
+
+{% if order.coupon %}
+
+    <div class="payment-box">
+
+        <strong>
+            Promotion:
+        </strong>
+
+        Coupon
+        {{ order.coupon.code }}
+
+    </div>
+
+{% endif %}
+
+
+{% if order.delivery %}
+
+    <div class="payment-box">
+
+        <h3>
+            Delivery Information
+        </h3>
+
+        <p>
+            Method:
+            {{ order.delivery.get_method_display }}
+        </p>
+
+        {% if order.delivery.provider %}
+
+            <p>
+                Provider:
+                {{ order.delivery.provider.name }}
+            </p>
+
+        {% endif %}
+
+        {% if order.delivery.transport_reference %}
+
+            <p>
+                Reference:
+                {{ order.delivery.transport_reference }}
+            </p>
+
+        {% endif %}
+
+        <p>
+            Status:
+            {{ order.delivery.get_status_display }}
+        </p>
+
+    </div>
+
+{% endif %}
+
+
+<div class="footer">
+
+    <p>
+        Thank you for shopping with
+        {{ store_name }}.
+    </p>
+
+    <p>
+        This document is generated from order
+        {{ order.order_number }}.
+    </p>
+
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,20 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-dark storefront-nav sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
+      <img src="{% static 'images/icons/icon.jpeg' %}" alt="Best Shop" height="32" class="me-2">
+      Best Shop
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#storefrontNav" aria-controls="storefrontNav" aria-expanded="false" aria-label="Open navigation"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="storefrontNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li><li class="nav-item"><a class="nav-link" href="{% url 'shop' %}">Shop</a></li><li class="nav-item"><a class="nav-link" href="{% url 'category_list' %}">Categories</a></li><li class="nav-item"><a class="nav-link nav-offer" href="{% url 'offers' %}">Offers</a></li>
+      </ul>
+      <form class="nav-search d-flex my-3 my-lg-0" method="get" action="{% url 'shop' %}"><input class="form-control" type="search" name="search" placeholder="Search products" value="{{ request.GET.search }}" aria-label="Search products"><button class="btn" aria-label="Search"><i class="bi bi-search"></i></button></form>
+      <ul class="navbar-nav align-items-lg-center ms-lg-3 gap-lg-2">
+        <li class="nav-item"><a href="{% url 'wishlist' %}" class="nav-icon" aria-label="Wishlist"><i class="bi bi-heart"></i><span id="wishlist-count" class="count-badge">{{ wishlist_count|default:'0' }}</span></a></li><li class="nav-item"><a href="{% url 'cart' %}" class="nav-icon" aria-label="Cart"><i class="bi bi-bag"></i><span id="cart-count" class="count-badge">{{ cart_count|default:'0' }}</span></a></li>
+        {% if request.user.is_authenticated %}<li class="nav-item dropdown"><a class="nav-account dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ request.user.username }}</a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="{% url 'dashboard' %}">Dashboard</a></li><li><a class="dropdown-item" href="{% url 'order_history' %}">My orders</a></li><li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger" href="{% url 'logout' %}">Log out</a></li></ul></li>{% else %}<li class="nav-item"><a href="{% url 'login' %}" class="nav-account">Sign in</a></li>{% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>

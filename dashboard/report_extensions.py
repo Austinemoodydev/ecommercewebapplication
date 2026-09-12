@@ -405,11 +405,6 @@ def build_advanced_report(
 
     for order in (
         paid_orders
-        .only(
-            "id",
-            "created_at",
-            "total_amount",
-        )
         .order_by(
             "created_at"
         )

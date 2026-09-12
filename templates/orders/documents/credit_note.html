@@ -1,0 +1,280 @@
+{% extends "orders/documents/base.html" %}
+
+
+{% block document_content %}
+
+<header class="header">
+
+    <div class="brand">
+
+        <h1>
+            {{ snapshot.store.name }}
+        </h1>
+
+        {% if snapshot.store.address %}
+            <p>
+                {{ snapshot.store.address }}
+            </p>
+        {% endif %}
+
+        {% if snapshot.store.phone %}
+            <p>
+                {{ snapshot.store.phone }}
+            </p>
+        {% endif %}
+
+        {% if snapshot.store.email %}
+            <p>
+                {{ snapshot.store.email }}
+            </p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="document-meta">
+
+        <h2>
+            Credit Note
+        </h2>
+
+        <p>
+            <strong>
+                {{ document.document_number }}
+            </strong>
+        </p>
+
+        <p>
+            Order:
+            {{ snapshot.order.order_number }}
+        </p>
+
+        <p>
+            Issued:
+            {{ document.issued_at|date:"d M Y H:i" }}
+        </p>
+
+        <span class="status">
+            Refund Processed
+        </span>
+
+    </div>
+
+</header>
+
+
+<section class="grid">
+
+    <div class="info-block">
+
+        <h3 class="section-title">
+            Customer
+        </h3>
+
+        <p>
+            <strong>
+                {{ snapshot.order.full_name }}
+            </strong>
+        </p>
+
+        <p>
+            {{ snapshot.order.phone }}
+        </p>
+
+        {% if snapshot.order.email %}
+            <p>
+                {{ snapshot.order.email }}
+            </p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="info-block">
+
+        <h3 class="section-title">
+            Refund Details
+        </h3>
+
+        <p>
+            Reference:
+            <strong>
+                {{ snapshot.refund.external_reference }}
+            </strong>
+        </p>
+
+        {% if snapshot.refund.reason %}
+
+            <p>
+                Reason:
+                {{ snapshot.refund.reason }}
+            </p>
+
+        {% endif %}
+
+        {% if snapshot.refund.processed_by %}
+
+            <p>
+                Processed by:
+                {{ snapshot.refund.processed_by }}
+            </p>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<div class="payment-box">
+
+    <h3>
+        Financial Summary
+    </h3>
+
+
+    <div class="total-row">
+
+        <span>
+            Original Order Amount
+        </span>
+
+        <strong>
+            KES
+            {{ snapshot.order.total_amount }}
+        </strong>
+
+    </div>
+
+
+    <div class="total-row refund-row">
+
+        <span>
+            This Refund
+        </span>
+
+        <strong>
+            - KES
+            {{ snapshot.refund.amount }}
+        </strong>
+
+    </div>
+
+
+    <div class="total-row">
+
+        <span>
+            Total Refunds Processed
+        </span>
+
+        <strong>
+            KES
+            {{ snapshot.total_processed_refunds }}
+        </strong>
+
+    </div>
+
+
+    <div class="total-row grand-total">
+
+        <span>
+            Net Amount Retained
+        </span>
+
+        <span>
+            KES
+            {{ snapshot.remaining_amount }}
+        </span>
+
+    </div>
+
+</div>
+
+
+{% if snapshot.items %}
+
+<table>
+
+    <thead>
+
+        <tr>
+            <th>Original Order Item</th>
+            <th class="text-right">
+                Qty
+            </th>
+            <th class="text-right">
+                Amount
+            </th>
+        </tr>
+
+    </thead>
+
+
+    <tbody>
+
+        {% for item in snapshot.items %}
+
+            <tr>
+
+                <td>
+
+                    {{ item.product_name }}
+
+                    {% if item.variant_name %}
+
+                        <div class="small">
+                            {{ item.variant_name }}
+                        </div>
+
+                    {% endif %}
+
+                </td>
+
+                <td class="text-right">
+                    {{ item.quantity }}
+                </td>
+
+                <td class="text-right">
+                    KES {{ item.subtotal }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+{% endif %}
+
+
+<div class="payment-box">
+
+    <p class="mb-0">
+
+        This credit note records a processed
+        refund against order
+        <strong>
+            {{ snapshot.order.order_number }}
+        </strong>.
+
+    </p>
+
+</div>
+
+
+<div class="footer">
+
+    <p>
+        Credit note
+        {{ document.document_number }}
+    </p>
+
+    <p>
+        {{ snapshot.store.name }}
+    </p>
+
+</div>
+
+{% endblock %}

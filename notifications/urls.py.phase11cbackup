@@ -1,0 +1,47 @@
+from django.urls import path
+
+from notifications import views
+
+
+urlpatterns = [
+
+    # ========================================================
+    # CUSTOMER
+    # ========================================================
+
+    path(
+        "",
+        views.customer_notifications,
+        name="customer_notifications",
+    ),
+
+    path(
+        "<int:notification_id>/read/",
+        views.customer_notification_mark_read,
+        name="customer_notification_mark_read",
+    ),
+
+    path(
+        "mark-all-read/",
+        views.customer_notifications_mark_all_read,
+        name="customer_notifications_mark_all_read",
+    ),
+
+
+    # ========================================================
+    # ADMIN
+    # ========================================================
+
+    path(
+        "admin/",
+        views.admin_notifications,
+        name="admin_notifications",
+    ),
+
+    path(
+        "admin/<int:notification_id>/retry/",
+        views.admin_retry_notification,
+        name="admin_retry_notification",
+    ),
+
+]

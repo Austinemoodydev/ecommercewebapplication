@@ -424,8 +424,13 @@
             <!-- NOTIFICATIONS -->
 
             <a
-                href="#"
-                class="sidebar-link"
+                href="{% url 'admin_notifications' %}"
+                class="
+                    sidebar-link
+                    {% if request.resolver_match.url_name == 'admin_notifications' %}
+                        active
+                    {% endif %}
+                "
             >
 
                 <i class="bi bi-bell"></i>

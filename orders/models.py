@@ -258,3 +258,152 @@ class Coupon(models.Model):
             discount = self.discount_value
 
         return min(discount, subtotal)
+
+
+class OrderDocument(models.Model):
+
+    INVOICE = "invoice"
+    RECEIPT = "receipt"
+
+    DOCUMENT_TYPE_CHOICES = [
+        (
+            INVOICE,
+            "Invoice",
+        ),
+        (
+            RECEIPT,
+            "Receipt",
+        ),
+    ]
+
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.PROTECT,
+        related_name="documents",
+    )
+
+    document_type = models.CharField(
+        max_length=20,
+        choices=DOCUMENT_TYPE_CHOICES,
+    )
+
+    document_number = models.CharField(
+        max_length=120,
+        unique=True,
+        db_index=True,
+    )
+
+    snapshot = models.JSONField(
+        default=dict,
+    )
+
+    issued_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="issued_order_documents",
+    )
+
+    issued_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    last_emailed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    email_count = models.PositiveIntegerField(
+        default=0,
+    )
+
+
+    class Meta:
+
+        ordering = [
+            "-issued_at",
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "order",
+                    "document_type",
+                ],
+                name=(
+                    "unique_order_document_type"
+                ),
+            ),
+        ]
+
+
+    def __str__(self):
+
+        return (
+            f"{self.document_number} "
+            f"- {self.order.order_number}"
+        )
+
+
+
+class CreditNoteDocument(models.Model):
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.PROTECT,
+        related_name="credit_notes",
+    )
+
+    refund_request = models.OneToOneField(
+        "payments.RefundRequest",
+        on_delete=models.PROTECT,
+        related_name="credit_note",
+    )
+
+    document_number = models.CharField(
+        max_length=140,
+        unique=True,
+        db_index=True,
+    )
+
+    snapshot = models.JSONField(
+        default=dict,
+    )
+
+    issued_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="issued_credit_notes",
+    )
+
+    issued_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    last_emailed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    email_count = models.PositiveIntegerField(
+        default=0,
+    )
+
+
+    class Meta:
+
+        ordering = [
+            "-issued_at",
+        ]
+
+
+    def __str__(self):
+
+        return (
+            f"{self.document_number} "
+            f"- {self.order.order_number}"
+        )

@@ -1,0 +1,54 @@
+from django.db.models.signals import (
+    post_save,
+)
+
+from django.dispatch import receiver
+
+from payments.models import (
+    RefundRequest,
+)
+
+
+@receiver(
+    post_save,
+    sender=RefundRequest,
+)
+def create_credit_note_for_processed_refund(
+    sender,
+    instance,
+    **kwargs,
+):
+
+    """
+    Automatically issue the immutable credit note once a
+    refund has genuinely reached 'processed'.
+
+    Important:
+    - requested/approved/rejected refunds create nothing;
+    - an external refund reference is required;
+    - get_or_issue_credit_note() is idempotent;
+    - repeated saves cannot create duplicate credit notes.
+    """
+
+    if instance.status != "processed":
+        return
+
+
+    if not (
+        instance.external_reference
+        or ""
+    ).strip():
+
+        return
+
+
+    # Local import avoids application-loading circular imports.
+    from orders.credit_note_service import (
+        get_or_issue_credit_note,
+    )
+
+
+    get_or_issue_credit_note(
+        refund=instance,
+        issued_by=instance.processed_by,
+    )

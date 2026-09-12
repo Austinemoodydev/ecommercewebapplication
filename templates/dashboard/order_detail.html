@@ -20,9 +20,36 @@
 
 <div class="container py-5">
 
-    <a href="{% url 'order_history' %}" class="btn btn-outline-secondary btn-sm mb-4">
-        &larr; Back to My Orders
-    </a>
+    <div class="d-flex gap-2 flex-wrap mb-4">
+
+        <a
+            href="{% url 'order_history' %}"
+            class="btn btn-outline-secondary btn-sm"
+        >
+            &larr; Back to My Orders
+        </a>
+
+        <a
+            href="{% url 'customer_order_invoice' order.order_number %}"
+            class="btn btn-outline-primary btn-sm"
+        >
+            <i class="bi bi-file-earmark-text"></i>
+            Invoice
+        </a>
+
+        {% if order.payment_status == "paid" or order.payment_status == "partially_refunded" or order.payment_status == "refunded" %}
+
+            <a
+                href="{% url 'customer_order_receipt' order.order_number %}"
+                class="btn btn-outline-success btn-sm"
+            >
+                <i class="bi bi-receipt"></i>
+                Receipt
+            </a>
+
+        {% endif %}
+
+    </div>
 
     <div class="row g-4">
 
@@ -245,5 +272,255 @@
     </div>
 
 </div>
+
+
+
+<!-- ===================================================== -->
+<!-- CUSTOMER FINANCIAL DOCUMENT HISTORY -->
+<!-- ===================================================== -->
+
+<div class="card shadow-sm border-0 mt-4">
+
+    <div class="card-body">
+
+        <div
+            class="
+                d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-2
+                mb-3
+            "
+        >
+
+            <div>
+
+                <h5 class="mb-1">
+                    My Financial Documents
+                </h5>
+
+                <div class="text-muted small">
+                    Invoices, payment receipts and refund credit notes
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-responsive">
+
+            <table
+                class="
+                    table
+                    table-hover
+                    align-middle
+                    mb-0
+                "
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Type
+                        </th>
+
+                        <th>
+                            Document Number
+                        </th>
+
+                        <th>
+                            Issued
+                        </th>
+
+                        <th class="text-end">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for document in order.documents.all %}
+
+                        <tr>
+
+                            <td>
+
+                                {% if document.document_type == "invoice" %}
+
+                                    <span
+                                        class="
+                                            badge
+                                            bg-primary-subtle
+                                            text-primary
+                                        "
+                                    >
+                                        Invoice
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="
+                                            badge
+                                            bg-success-subtle
+                                            text-success
+                                        "
+                                    >
+                                        Receipt
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                <strong>
+                                    {{ document.document_number }}
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+
+                                {{ document.issued_at|date:"d M Y H:i" }}
+
+                            </td>
+
+
+                            <td class="text-end">
+
+                                {% if document.document_type == "invoice" %}
+
+                                    <a
+                                        href="{% url 'customer_order_invoice' order.order_number %}"
+                                        class="
+                                            btn
+                                            btn-sm
+                                            btn-outline-primary
+                                        "
+                                        target="_blank"
+                                    >
+                                        Open
+                                    </a>
+
+                                {% else %}
+
+                                    <a
+                                        href="{% url 'customer_order_receipt' order.order_number %}"
+                                        class="
+                                            btn
+                                            btn-sm
+                                            btn-outline-success
+                                        "
+                                        target="_blank"
+                                    >
+                                        Open
+                                    </a>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                    {% for credit_note in order.credit_notes.all %}
+
+                        <tr>
+
+                            <td>
+
+                                <span
+                                    class="
+                                        badge
+                                        bg-danger-subtle
+                                        text-danger
+                                    "
+                                >
+                                    Credit Note
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <strong>
+                                    {{ credit_note.document_number }}
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+
+                                {{ credit_note.issued_at|date:"d M Y H:i" }}
+
+                            </td>
+
+
+                            <td class="text-end">
+
+                                <a
+                                    href="{% url 'customer_credit_note' credit_note.refund_request_id %}"
+                                    class="
+                                        btn
+                                        btn-sm
+                                        btn-outline-danger
+                                    "
+                                    target="_blank"
+                                >
+                                    Open
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                    {% if not order.documents.all and not order.credit_notes.all %}
+
+                        <tr>
+
+                            <td
+                                colspan="4"
+                                class="
+                                    text-center
+                                    text-muted
+                                    py-4
+                                "
+                            >
+                                No financial documents have been issued yet.
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
 
 {% endblock %}

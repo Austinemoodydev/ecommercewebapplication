@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>
+        {{ document_title }}
+        {{ document_number }}
+    </title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+            margin: 0;
+            background: #f4f5f7;
+            color: #1f2937;
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+            line-height: 1.5;
+        }
+
+
+        .document-toolbar {
+            max-width: 950px;
+            margin: 24px auto 0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 0 16px;
+        }
+
+
+        .document-toolbar a,
+        .document-toolbar button {
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #111827;
+            padding: 10px 16px;
+            border-radius: 7px;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+
+        .document-toolbar button {
+            background: #111827;
+            color: white;
+            border-color: #111827;
+        }
+
+
+        .document-sheet {
+            width: calc(100% - 32px);
+            max-width: 950px;
+            min-height: 1120px;
+            margin: 16px auto 40px;
+            background: white;
+            padding: 52px;
+            box-shadow:
+                0 10px 35px
+                rgba(0, 0, 0, 0.08);
+        }
+
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #111827;
+        }
+
+
+        .brand h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+
+        .brand p,
+        .document-meta p {
+            margin: 3px 0;
+            color: #6b7280;
+        }
+
+
+        .document-meta {
+            text-align: right;
+        }
+
+
+        .document-meta h2 {
+            font-size: 30px;
+            margin: 0 0 10px;
+            text-transform: uppercase;
+        }
+
+
+        .status {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #eef2ff;
+        }
+
+
+        .grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 30px;
+            margin: 32px 0;
+        }
+
+
+        .section-title {
+            margin: 0 0 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #6b7280;
+        }
+
+
+        .info-block p {
+            margin: 4px 0;
+        }
+
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+        }
+
+
+        th {
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #6b7280;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 12px 8px;
+        }
+
+
+        td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 14px 8px;
+            vertical-align: top;
+        }
+
+
+        .text-right {
+            text-align: right;
+        }
+
+
+        .totals {
+            margin-left: auto;
+            margin-top: 25px;
+            width: min(390px, 100%);
+        }
+
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px 0;
+            gap: 20px;
+        }
+
+
+        .grand-total {
+            border-top: 2px solid #111827;
+            margin-top: 8px;
+            padding-top: 14px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+
+        .refund-row {
+            color: #b91c1c;
+        }
+
+
+        .payment-box {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+
+        .payment-box h3 {
+            margin-top: 0;
+        }
+
+
+        .footer {
+            margin-top: 55px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+            color: #6b7280;
+            font-size: 13px;
+            text-align: center;
+        }
+
+
+        .small {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+
+        @media (
+            max-width: 700px
+        ) {
+
+            .document-sheet {
+                padding: 25px;
+                min-height: auto;
+            }
+
+            .header,
+            .grid {
+                display: block;
+            }
+
+            .document-meta {
+                text-align: left;
+                margin-top: 25px;
+            }
+
+            .grid > div {
+                margin-bottom: 24px;
+            }
+
+        }
+
+
+        @media print {
+
+            @page {
+                size: A4;
+                margin: 14mm;
+            }
+
+
+            body {
+                background: white;
+            }
+
+
+            .no-print {
+                display: none !important;
+            }
+
+
+            .document-sheet {
+                width: 100%;
+                max-width: none;
+                min-height: auto;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+
+
+            a {
+                color: inherit;
+                text-decoration: none;
+            }
+
+
+            tr,
+            td,
+            th {
+                page-break-inside: avoid;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="document-toolbar no-print">
+
+    {% if request.user.is_staff %}
+
+        <a
+            href="{% url 'admin_order_detail' order.order_number %}"
+        >
+            Back to Order
+        </a>
+
+    {% else %}
+
+        <a
+            href="{% url 'order_detail' order.order_number %}"
+        >
+            Back to Order
+        </a>
+
+    {% endif %}
+
+
+    <button
+        type="button"
+        onclick="window.print()"
+    >
+        Print / Save PDF
+    </button>
+
+</div>
+
+
+<main class="document-sheet">
+
+    {% block document_content %}
+    {% endblock %}
+
+</main>
+
+
+</body>
+
+</html>

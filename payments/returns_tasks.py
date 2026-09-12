@@ -68,6 +68,12 @@ def send_return_status_notification(
             f"request update"
         ),
         email,
+        event_key=(
+            f"return:"
+            f"{obj.pk}:"
+            f"{obj.status}"
+        ),
+        category="returns",
     )
 
 
@@ -134,4 +140,10 @@ def send_refund_status_notification(
         sms,
         "Refund request update",
         email,
+        event_key=(
+            f"refund:"
+            f"{obj.pk}:"
+            f"{obj.status}"
+        ),
+        category="returns",
     )

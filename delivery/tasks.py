@@ -138,6 +138,12 @@ def send_delivery_status_update(
         sms,
         f"Delivery update: {status_label}",
         email_message,
+        event_key=(
+            f"delivery:"
+            f"{delivery.pk}:"
+            f"{delivery.status}"
+        ),
+        category="delivery",
     )
 
 
@@ -200,4 +206,11 @@ def send_delivery_quote_update(
         sms,
         "Your delivery quote is ready",
         email_message,
+        event_key=(
+            f"delivery-quote:"
+            f"{order.pk}:"
+            f"{order.shipping_cost}:"
+            f"{order.total_amount}"
+        ),
+        category="delivery",
     )
