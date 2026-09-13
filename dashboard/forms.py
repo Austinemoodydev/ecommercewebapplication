@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 
 from products.models import Product, ProductImage, ProductVariant
 from orders.models import Order
+from core.upload_security import validate_uploaded_image
 
 
 class AdminProductForm(forms.ModelForm):
@@ -177,6 +178,25 @@ class AdminProductForm(forms.ModelForm):
             "below this number."
         )
 
+    def clean_image(self):
+
+        image = self.cleaned_data.get(
+            "image"
+        )
+
+        if image:
+
+            validate_uploaded_image(
+                image,
+                max_size_mb=5,
+                max_width=6000,
+                max_height=6000,
+                max_pixels=25_000_000,
+            )
+
+        return image
+
+
     def clean_sku(self):
 
         sku = self.cleaned_data["sku"].strip().upper()
@@ -321,17 +341,15 @@ class AdminProductGalleryForm(forms.Form):
                 "Upload a maximum of 10 images at once."
             )
 
-        max_size = 5 * 1024 * 1024
-
         for image in images:
 
-            if image.size > max_size:
-                raise ValidationError(
-                    (
-                        f"{image.name} is larger than "
-                        "5 MB."
-                    )
-                )
+            validate_uploaded_image(
+                image,
+                max_size_mb=5,
+                max_width=6000,
+                max_height=6000,
+                max_pixels=25_000_000,
+            )
 
         return images
 

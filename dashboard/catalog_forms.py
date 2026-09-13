@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 
 from categories.models import Category
 from products.models import Brand
+from core.upload_security import validate_uploaded_image
 
 
 class AdminCategoryForm(forms.ModelForm):
@@ -52,6 +53,25 @@ class AdminCategoryForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_image(self):
+
+        image = self.cleaned_data.get(
+            "image"
+        )
+
+        if image:
+
+            validate_uploaded_image(
+                image,
+                max_size_mb=3,
+                max_width=4000,
+                max_height=4000,
+                max_pixels=16_000_000,
+            )
+
+        return image
+
 
     def clean_name(self):
 
@@ -121,6 +141,25 @@ class AdminBrandForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_logo(self):
+
+        logo = self.cleaned_data.get(
+            "logo"
+        )
+
+        if logo:
+
+            validate_uploaded_image(
+                logo,
+                max_size_mb=3,
+                max_width=4000,
+                max_height=4000,
+                max_pixels=16_000_000,
+            )
+
+        return logo
+
 
     def clean_name(self):
 

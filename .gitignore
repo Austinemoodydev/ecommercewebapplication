@@ -9,3 +9,9 @@ config/dbfile/*.sql
 *.sql
 staticfiles/
 .hardening_backups/
+
+# Local security patch backups
+.system_admin_backups/
+
+# Upload security patch backups
+.upload_security_backups/

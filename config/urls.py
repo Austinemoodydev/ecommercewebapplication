@@ -5,6 +5,10 @@ from django.urls import include, path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from core.sitemaps import sitemaps
+from accounts.system_admin import configure_system_admin_site
+
+configure_system_admin_site()
+
 
 urlpatterns = [
     path("notifications/", include("notifications.urls")),

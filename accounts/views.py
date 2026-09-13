@@ -491,6 +491,18 @@ class StoreStaffLoginView(LoginView):
 
         user = form.get_user()
 
+        if user.is_superuser:
+
+            form.add_error(
+                None,
+                (
+                    "System administrators must use "
+                    "the System Admin login."
+                ),
+            )
+
+            return self.form_invalid(form)
+
         if not can_access_store_management(user):
 
             form.add_error(

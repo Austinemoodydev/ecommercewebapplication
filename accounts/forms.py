@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 
 from .models import CustomUser, Address
+from core.upload_security import validate_uploaded_image
 
 
 class RegisterForm(UserCreationForm):
@@ -109,6 +110,25 @@ class ProfileForm(forms.ModelForm):
             "email_notifications",
             "sms_notifications",
         )
+
+    def clean_avatar(self):
+
+        avatar = self.cleaned_data.get(
+            "avatar"
+        )
+
+        if avatar:
+
+            validate_uploaded_image(
+                avatar,
+                max_size_mb=2,
+                max_width=3000,
+                max_height=3000,
+                max_pixels=9_000_000,
+            )
+
+        return avatar
+
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
