@@ -22,14 +22,14 @@
 {% for item in items %}
 <tr id="cart-row-{{ item.id }}">
 <td>{{ item.product.name }}{% if item.variant %} - {{ item.variant.name }}{% endif %}</td>
-<td>KES {% if item.variant %}{{ item.variant.current_price }}{% else %}{{ item.product.current_price }}{% endif %}</td>
+<td>KES {% if item.variant %}{{ item.variant.current_price|money }}{% else %}{{ item.product.current_price|money }}{% endif %}</td>
 <td>
 <button class="btn btn-sm btn-outline-secondary qty-btn" data-action="decrease" data-item="{{ item.id }}">-</button>
 <span id="qty-{{ item.id }}" class="mx-2">{{ item.quantity }}</span>
 <button class="btn btn-sm btn-outline-secondary qty-btn" data-action="increase" data-item="{{ item.id }}">+</button>
 </td>
 <td>
-KES <span id="subtotal-{{ item.id }}">{{ item.subtotal }}</span>
+KES <span id="subtotal-{{ item.id }}">{{ item.subtotal|money }}</span>
 </td>
 <td>
 <button class="btn btn-danger btn-sm remove-btn" data-item="{{ item.id }}">Remove</button>
@@ -44,7 +44,7 @@ KES <span id="subtotal-{{ item.id }}">{{ item.subtotal }}</span>
 </table>
 
 <h3 class="text-end">
-Total: KES <span id="cart-total">{{ total }}</span>
+Total: KES <span id="cart-total">{{ total|money }}</span>
 </h3>
 
 <div class="text-end mt-3">

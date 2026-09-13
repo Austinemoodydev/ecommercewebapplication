@@ -141,9 +141,9 @@ Abandoned Cart #{{ cart.pk }}
                                         {{ store_settings.currency_symbol }}
 
                                         {% if item.variant %}
-                                            {{ item.variant.current_price|floatformat:2 }}
+                                            {{ item.variant.current_price|money }}
                                         {% else %}
-                                            {{ item.product.current_price|floatformat:2 }}
+                                            {{ item.product.current_price|money }}
                                         {% endif %}
 
                                     </td>
@@ -152,7 +152,7 @@ Abandoned Cart #{{ cart.pk }}
                                     <td>
 
                                         {{ store_settings.currency_symbol }}
-                                        {{ item.subtotal|floatformat:2 }}
+                                        {{ item.subtotal|money }}
 
                                     </td>
 
@@ -173,7 +173,7 @@ Abandoned Cart #{{ cart.pk }}
 
                                     <th>
                                         {{ store_settings.currency_symbol }}
-                                        {{ cart.admin_value|floatformat:2 }}
+                                        {{ cart.admin_value|money }}
                                     </th>
 
                                 </tr>
@@ -300,7 +300,7 @@ Abandoned Cart #{{ cart.pk }}
                         <dd class="col-6 text-end">
 
                             {{ store_settings.currency_symbol }}
-                            {{ cart.admin_value|floatformat:2 }}
+                            {{ cart.admin_value|money }}
 
                         </dd>
 

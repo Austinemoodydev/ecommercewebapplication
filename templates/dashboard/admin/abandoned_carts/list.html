@@ -79,7 +79,7 @@ Abandoned Carts
 
                     <div class="fs-3 fw-bold">
                         {{ store_settings.currency_symbol }}
-                        {{ total_value|floatformat:2 }}
+                        {{ total_value|money }}
                     </div>
 
                 </div>
@@ -384,7 +384,7 @@ Abandoned Carts
                             <td>
 
                                 {{ store_settings.currency_symbol }}
-                                {{ cart.admin_value|floatformat:2 }}
+                                {{ cart.admin_value|money }}
 
                             </td>
 

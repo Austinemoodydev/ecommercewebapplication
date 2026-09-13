@@ -155,7 +155,7 @@ Customer Profile
             </span>
 
             <strong>
-                KES {{ lifetime_spend|floatformat:2 }}
+                KES {{ lifetime_spend|money }}
             </strong>
 
         </div>
@@ -962,7 +962,7 @@ Customer Profile
 
                             <strong>
                                 KES
-                                {{ order.total_amount|floatformat:2 }}
+                                {{ order.total_amount|money }}
                             </strong>
 
                         </td>

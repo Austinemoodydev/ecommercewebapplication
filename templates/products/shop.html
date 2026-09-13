@@ -151,15 +151,15 @@ Shop
                         {% if product.discount_price %}
                         <h5>
                             <del class="text-muted">
-                                KES {{ product.price }}
+                                KES {{ product.price|money }}
                             </del>
                         </h5>
                         <h4 class="text-danger">
-                            KES {{ product.discount_price }}
+                            KES {{ product.discount_price|money }}
                         </h4>
                         {% else %}
                         <h4 class="text-primary">
-                            KES {{ product.price }}
+                            KES {{ product.price|money }}
                         </h4>
                         {% endif %}
 

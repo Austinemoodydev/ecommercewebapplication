@@ -151,9 +151,7 @@ class Phase10BImmutableDocumentTests(
         MpesaTransaction.objects.create(
             order=self.order,
             phone_number="254712345678",
-            amount=Decimal(
-                "60500.00"
-            ),
+            amount=Decimal("60500"),
             mpesa_receipt_number=(
                 "P10B-MPESA"
             ),
@@ -281,7 +279,7 @@ class Phase10BImmutableDocumentTests(
 
         self.assertContains(
             response,
-            "60500.00",
+            "60,500",
         )
 
         self.assertNotContains(

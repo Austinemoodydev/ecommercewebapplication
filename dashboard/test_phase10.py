@@ -373,5 +373,5 @@ class Phase10DocumentTests(
 
         self.assertContains(
             response,
-            "45500.00",
+            "45,500",
         )

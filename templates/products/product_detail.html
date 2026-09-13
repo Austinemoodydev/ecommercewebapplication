@@ -23,12 +23,12 @@
         </span>
     </div>
 
-    <h3 class="text-primary">KES {{ product.current_price }}</h3>
+    <h3 class="text-primary">KES {{ product.current_price|money }}</h3>
     <p>{{ product.description }}</p>
     {% if product.variants.exists %}
     <label for="variant-select">Choose an option</label>
     <select id="variant-select" class="form-select mb-3" style="max-width: 320px;">
-      {% for variant in product.variants.all %}{% if variant.is_active %}<option value="{{ variant.id }}">{{ variant.name }} - KES {{ variant.current_price }} ({{ variant.available_stock }} available)</option>{% endif %}{% endfor %}
+      {% for variant in product.variants.all %}{% if variant.is_active %}<option value="{{ variant.id }}">{{ variant.name }} - KES {{ variant.current_price|money }} ({{ variant.available_stock }} available)</option>{% endif %}{% endfor %}
     </select>
     {% else %}<p>Stock: {{ product.available_stock }}</p>{% endif %}
 

@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 
@@ -39,7 +39,7 @@
                         <span class="badge bg-warning text-dark text-capitalize">{{ order.payment_status }}</span>
                         {% endif %}
                     </td>
-                    <td>KES {{ order.total_amount }}</td>
+                    <td>KES {{ order.total_amount|money }}</td>
                     <td>
                         <a href="{% url 'order_detail' order.order_number %}" class="btn btn-outline-primary btn-sm">
                             View

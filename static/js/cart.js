@@ -1,3 +1,25 @@
+function formatKesAmount(value) {
+    const amount = Number(value);
+
+    if (!Number.isFinite(amount)) {
+        return value;
+    }
+
+    const hasCents = (
+        Math.round(amount * 100) % 100
+        !== 0
+    );
+
+    return amount.toLocaleString(
+        "en-KE",
+        {
+            minimumFractionDigits:
+                hasCents ? 2 : 0,
+            maximumFractionDigits: 2
+        }
+    );
+}
+
 function csrfToken() {
     const match = document.cookie.match(/csrftoken=([^;]+)/);
     return match ? match[1] : "";
@@ -8,13 +30,13 @@ function updateCartUI(data) {
     if (counter) counter.textContent = data.count;
 
     const totalEl = document.getElementById("cart-total");
-    if (totalEl) totalEl.textContent = data.total;
+    if (totalEl) totalEl.textContent = formatKesAmount(data.total);
 
     if (data.item_id) {
         const qtyEl = document.getElementById(`qty-${data.item_id}`);
         const subEl = document.getElementById(`subtotal-${data.item_id}`);
         if (qtyEl) qtyEl.textContent = data.quantity;
-        if (subEl) subEl.textContent = data.subtotal;
+        if (subEl) subEl.textContent = formatKesAmount(data.subtotal);
     }
 }
 
@@ -128,12 +150,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         container.innerHTML = data.items.map(item => `
                         <div class="d-flex justify-content-between mb-1">
                             <span>${item.name} x${item.quantity}</span>
-                            <span>KES ${item.subtotal}</span>
+                            <span>KES ${formatKesAmount(item.subtotal)}</span>
                         </div>
                     `).join("");
                     }
 
-                    if (totalEl) totalEl.textContent = data.total;
+                    if (totalEl) totalEl.textContent = formatKesAmount(data.total);
                 });
         });
     }

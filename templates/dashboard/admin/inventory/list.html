@@ -109,7 +109,7 @@ Inventory
             </span>
 
             <strong>
-                KES {{ inventory_value|floatformat:2 }}
+                KES {{ inventory_value|money }}
             </strong>
 
         </div>
@@ -339,7 +339,7 @@ Inventory
 
                             {% if product.cost_price != None %}
 
-                                KES {{ product.cost_price|floatformat:2 }}
+                                KES {{ product.cost_price|money }}
 
                             {% else %}
 
@@ -356,7 +356,7 @@ Inventory
 
                             {% if product.inventory_value != None %}
 
-                                KES {{ product.inventory_value|floatformat:2 }}
+                                KES {{ product.inventory_value|money }}
 
                             {% else %}
 

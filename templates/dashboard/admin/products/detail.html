@@ -142,7 +142,7 @@ Product
                     </span>
 
                     <h5 class="mt-1">
-                        KES {{ product.price|floatformat:2 }}
+                        KES {{ product.price|money }}
                     </h5>
 
                 </div>
@@ -154,7 +154,7 @@ Product
                     </span>
 
                     <h5 class="mt-1">
-                        KES {{ product.current_price|floatformat:2 }}
+                        KES {{ product.current_price|money }}
                     </h5>
 
                 </div>
@@ -417,7 +417,7 @@ Product
                                 </td>
 
                                 <td>
-                                    KES {{ variant.current_price|floatformat:2 }}
+                                    KES {{ variant.current_price|money }}
                                 </td>
 
                                 <td>

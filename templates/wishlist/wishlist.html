@@ -24,7 +24,7 @@
 
 <h5>{{ item.product.name }}</h5>
 
-<p>KES {{ item.product.current_price }}</p>
+<p>KES {{ item.product.current_price|money }}</p>
 
 <a href="{% url 'product_detail' item.product.slug %}"
    class="btn btn-primary w-100">

@@ -170,7 +170,7 @@ Delivery Zones
 
                             {% if zone.pricing_mode == "fixed" %}
 
-                                KES {{ zone.fee|floatformat:2 }}
+                                KES {{ zone.fee|money }}
 
                             {% else %}
 

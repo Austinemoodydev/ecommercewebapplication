@@ -43,7 +43,7 @@
 
                         <div class="d-flex justify-content-between mb-2">
                             <span>Subtotal</span>
-                            <span>{{ order.currency_symbol_at_checkout }} {{ order.subtotal }}</span>
+                            <span>{{ order.currency_symbol_at_checkout }} {{ order.subtotal|money }}</span>
                         </div>
 
                         {% if order.tax_amount %}
@@ -57,7 +57,7 @@
 
                             <span>
                                 {{ order.currency_symbol_at_checkout }}
-                                {{ order.tax_amount }}
+                                {{ order.tax_amount|money }}
                             </span>
 
                         </div>
@@ -116,7 +116,7 @@
 
                                 {% else %}
 
-                                    {{ order.currency_symbol_at_checkout }} {{ order.shipping_cost }}
+                                    {{ order.currency_symbol_at_checkout }} {{ order.shipping_cost|money }}
 
                                 {% endif %}
 
@@ -126,7 +126,7 @@
 
                         <div class="d-flex justify-content-between fw-bold fs-5">
                             <span>Total</span>
-                            <span>{{ order.currency_symbol_at_checkout }} {{ order.total_amount }}</span>
+                            <span>{{ order.currency_symbol_at_checkout }} {{ order.total_amount|money }}</span>
                         </div>
 
                     </div>

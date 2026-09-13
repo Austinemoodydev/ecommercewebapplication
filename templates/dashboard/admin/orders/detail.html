@@ -565,7 +565,7 @@ Order {{ order.order_number }}
 
 
                                 <td>
-                                    KES {{ item.price|floatformat:2 }}
+                                    KES {{ item.price|money }}
                                 </td>
 
 
@@ -575,7 +575,7 @@ Order {{ order.order_number }}
 
 
                                 <td class="text-end">
-                                    KES {{ item.subtotal|floatformat:2 }}
+                                    KES {{ item.subtotal|money }}
                                 </td>
 
                             </tr>
@@ -599,7 +599,7 @@ Order {{ order.order_number }}
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal</span>
                         <strong>
-                            KES {{ order.subtotal|floatformat:2 }}
+                            KES {{ order.subtotal|money }}
                         </strong>
                     </div>
 
@@ -607,7 +607,7 @@ Order {{ order.order_number }}
                     <div class="d-flex justify-content-between mb-2">
                         <span>Delivery</span>
                         <strong>
-                            KES {{ order.shipping_cost|floatformat:2 }}
+                            KES {{ order.shipping_cost|money }}
                         </strong>
                     </div>
 
@@ -617,7 +617,7 @@ Order {{ order.order_number }}
                         <div class="d-flex justify-content-between mb-2">
                             <span>Discount</span>
                             <strong>
-                                - KES {{ order.discount|floatformat:2 }}
+                                - KES {{ order.discount|money }}
                             </strong>
                         </div>
 
@@ -632,7 +632,7 @@ Order {{ order.order_number }}
                         <strong>Total</strong>
 
                         <strong class="fs-5">
-                            KES {{ order.total_amount|floatformat:2 }}
+                            KES {{ order.total_amount|money }}
                         </strong>
 
                     </div>
@@ -752,7 +752,7 @@ Order {{ order.order_number }}
                     <span>Amount</span>
 
                     <strong>
-                        KES {{ latest_payment.amount|floatformat:2 }}
+                        KES {{ latest_payment.amount|money }}
                     </strong>
 
                 </div>

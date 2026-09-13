@@ -1,9 +1,33 @@
+from decimal import Decimal, ROUND_HALF_UP
 from django import forms
 from django.core.exceptions import ValidationError
 
 from products.models import Product, ProductImage, ProductVariant
 from orders.models import Order
 from core.upload_security import validate_uploaded_image
+
+
+RETAIL_PRICE_UNIT = Decimal("1")
+
+
+def normalize_retail_price(value):
+    """
+    Store customer-facing retail prices
+    using whole Kenyan shillings.
+
+    DecimalField remains decimal_places=2,
+    therefore 75000 is stored as 75000.00.
+    """
+
+    if value is None:
+        return None
+
+    return value.quantize(
+        RETAIL_PRICE_UNIT,
+        rounding=ROUND_HALF_UP,
+    )
+
+
 
 
 class AdminProductForm(forms.ModelForm):
@@ -68,7 +92,7 @@ class AdminProductForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "min": "0",
-                    "step": "0.01",
+                    "step": "1",
                 }
             ),
 
@@ -76,8 +100,8 @@ class AdminProductForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "min": "0",
-                    "step": "0.01",
-                    "placeholder": "Optional sale price",
+                    "step": "1",
+                    "placeholder": "e.g. 75000",
                 }
             ),
 
@@ -177,6 +201,25 @@ class AdminProductForm(forms.ModelForm):
             "available quantity is at or "
             "below this number."
         )
+
+
+    def clean_price(self):
+
+        return normalize_retail_price(
+            self.cleaned_data.get(
+                "price"
+            )
+        )
+
+
+    def clean_discount_price(self):
+
+        return normalize_retail_price(
+            self.cleaned_data.get(
+                "discount_price"
+            )
+        )
+
 
     def clean_image(self):
 
@@ -393,7 +436,7 @@ class AdminProductVariantForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "min": "0",
-                    "step": "0.01",
+                    "step": "1",
                     "placeholder": (
                         "Leave blank to use "
                         "product price"

@@ -219,7 +219,7 @@ class Phase14BAdminAbandonedCartTests(
             response.context[
                 "total_value"
             ],
-            Decimal("500.00"),
+            Decimal("500"),
         )
 
 
@@ -439,7 +439,7 @@ class Phase14BAdminAbandonedCartTests(
 
         self.assertContains(
             response,
-            "500.00",
+            "500",
         )
 
 

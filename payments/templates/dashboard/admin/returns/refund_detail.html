@@ -50,7 +50,7 @@ Refund Request
                     </small>
 
                     <div class="fs-4 fw-bold">
-                        KES {{ refund.amount|floatformat:2 }}
+                        KES {{ refund.amount|money }}
                     </div>
 
                 </div>
@@ -62,7 +62,7 @@ Refund Request
                     </small>
 
                     <div class="fw-semibold">
-                        KES {{ order.total_amount|floatformat:2 }}
+                        KES {{ order.total_amount|money }}
                     </div>
 
                 </div>
@@ -74,7 +74,7 @@ Refund Request
                     </small>
 
                     <div class="fw-semibold">
-                        KES {{ processed_total|floatformat:2 }}
+                        KES {{ processed_total|money }}
                     </div>
 
                 </div>

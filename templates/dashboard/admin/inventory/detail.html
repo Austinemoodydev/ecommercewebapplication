@@ -135,7 +135,7 @@ Inventory
 
                 {% if product.inventory_value != None %}
 
-                    KES {{ product.inventory_value|floatformat:2 }}
+                    KES {{ product.inventory_value|money }}
 
                 {% else %}
 
@@ -247,7 +247,7 @@ Inventory
 
                             {% if variant.cost_price != None %}
 
-                                KES {{ variant.cost_price|floatformat:2 }}
+                                KES {{ variant.cost_price|money }}
 
                             {% else %}
                                 —
@@ -259,7 +259,7 @@ Inventory
 
                             {% if variant.inventory_value != None %}
 
-                                KES {{ variant.inventory_value|floatformat:2 }}
+                                KES {{ variant.inventory_value|money }}
 
                             {% else %}
                                 —

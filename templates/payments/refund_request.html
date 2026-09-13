@@ -5,7 +5,7 @@
     <p>
         Order {{ order.order_number }} ·
         {{ order.currency_symbol_at_checkout }}
-        {{ order.total_amount }}
+        {{ order.total_amount|money }}
     </p>
 
     {% if is_guest_request %}

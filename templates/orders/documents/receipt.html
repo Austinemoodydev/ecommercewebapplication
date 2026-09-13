@@ -116,7 +116,7 @@
 
             <p>
                 Payment Amount:
-                KES {{ snapshot.payment.amount }}
+                KES {{ snapshot.payment.amount|money }}
             </p>
 
         {% endif %}
@@ -174,7 +174,7 @@
                 </td>
 
                 <td class="text-right">
-                    KES {{ item.price }}
+                    KES {{ item.price|money }}
                 </td>
 
                 <td class="text-right">
@@ -182,7 +182,7 @@
                 </td>
 
                 <td class="text-right">
-                    KES {{ item.subtotal }}
+                    KES {{ item.subtotal|money }}
                 </td>
 
             </tr>
@@ -207,7 +207,7 @@
 
         <strong>
             {{ snapshot.order.currency_symbol|default:"KSh" }}
-            {{ snapshot.order.tax_amount }}
+            {{ snapshot.order.tax_amount|money }}
         </strong>
 
     </div>
@@ -220,7 +220,7 @@
         <span>Order Total</span>
 
         <strong>
-            {{ snapshot.order.currency_symbol|default:'KSh' }} {{ snapshot.order.total_amount }}
+            {{ snapshot.order.currency_symbol|default:'KSh' }} {{ snapshot.order.total_amount|money }}
         </strong>
 
     </div>
@@ -233,7 +233,7 @@
             <span>Refunded</span>
 
             <strong>
-                - KES {{ snapshot.refund_total }}
+                - KES {{ snapshot.refund_total|money }}
             </strong>
 
         </div>
@@ -244,7 +244,7 @@
             <span>Net Amount</span>
 
             <span>
-                KES {{ snapshot.net_amount }}
+                KES {{ snapshot.net_amount|money }}
             </span>
 
         </div>
@@ -256,7 +256,7 @@
             <span>Amount Paid</span>
 
             <span>
-                {{ snapshot.order.currency_symbol|default:'KSh' }} {{ snapshot.order.total_amount }}
+                {{ snapshot.order.currency_symbol|default:'KSh' }} {{ snapshot.order.total_amount|money }}
             </span>
 
         </div>
@@ -279,7 +279,7 @@
 
             <p>
 
-                KES {{ refund.amount }}
+                KES {{ refund.amount|money }}
 
                 {% if refund.external_reference %}
 

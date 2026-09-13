@@ -141,7 +141,7 @@
 
         <strong>
             KES
-            {{ snapshot.order.total_amount }}
+            {{ snapshot.order.total_amount|money }}
         </strong>
 
     </div>
@@ -235,7 +235,7 @@
                 </td>
 
                 <td class="text-right">
-                    KES {{ item.subtotal }}
+                    KES {{ item.subtotal|money }}
                 </td>
 
             </tr>

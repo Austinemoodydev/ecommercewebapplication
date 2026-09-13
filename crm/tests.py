@@ -137,5 +137,5 @@ class CRMTests(TestCase):
 
         self.assertContains(
             response,
-            "2500.00",
+            "2,500",
         )

@@ -166,7 +166,7 @@
                 </td>
 
                 <td class="text-right">
-                    KES {{ item.price }}
+                    KES {{ item.price|money }}
                 </td>
 
                 <td class="text-right">
@@ -174,7 +174,7 @@
                 </td>
 
                 <td class="text-right">
-                    KES {{ item.subtotal }}
+                    KES {{ item.subtotal|money }}
                 </td>
 
             </tr>
@@ -193,7 +193,7 @@
         <span>Subtotal</span>
 
         <strong>
-            KES {{ snapshot.order.subtotal }}
+            KES {{ snapshot.order.subtotal|money }}
         </strong>
 
     </div>
@@ -206,7 +206,7 @@
             <span>Discount</span>
 
             <strong>
-                - KES {{ snapshot.order.discount }}
+                - KES {{ snapshot.order.discount|money }}
             </strong>
 
         </div>
@@ -225,7 +225,7 @@
 
         <strong>
             {{ snapshot.order.currency_symbol|default:"KSh" }}
-            {{ snapshot.order.tax_amount }}
+            {{ snapshot.order.tax_amount|money }}
         </strong>
 
     </div>
@@ -238,7 +238,7 @@
         <span>Delivery</span>
 
         <strong>
-            KES {{ snapshot.order.shipping_cost }}
+            KES {{ snapshot.order.shipping_cost|money }}
         </strong>
 
     </div>
@@ -249,7 +249,7 @@
         <span>Total</span>
 
         <span>
-            {{ snapshot.order.currency_symbol|default:'KSh' }} {{ snapshot.order.total_amount }}
+            {{ snapshot.order.currency_symbol|default:'KSh' }} {{ snapshot.order.total_amount|money }}
         </span>
 
     </div>

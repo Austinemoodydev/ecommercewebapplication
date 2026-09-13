@@ -181,7 +181,7 @@
                                     <td class="text-end">
 
                                         {{ order.currency_symbol_at_checkout }}
-                                        {{ item.subtotal }}
+                                        {{ item.subtotal|money }}
 
                                     </td>
 
@@ -352,7 +352,7 @@
 
                         <span>
                             {{ order.currency_symbol_at_checkout }}
-                            {{ order.subtotal }}
+                            {{ order.subtotal|money }}
                         </span>
 
                     </div>
@@ -388,7 +388,7 @@
 
                         <span>
                             {{ order.currency_symbol_at_checkout }}
-                            {{ order.tax_amount }}
+                            {{ order.tax_amount|money }}
                         </span>
 
                     </div>
@@ -431,7 +431,7 @@
 
                         <span>
                             {{ order.currency_symbol_at_checkout }}
-                            {{ order.total_amount }}
+                            {{ order.total_amount|money }}
                         </span>
 
                     </div>

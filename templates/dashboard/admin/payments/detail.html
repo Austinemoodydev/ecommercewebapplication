@@ -76,7 +76,7 @@ Payment Details
             </span>
 
             <strong>
-                KES {{ payment.amount|floatformat:2 }}
+                KES {{ payment.amount|money }}
             </strong>
 
         </div>
@@ -253,7 +253,7 @@ Payment Details
                             </th>
 
                             <td>
-                                KES {{ payment.amount|floatformat:2 }}
+                                KES {{ payment.amount|money }}
                             </td>
 
                         </tr>
@@ -431,7 +431,7 @@ Payment Details
                 </dt>
 
                 <dd class="col-7">
-                    KES {{ order.total_amount|floatformat:2 }}
+                    KES {{ order.total_amount|money }}
                 </dd>
 
 
@@ -440,7 +440,7 @@ Payment Details
                 </dt>
 
                 <dd class="col-7">
-                    KES {{ successful_payment_total|floatformat:2 }}
+                    KES {{ successful_payment_total|money }}
                 </dd>
 
 
@@ -760,7 +760,7 @@ Payment Details
 
 
                         <td>
-                            KES {{ tx.amount|floatformat:2 }}
+                            KES {{ tx.amount|money }}
                         </td>
 
 

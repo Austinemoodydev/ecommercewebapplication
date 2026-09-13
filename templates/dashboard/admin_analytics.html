@@ -175,7 +175,7 @@ Store Analytics
                 </span>
 
                 <h3>
-                    KES {{ today_revenue|floatformat:2 }}
+                    KES {{ today_revenue|money }}
                 </h3>
 
             </div>
@@ -281,7 +281,7 @@ Store Analytics
             </span>
 
             <strong>
-                KES {{ week_revenue|floatformat:2 }}
+                KES {{ week_revenue|money }}
             </strong>
 
         </div>
@@ -418,7 +418,7 @@ Store Analytics
 
                                 <td class="text-end fw-semibold">
 
-                                    KES {{ order.total_amount|floatformat:2 }}
+                                    KES {{ order.total_amount|money }}
 
                                 </td>
 
@@ -494,7 +494,7 @@ Store Analytics
                         </strong>
 
                         <small>
-                            KES {{ product.revenue|floatformat:2 }}
+                            KES {{ product.revenue|money }}
                         </small>
 
                     </div>

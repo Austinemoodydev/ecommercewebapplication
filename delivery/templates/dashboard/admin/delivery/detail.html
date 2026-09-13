@@ -65,7 +65,7 @@ Delivery Details
 
         Delivery fee:
         <strong>
-            KES {{ order.shipping_cost|floatformat:2 }}
+            KES {{ order.shipping_cost|money }}
         </strong>
 
         <br>
@@ -189,7 +189,7 @@ Delivery Details
         <div class="dashboard-card mini-stat">
             <span>Charged</span>
             <strong>
-                KES {{ delivery.customer_delivery_fee|floatformat:2 }}
+                KES {{ delivery.customer_delivery_fee|money }}
             </strong>
         </div>
 
@@ -200,7 +200,7 @@ Delivery Details
         <div class="dashboard-card mini-stat">
             <span>Delivery Margin</span>
             <strong>
-                KES {{ delivery.delivery_margin|floatformat:2 }}
+                KES {{ delivery.delivery_margin|money }}
             </strong>
         </div>
 

@@ -493,7 +493,7 @@ Products
 
                                 <strong>
                                     KES
-                                    {{ product.discount_price|floatformat:2 }}
+                                    {{ product.discount_price|money }}
                                 </strong>
 
                                 <small
@@ -504,14 +504,14 @@ Products
                                     "
                                 >
                                     KES
-                                    {{ product.price|floatformat:2 }}
+                                    {{ product.price|money }}
                                 </small>
 
                             {% else %}
 
                                 <strong>
                                     KES
-                                    {{ product.price|floatformat:2 }}
+                                    {{ product.price|money }}
                                 </strong>
 
                             {% endif %}

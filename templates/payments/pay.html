@@ -19,7 +19,7 @@
                         Amount:
                         <strong>
                             {{ order.currency_symbol_at_checkout }}
-                            {{ order.total_amount }}
+                            {{ order.total_amount|money }}
                         </strong>
                     </p>
 

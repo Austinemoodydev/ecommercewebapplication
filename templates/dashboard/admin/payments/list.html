@@ -80,7 +80,7 @@ Payments
             </span>
 
             <strong>
-                KES {{ successful_amount|floatformat:2 }}
+                KES {{ successful_amount|money }}
             </strong>
 
         </div>
@@ -435,7 +435,7 @@ Payments
 
                             <strong>
                                 KES
-                                {{ payment.amount|floatformat:2 }}
+                                {{ payment.amount|money }}
                             </strong>
 
                         </td>

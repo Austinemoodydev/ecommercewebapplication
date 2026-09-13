@@ -24,3 +24,6 @@ staticfiles/
 
 # Capability URL security backups
 .capability_security_backups/
+
+# Local pricing patch backups
+.pricing_backups/

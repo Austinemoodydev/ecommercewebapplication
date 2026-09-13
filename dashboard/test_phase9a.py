@@ -137,7 +137,7 @@ class Phase9AReportsTests(
 
         self.assertContains(
             response,
-            "4300.00",
+            "4,300",
         )
 
 

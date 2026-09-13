@@ -113,7 +113,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                {{ report_currency_label }} {{ gross_revenue|floatformat:2 }}
+                {{ report_currency_label }} {{ gross_revenue|money }}
             </div>
 
         </div>
@@ -130,7 +130,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                {{ report_currency_label }} {{ processed_refunds|floatformat:2 }}
+                {{ report_currency_label }} {{ processed_refunds|money }}
             </div>
 
         </div>
@@ -147,7 +147,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                {{ report_currency_label }} {{ net_revenue|floatformat:2 }}
+                {{ report_currency_label }} {{ net_revenue|money }}
             </div>
 
         </div>
@@ -164,7 +164,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                {{ report_currency_label }} {{ estimated_gross_profit|floatformat:2 }}
+                {{ report_currency_label }} {{ estimated_gross_profit|money }}
             </div>
 
             <small class="text-muted">
@@ -258,7 +258,7 @@ Sales Reports
                 <div class="fs-5 fw-bold">
 
                     {{ report_currency_label }}
-                    {{ merchandise_subtotal|floatformat:2 }}
+                    {{ merchandise_subtotal|money }}
 
                 </div>
 
@@ -278,7 +278,7 @@ Sales Reports
                 <div class="fs-5 fw-bold">
 
                     {{ report_currency_label }}
-                    {{ discounts_given|floatformat:2 }}
+                    {{ discounts_given|money }}
 
                 </div>
 
@@ -298,7 +298,7 @@ Sales Reports
                 <div class="fs-5 fw-bold">
 
                     {{ report_currency_label }}
-                    {{ net_merchandise_before_tax|floatformat:2 }}
+                    {{ net_merchandise_before_tax|money }}
 
                 </div>
 
@@ -318,7 +318,7 @@ Sales Reports
                 <div class="fs-5 fw-bold">
 
                     {{ report_currency_label }}
-                    {{ tax_collected|floatformat:2 }}
+                    {{ tax_collected|money }}
 
                 </div>
 
@@ -406,23 +406,23 @@ Sales Reports
                             </td>
 
                             <td>
-                                {{ row.subtotal|floatformat:2 }}
+                                {{ row.subtotal|money }}
                             </td>
 
                             <td>
-                                {{ row.discount|floatformat:2 }}
+                                {{ row.discount|money }}
                             </td>
 
                             <td>
-                                {{ row.tax|floatformat:2 }}
+                                {{ row.tax|money }}
                             </td>
 
                             <td>
-                                {{ row.delivery|floatformat:2 }}
+                                {{ row.delivery|money }}
                             </td>
 
                             <td>
-                                {{ row.total|floatformat:2 }}
+                                {{ row.total|money }}
                             </td>
 
                         </tr>
@@ -506,7 +506,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                {{ report_currency_label }} {{ average_order_value|floatformat:2 }}
+                {{ report_currency_label }} {{ average_order_value|money }}
             </div>
 
         </div>
@@ -538,7 +538,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    {{ report_currency_label }} {{ delivery_income|floatformat:2 }}
+                    {{ report_currency_label }} {{ delivery_income|money }}
                 </strong>
 
             </div>
@@ -551,7 +551,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    {{ report_currency_label }} {{ actual_delivery_cost|floatformat:2 }}
+                    {{ report_currency_label }} {{ actual_delivery_cost|money }}
                 </strong>
 
             </div>
@@ -564,7 +564,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    {{ report_currency_label }} {{ delivery_margin|floatformat:2 }}
+                    {{ report_currency_label }} {{ delivery_margin|money }}
                 </strong>
 
             </div>
@@ -603,7 +603,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    {{ report_currency_label }} {{ mpesa_collected|floatformat:2 }}
+                    {{ report_currency_label }} {{ mpesa_collected|money }}
                 </strong>
 
             </div>
@@ -616,7 +616,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    {{ report_currency_label }} {{ estimated_cogs|floatformat:2 }}
+                    {{ report_currency_label }} {{ estimated_cogs|money }}
                 </strong>
 
             </div>
@@ -699,7 +699,7 @@ Sales Reports
                 </small>
 
                 <div class="fs-5 fw-bold">
-                    {{ report_currency_label }} {{ historical_cogs|floatformat:2 }}
+                    {{ report_currency_label }} {{ historical_cogs|money }}
                 </div>
 
             </div>
@@ -716,7 +716,7 @@ Sales Reports
                 </small>
 
                 <div class="fs-5 fw-bold">
-                    {{ report_currency_label }} {{ legacy_estimated_cogs|floatformat:2 }}
+                    {{ report_currency_label }} {{ legacy_estimated_cogs|money }}
                 </div>
 
             </div>
@@ -816,7 +816,7 @@ Sales Reports
                         </td>
 
                         <td class="text-end">
-                            {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
+                            {{ report_currency_label }} {{ row.revenue|money }}
                         </td>
 
                     </tr>
@@ -896,7 +896,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|money }}
                                 </td>
 
                             </tr>
@@ -978,7 +978,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    {{ report_currency_label }} {{ row.total_spent|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.total_spent|money }}
                                 </td>
 
                             </tr>
@@ -1261,7 +1261,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|money }}
                                 </td>
 
                                 <td class="text-end">
@@ -1347,7 +1347,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|money }}
                                 </td>
 
                                 <td class="text-end">
@@ -1446,7 +1446,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|money }}
                                 </td>
 
                             </tr>
@@ -1530,7 +1530,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|money }}
                                 </td>
 
                             </tr>
@@ -1629,11 +1629,11 @@ Sales Reports
                         </td>
 
                         <td class="text-end">
-                            {{ report_currency_label }} {{ row.customer_charge|floatformat:2 }}
+                            {{ report_currency_label }} {{ row.customer_charge|money }}
                         </td>
 
                         <td class="text-end">
-                            {{ report_currency_label }} {{ row.actual_cost|floatformat:2 }}
+                            {{ report_currency_label }} {{ row.actual_cost|money }}
                         </td>
 
                         <td class="text-end">
@@ -1641,13 +1641,13 @@ Sales Reports
                             {% if row.margin < 0 %}
 
                                 <span class="text-danger fw-bold">
-                                    {{ report_currency_label }} {{ row.margin|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.margin|money }}
                                 </span>
 
                             {% else %}
 
                                 <span class="text-success fw-bold">
-                                    {{ report_currency_label }} {{ row.margin|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.margin|money }}
                                 </span>
 
                             {% endif %}
@@ -1734,7 +1734,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|money }}
                                 </td>
 
                             </tr>
@@ -1781,7 +1781,7 @@ Sales Reports
 
                 <div class="fs-4 fw-bold">
 
-                    {{ report_currency_label }} {{ repeat_customer_revenue|floatformat:2 }}
+                    {{ report_currency_label }} {{ repeat_customer_revenue|money }}
 
                 </div>
 
@@ -1833,7 +1833,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    {{ report_currency_label }} {{ row.total_spent|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.total_spent|money }}
                                 </td>
 
                             </tr>
@@ -1955,7 +1955,7 @@ Sales Reports
                         </td>
 
                         <td class="text-end">
-                            {{ report_currency_label }} {{ order.total_amount|floatformat:2 }}
+                            {{ report_currency_label }} {{ order.total_amount|money }}
                         </td>
 
                     </tr>
