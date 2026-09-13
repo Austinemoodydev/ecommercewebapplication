@@ -9,6 +9,12 @@ from accounts.system_admin import configure_system_admin_site
 
 configure_system_admin_site()
 
+handler400 = "core.error_views.bad_request"
+handler403 = "core.error_views.permission_denied"
+handler404 = "core.error_views.page_not_found"
+handler500 = "core.error_views.server_error"
+
+
 
 urlpatterns = [
     path("notifications/", include("notifications.urls")),

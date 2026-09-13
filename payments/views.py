@@ -1,4 +1,5 @@
 import json
+from secrets import compare_digest
 from decimal import Decimal
 from datetime import timedelta
 
@@ -11,6 +12,7 @@ from django_ratelimit.decorators import ratelimit
 from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from orders.models import Order
 from orders.guest_access import verify_guest_access_token
@@ -441,15 +443,31 @@ def initiate_payment(
 
 
 @csrf_exempt
+@require_POST
 def mpesa_callback(request):
 
     from django.conf import settings
 
-    token = request.GET.get("token")
+    supplied_token = (
+        request.GET.get(
+            "token",
+            "",
+        )
+        or ""
+    )
+
+    expected_token = (
+        settings.MPESA_CALLBACK_SECRET
+        or ""
+    )
 
     if (
-        not settings.MPESA_CALLBACK_SECRET
-        or token != settings.MPESA_CALLBACK_SECRET
+        not expected_token
+        or not supplied_token
+        or not compare_digest(
+            str(supplied_token),
+            str(expected_token),
+        )
     ):
 
         return JsonResponse(

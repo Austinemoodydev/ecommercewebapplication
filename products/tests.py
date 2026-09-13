@@ -31,7 +31,7 @@ class ProductVariantTests(TestCase):
 		)
 		self.client.force_login(user)
 
-		response = self.client.get(reverse("add_to_cart", args=[product.id]), {"variant": variant.id})
+		response = self.client.post(reverse("add_to_cart", args=[product.id]), {"variant": variant.id})
 
 		self.assertEqual(response.status_code, 200)
 		item = CartItem.objects.get(cart__user=user)

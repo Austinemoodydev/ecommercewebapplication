@@ -1,4 +1,4 @@
-﻿function csrfToken() {
+function csrfToken() {
     const match = document.cookie.match(/csrftoken=([^;]+)/);
     return match ? match[1] : "";
 }
@@ -39,7 +39,11 @@ document.addEventListener("click", function (e) {
         const action = e.target.dataset.action;
 
         fetch(`/cart/${action}/${itemId}/`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" }
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrfToken()
+            }
         })
             .then(res => res.json())
             .then(data => {
@@ -55,7 +59,11 @@ document.addEventListener("click", function (e) {
         const itemId = e.target.dataset.item;
 
         fetch(`/cart/remove/${itemId}/`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" }
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrfToken()
+            }
         })
             .then(res => res.json())
             .then(data => {
@@ -68,10 +76,24 @@ document.addEventListener("click", function (e) {
 
         const productId = e.target.dataset.product;
         const variantSelect = e.target.dataset.variantSelect ? document.getElementById(e.target.dataset.variantSelect) : null;
-        const variantQuery = variantSelect && variantSelect.value ? `?variant=${encodeURIComponent(variantSelect.value)}` : "";
+        const body = new URLSearchParams();
 
-        fetch(`/cart/add/${productId}/${variantQuery}`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" }
+        if (variantSelect && variantSelect.value) {
+            body.append(
+                "variant",
+                variantSelect.value
+            );
+        }
+
+        fetch(`/cart/add/${productId}/`, {
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrfToken(),
+                "Content-Type":
+                    "application/x-www-form-urlencoded"
+            },
+            body: body.toString()
         })
             .then(res => res.json())
             .then(data => {

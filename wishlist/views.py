@@ -3,6 +3,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_POST
 
 from products.models import Product
 from wishlist.selectors.wishlist_selector import WishlistSelector
@@ -26,6 +27,7 @@ def wishlist_page(request):
 
 
 @login_required
+@require_POST
 def toggle_wishlist(request, product_id):
 
     product = get_object_or_404(

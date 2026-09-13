@@ -1,3 +1,14 @@
+function wishlistCsrfToken() {
+
+    const match = document.cookie.match(
+        /csrftoken=([^;]+)/
+    );
+
+    return match
+        ? match[1]
+        : "";
+}
+
 document.querySelectorAll(".wishlist-btn").forEach(button => {
 
     button.addEventListener("click", function () {
@@ -6,8 +17,11 @@ document.querySelectorAll(".wishlist-btn").forEach(button => {
 
         fetch(`/wishlist/toggle/${productId}/`, {
 
+            method: "POST",
+
             headers: {
-                "X-Requested-With": "XMLHttpRequest"
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": wishlistCsrfToken()
             }
 
         })

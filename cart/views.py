@@ -1,5 +1,6 @@
-﻿from django.http import JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_POST
 
 from products.models import Product, ProductVariant
 from cart.selectors.cart_selector import CartSelector
@@ -37,11 +38,12 @@ def _cart_json(cart, item=None):
     return JsonResponse(data)
 
 
+@require_POST
 def add_to_cart(request, product_id):
 
     product = get_object_or_404(Product, id=product_id)
 
-    variant_id = request.POST.get("variant") or request.GET.get("variant")
+    variant_id = request.POST.get("variant")
     variant = None
     if variant_id:
         variant = get_object_or_404(ProductVariant, id=variant_id, product=product, is_active=True)
@@ -52,6 +54,7 @@ def add_to_cart(request, product_id):
     return _cart_json(cart, item)
 
 
+@require_POST
 def increase_quantity(request, item_id):
 
     cart = CartService.increase(request, item_id)
@@ -61,6 +64,7 @@ def increase_quantity(request, item_id):
     return _cart_json(cart, item)
 
 
+@require_POST
 def decrease_quantity(request, item_id):
 
     cart = CartService.decrease(request, item_id)
@@ -70,6 +74,7 @@ def decrease_quantity(request, item_id):
     return _cart_json(cart, item)
 
 
+@require_POST
 def remove_from_cart(request, item_id):
 
     cart = CartService.remove(request, item_id)

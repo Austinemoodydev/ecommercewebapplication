@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django_ratelimit.decorators import ratelimit
 from django.db import transaction
@@ -844,6 +845,7 @@ def apply_coupon(request):
 
 
 @login_required
+@require_POST
 def remove_coupon(request):
 
     request.session.pop("coupon_code", None)

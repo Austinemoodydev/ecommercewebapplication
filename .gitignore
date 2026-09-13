@@ -15,3 +15,12 @@ staticfiles/
 
 # Upload security patch backups
 .upload_security_backups/
+
+# State-change security backups
+.state_change_backups/
+
+# Error handling local backups
+.error_handling_backups/
+
+# Capability URL security backups
+.capability_security_backups/
