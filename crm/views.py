@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 
-from django.contrib.admin.views.decorators import (
+from accounts.staff_auth import (
     staff_member_required,
 )
 

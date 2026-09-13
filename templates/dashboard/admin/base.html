@@ -1,4 +1,5 @@
 {% load static %}
+{% load store_permissions %}
 
 <!DOCTYPE html>
 
@@ -387,36 +388,8 @@
 
 
 
-            <!-- PROMOTIONS -->
-
-            <a
-                href="#"
-                class="sidebar-link"
-            >
-
-                <i class="bi bi-tag"></i>
-
-                <span>
-                    Promotions
-                </span>
-
-            </a>
 
 
-            <!-- REVIEWS -->
-
-            <a
-                href="#"
-                class="sidebar-link"
-            >
-
-                <i class="bi bi-star"></i>
-
-                <span>
-                    Reviews
-                </span>
-
-            </a>
 
 
             <!-- REPORTS -->
@@ -461,6 +434,32 @@
                 </span>
 
             </a>
+
+
+
+            {% if request.user|store_owner %}
+
+            <!-- STAFF MANAGEMENT -->
+
+            <a
+                href="{% url 'staff_manage_list' %}"
+                class="
+                    sidebar-link
+                    {% if 'staff_manage' in request.resolver_match.url_name %}
+                        active
+                    {% endif %}
+                "
+            >
+
+                <i class="bi bi-person-gear"></i>
+
+                <span>
+                    Staff
+                </span>
+
+            </a>
+
+            {% endif %}
 
 
             <!-- SETTINGS -->
@@ -612,16 +611,23 @@
 
                         <li>
 
-                            <a
-                                class="dropdown-item"
-                                href="/accounts/logout/"
+                            <form
+                                method="post"
+                                action="{% url 'logout' %}"
+                                class="m-0"
                             >
+                                {% csrf_token %}
 
-                                <i class="bi bi-box-arrow-right me-2"></i>
+                                <button
+                                    type="submit"
+                                    class="dropdown-item"
+                                >
+                                    <i class="bi bi-box-arrow-right me-2"></i>
 
-                                Logout
+                                    Logout
+                                </button>
 
-                            </a>
+                            </form>
 
                         </li>
 

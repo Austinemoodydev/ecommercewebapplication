@@ -20,6 +20,62 @@ class RegisterForm(UserCreationForm):
             "password2",
         )
 
+        widgets = {
+            "username": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "autocomplete": "username",
+                    "placeholder": "Choose a username",
+                }
+            ),
+            "email": forms.EmailInput(
+                attrs={
+                    "class": "form-control",
+                    "autocomplete": "email",
+                    "placeholder": "you@example.com",
+                }
+            ),
+            "phone": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "autocomplete": "tel",
+                    "placeholder": "07XXXXXXXX",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        self.fields["password1"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "new-password",
+                "placeholder": "Create a password",
+            }
+        )
+
+        self.fields["password2"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "new-password",
+                "placeholder": "Confirm your password",
+            }
+        )
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+
+        if CustomUser.objects.filter(
+            email__iexact=email
+        ).exists():
+            raise forms.ValidationError(
+                "An account with this email already exists."
+            )
+
+        return email
+
 class AddressForm(forms.ModelForm):
 
     class Meta:
@@ -41,7 +97,35 @@ class AddressForm(forms.ModelForm):
 
 
 class ProfileForm(forms.ModelForm):
+
     class Meta:
         model = CustomUser
-        fields = ("first_name", "last_name", "email", "phone", "avatar", "email_notifications", "sms_notifications")
+        fields = (
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "avatar",
+            "email_notifications",
+            "sms_notifications",
+        )
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+
+        queryset = CustomUser.objects.filter(
+            email__iexact=email
+        )
+
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(
+                pk=self.instance.pk
+            )
+
+        if queryset.exists():
+            raise forms.ValidationError(
+                "An account with this email already exists."
+            )
+
+        return email
 

@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}{{ product.name }}{% endblock %}
 {% block meta_description %}{{ product.description|striptags|truncatechars:155 }}{% endblock %}
 {% block content %}
@@ -23,7 +23,7 @@
         </span>
     </div>
 
-    <h3 class="text-success">KES {{ product.current_price }}</h3>
+    <h3 class="text-primary">KES {{ product.current_price }}</h3>
     <p>{{ product.description }}</p>
     {% if product.variants.exists %}
     <label for="variant-select">Choose an option</label>
@@ -33,7 +33,7 @@
     {% else %}<p>Stock: {{ product.available_stock }}</p>{% endif %}
 
     <button type="button"
-            class="btn btn-success add-to-cart-btn"
+            class="btn btn-primary add-to-cart-btn"
             data-product="{{ product.id }}"
             {% if product.variants.exists %}data-variant-select="variant-select"{% endif %}>
         Add to Cart
@@ -53,37 +53,116 @@
 {% endif %}
 
 {% if request.user.is_authenticated %}
-<div class="card mb-4">
-    <div class="card-body">
-        <h5>Write a Review</h5>
-        <form method="POST" action="{% url 'submit_review' product.id %}">
-            {% csrf_token %}
 
-            <div class="mb-2">
-                <label class="form-label">Rating</label>
-                <select name="rating" class="form-select" style="max-width: 200px;" required>
-                    <option value="">Select rating</option>
-                    <option value="5">5 - Excellent</option>
-                    <option value="4">4 - Very Good</option>
-                    <option value="3">3 - Good</option>
-                    <option value="2">2 - Fair</option>
-                    <option value="1">1 - Poor</option>
-                </select>
-            </div>
+    {% if can_review %}
 
-            <div class="mb-2">
-                <label class="form-label">Comment</label>
-                <textarea name="comment" class="form-control" rows="3" placeholder="Optional"></textarea>
-            </div>
+    <div class="card mb-4">
+        <div class="card-body">
 
-            <button type="submit" class="btn btn-outline-success btn-sm">Submit Review</button>
-        </form>
+            <h5>Write a Review</h5>
+
+            <p class="text-muted small">
+                Your purchase has been verified.
+                Share your experience with this product.
+            </p>
+
+            <form method="POST"
+                  action="{% url 'submit_review' product.id %}">
+
+                {% csrf_token %}
+
+                <div class="mb-2">
+
+                    <label class="form-label">
+                        Rating
+                    </label>
+
+                    <select name="rating"
+                            class="form-select"
+                            style="max-width: 200px;"
+                            required>
+
+                        <option value="">
+                            Select rating
+                        </option>
+
+                        <option value="5">
+                            5 - Excellent
+                        </option>
+
+                        <option value="4">
+                            4 - Very Good
+                        </option>
+
+                        <option value="3">
+                            3 - Good
+                        </option>
+
+                        <option value="2">
+                            2 - Fair
+                        </option>
+
+                        <option value="1">
+                            1 - Poor
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="mb-2">
+
+                    <label class="form-label">
+                        Comment
+                    </label>
+
+                    <textarea name="comment"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Tell other customers about your experience."></textarea>
+
+                </div>
+
+
+                <button type="submit"
+                        class="btn btn-outline-primary btn-sm">
+
+                    Submit Review
+
+                </button>
+
+            </form>
+
+        </div>
     </div>
-</div>
+
+    {% else %}
+
+    <div class="alert alert-light border mb-4">
+
+        <i class="bi bi-shield-check text-primary me-1"></i>
+
+        Only customers who purchased this product
+        can leave a review.
+
+    </div>
+
+    {% endif %}
+
 {% else %}
+
 <p class="text-muted">
-    <a href="{% url 'login' %}">Log in</a> to write a review.
+
+    <a href="{% url 'login' %}">
+        Log in
+    </a>
+
+    to check whether you are eligible to review
+    this product.
+
 </p>
+
 {% endif %}
 
 {% for review in product.reviews.all %}

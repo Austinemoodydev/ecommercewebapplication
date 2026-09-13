@@ -5,3 +5,7 @@ db.sqlite3
 media/
 .env
 .env
+config/dbfile/*.sql
+*.sql
+staticfiles/
+.hardening_backups/

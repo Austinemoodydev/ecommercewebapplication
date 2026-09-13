@@ -1,4 +1,6 @@
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from .staff_access import can_access_store_management
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.tokens import default_token_generator
@@ -260,11 +262,64 @@ def register(request):
 
 @login_required
 def profile(request):
-    form = ProfileForm(request.POST or None, request.FILES or None, instance=request.user)
+
+    # IMPORTANT:
+    # Capture the database value BEFORE ModelForm validation.
+    #
+    # ModelForm.is_valid() updates fields on the model instance.
+    # Reading request.user.email afterwards can therefore return
+    # the NEW email instead of the original email.
+    original_email = (
+        request.user.email or ""
+    ).strip().lower()
+
+    form = ProfileForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=request.user,
+    )
+
     if request.method == "POST" and form.is_valid():
-        form.save()
+
+        user = form.save(commit=False)
+
+        new_email = (
+            user.email or ""
+        ).strip().lower()
+
+        email_changed = (
+            original_email != new_email
+        )
+
+        if email_changed:
+            # A verified status belongs to the old address,
+            # never automatically to a replacement address.
+            user.email_verified = False
+
+        user.save()
+
+        if email_changed:
+            messages.warning(
+                request,
+                (
+                    "Your email address changed. "
+                    "The new address must be verified "
+                    "before it is treated as verified."
+                ),
+            )
+        else:
+            messages.success(
+                request,
+                "Profile updated successfully.",
+            )
+
         return redirect("profile")
-    return render(request, "accounts/profile.html", {"form": form})
+
+    return render(
+        request,
+        "accounts/profile.html",
+        {"form": form},
+    )
 
 
 def verify_email(request, uidb64, token):
@@ -346,23 +401,41 @@ def add_address(request):
 
 
 @login_required
+@require_POST
 def delete_address(request, address_id):
 
-    address = get_object_or_404(Address, id=address_id, user=request.user)
+    address = get_object_or_404(
+        Address,
+        id=address_id,
+        user=request.user,
+    )
+
     address.delete()
 
     return redirect("addresses")
 
 
 @login_required
+@require_POST
+@transaction.atomic
 def set_default_address(request, address_id):
 
-    address = get_object_or_404(Address, id=address_id, user=request.user)
+    address = get_object_or_404(
+        Address,
+        id=address_id,
+        user=request.user,
+    )
 
-    Address.objects.filter(user=request.user).update(is_default=False)
+    Address.objects.filter(
+        user=request.user
+    ).update(
+        is_default=False
+    )
 
     address.is_default = True
-    address.save()
+    address.save(
+        update_fields=["is_default"]
+    )
 
     return redirect("addresses")
 
@@ -372,6 +445,71 @@ def set_default_address(request, address_id):
 @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True), name="post")
 class RateLimitedLoginView(LoginView):
     template_name = "accounts/login.html"
+
+    def form_valid(self, form):
+
+        user = form.get_user()
+
+        if (
+            user.is_staff
+            or user.is_superuser
+            or getattr(
+                user,
+                "role",
+                None,
+            ) == "admin"
+        ):
+
+            form.add_error(
+                None,
+                (
+                    "Store staff and system "
+                    "administrators must use "
+                    "their dedicated login."
+                ),
+            )
+
+            return self.form_invalid(form)
+
+        return super().form_valid(form)
+
+
+@method_decorator(
+    ratelimit(
+        key="ip",
+        rate="5/m",
+        method="POST",
+        block=True,
+    ),
+    name="dispatch",
+)
+class StoreStaffLoginView(LoginView):
+
+    template_name = "accounts/staff_login.html"
+
+    def form_valid(self, form):
+
+        user = form.get_user()
+
+        if not can_access_store_management(user):
+
+            form.add_error(
+                None,
+                (
+                    "Your account does not have "
+                    "an authorized store staff role."
+                ),
+            )
+
+            return self.form_invalid(form)
+
+        return super().form_valid(form)
+
+    def get_success_url(self):
+
+        return reverse(
+            "admin_dashboard"
+        )
 
 
 @ratelimit(

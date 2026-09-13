@@ -34,6 +34,11 @@ urlpatterns = [
         include("inventory.urls"),
     ),
 
+    path(
+        "staff/",
+        include("accounts.staff_urls"),
+    ),
+
     path('admin/', admin.site.urls),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
     path("robots.txt", include("core.robots_urls")),

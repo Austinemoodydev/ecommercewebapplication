@@ -46,11 +46,16 @@ Notifications
 
 </a>
 
-<a href="{% url 'logout' %}">
+<form method="post"
+      action="{% url 'logout' %}"
+      class="m-0">
+    {% csrf_token %}
 
-Logout
-
-</a>
+    <button type="submit"
+            class="btn btn-link p-0 text-decoration-none">
+        Logout
+    </button>
+</form>
 
 </div>
 

@@ -67,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'accounts.staff_access.StoreStaffPermissionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -96,16 +97,44 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'onlinestore',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'",
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+
+        # Localhost defaults continue working.
+        # Production values can later be supplied through .env.
+        "NAME": os.environ.get(
+            "DB_NAME",
+            "onlinestore",
+        ),
+
+        "USER": os.environ.get(
+            "DB_USER",
+            "root",
+        ),
+
+        "PASSWORD": os.environ.get(
+            "DB_PASSWORD",
+            "",
+        ),
+
+        "HOST": os.environ.get(
+            "DB_HOST",
+            "localhost",
+        ),
+
+        "PORT": os.environ.get(
+            "DB_PORT",
+            "3306",
+        ),
+
+        "OPTIONS": {
+            "charset": "utf8mb4",
+
+            "init_command": (
+                "SET sql_mode="
+                "'STRICT_TRANS_TABLES,"
+                "NO_ENGINE_SUBSTITUTION'"
+            ),
         },
     }
 }
@@ -149,7 +178,12 @@ USE_TZ = True
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+# Directory populated by `python manage.py collectstatic`.
+# Source static files remain in the normal app/static directories.
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 STATICFILES_DIRS = [
     BASE_DIR / "static",
@@ -174,7 +208,9 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "/shop/"
+ACCOUNT_SIGNUP_REDIRECT_URL = "/shop/"
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.CustomerOnlySocialAccountAdapter"
 
 
 # ------------------------------------------------------------
@@ -206,9 +242,26 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    SECURE_HSTS_SECONDS = int(
+        os.environ.get(
+            "SECURE_HSTS_SECONDS",
+            "0",
+        )
+    )
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = (
+        os.environ.get(
+            "SECURE_HSTS_INCLUDE_SUBDOMAINS",
+            "False",
+        ).lower()
+        == "true"
+    )
+    SECURE_HSTS_PRELOAD = (
+        os.environ.get(
+            "SECURE_HSTS_PRELOAD",
+            "False",
+        ).lower()
+        == "true"
+    )
 
 
 CACHES = {
@@ -303,3 +356,23 @@ CART_ABANDONED_AFTER_HOURS = int(
         "24",
     )
 )
+
+
+# Deployment origins are intentionally empty on localhost.
+# Example production value:
+# CSRF_TRUSTED_ORIGINS=https://example.com,https://www.example.com
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CSRF_TRUSTED_ORIGINS",
+        "",
+    ).split(",")
+    if origin.strip()
+]
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"

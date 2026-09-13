@@ -1,3 +1,5 @@
+from accounts.store_roles import STORE_OWNER
+from django.contrib.auth.models import Group
 from decimal import Decimal
 from datetime import timedelta
 
@@ -54,6 +56,14 @@ class Phase8BTests(TestCase):
                 role=User.ADMIN,
                 is_staff=True,
             )
+        )
+
+        store_owner_group, _ = Group.objects.get_or_create(
+            name=STORE_OWNER,
+        )
+
+        self.staff.groups.add(
+            store_owner_group
         )
 
         self.category = (

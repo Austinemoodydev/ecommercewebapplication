@@ -2,8 +2,8 @@
 <nav class="navbar navbar-expand-lg navbar-dark storefront-nav sticky-top">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
-      <img src="{% static 'images/icons/icon.jpeg' %}" alt="Best Shop" height="32" class="me-2">
-      Best Shop
+      <img src="{% static 'images/icons/icon.jpeg' %}" alt="" height="32" class="me-2">
+      
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#storefrontNav" aria-controls="storefrontNav" aria-expanded="false" aria-label="Open navigation"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="storefrontNav">

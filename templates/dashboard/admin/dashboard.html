@@ -278,16 +278,18 @@ Dashboard
                     <tr>
 
                         <td>
-                            
 
-    href="{% url 'admin_order_detail' order.order_number %}"
-    class="text-decoration-none fw-bold"
->
-    {{ order.order_number }}
-</a>
+                            <a
+                                href="{% url 'admin_order_detail' order.order_number %}"
+                                class="text-decoration-none fw-bold"
+                            >
+                                {{ order.order_number }}
+                            </a>
+
                             <small class="d-block text-muted">
                                 {{ order.created_at|date:"d M Y H:i" }}
                             </small>
+
                         </td>
 
 

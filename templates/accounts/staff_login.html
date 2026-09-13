@@ -1,0 +1,135 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}
+Store portal | OnlineShop
+{% endblock %}
+
+
+{% block content %}
+
+
+<div class="text-center mb-4">
+
+    <div
+        class="d-inline-flex align-items-center
+               justify-content-center
+               bg-primary-subtle text-primary
+               rounded-circle mb-3"
+        style="width: 54px; height: 54px;"
+    >
+
+        <i class="bi bi-shop fs-4"></i>
+
+    </div>
+
+
+    <h3 class="mb-1">
+        Store Portal
+    </h3>
+
+    <p class="text-muted mb-0">
+        Secure access for authorized
+        store owners and staff.
+    </p>
+
+</div>
+
+
+<form method="post">
+
+    {% csrf_token %}
+
+
+    {% if form.non_field_errors %}
+
+        <div class="alert alert-danger">
+
+            {% for error in form.non_field_errors %}
+
+                <div>
+                    {{ error }}
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="mb-3">
+
+        <label
+            for="{{ form.username.id_for_label }}"
+            class="form-label"
+        >
+            Username
+        </label>
+
+        {{ form.username }}
+
+    </div>
+
+
+    <div class="mb-4">
+
+        <label
+            for="{{ form.password.id_for_label }}"
+            class="form-label"
+        >
+            Password
+        </label>
+
+        {{ form.password }}
+
+    </div>
+
+
+    {% if next %}
+
+        <input
+            type="hidden"
+            name="next"
+            value="{{ next }}"
+        >
+
+    {% endif %}
+
+
+    <button
+        type="submit"
+        class="btn btn-primary w-100 py-2"
+    >
+
+        <i class="bi bi-shield-lock me-2"></i>
+
+        Access Store Portal
+
+    </button>
+
+</form>
+
+
+<div
+    class="alert alert-light border mt-4 mb-0 small"
+>
+
+    <i class="bi bi-info-circle me-1 text-primary"></i>
+
+    Staff accounts are created by an
+    authorized administrator.
+    Public staff registration is disabled.
+
+</div>
+
+
+<div class="text-center mt-4">
+
+    <a href="{% url 'login' %}">
+        Customer sign in
+    </a>
+
+</div>
+
+
+{% endblock %}

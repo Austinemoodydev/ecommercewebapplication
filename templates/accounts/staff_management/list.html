@@ -1,0 +1,289 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Staff Management
+{% endblock %}
+
+{% block page_heading %}
+Staff Management
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container-fluid py-3">
+
+    <div
+        class="d-flex flex-column flex-md-row
+               justify-content-between
+               align-items-md-center
+               gap-3 mb-4"
+    >
+
+        <div>
+
+            <h2 class="mb-1">
+                Staff Management
+            </h2>
+
+            <p class="text-muted mb-0">
+
+                Create staff accounts,
+                assign roles and control access.
+
+            </p>
+
+        </div>
+
+        <a
+            href="{% url 'staff_manage_create' %}"
+            class="btn btn-primary"
+        >
+
+            <i class="bi bi-person-plus me-2"></i>
+
+            Add Staff Member
+
+        </a>
+
+    </div>
+
+
+    <div class="card border-0 shadow-sm">
+
+        <div class="card-body p-0">
+
+            {% if staff_members %}
+
+                <div class="table-responsive">
+
+                    <table
+                        class="table align-middle mb-0"
+                    >
+
+                        <thead class="table-light">
+
+                            <tr>
+
+                                <th>
+                                    Staff Member
+                                </th>
+
+                                <th>
+                                    Role
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                                <th>
+                                    Last Login
+                                </th>
+
+                                <th class="text-end">
+                                    Actions
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for staff in staff_members %}
+
+                                <tr>
+
+                                    <td>
+
+                                        <strong>
+
+                                            {{ staff.get_full_name|default:staff.username }}
+
+                                        </strong>
+
+                                        <small
+                                            class="d-block text-muted"
+                                        >
+
+                                            {{ staff.email }}
+
+                                        </small>
+
+                                        <small
+                                            class="d-block text-muted"
+                                        >
+
+                                            @{{ staff.username }}
+
+                                        </small>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% for group in staff.groups.all %}
+
+                                            {% if group.name in store_role_names %}
+
+                                                <span
+                                                    class="badge
+                                                           text-bg-primary"
+                                                >
+
+                                                    {{ group.name }}
+
+                                                </span>
+
+                                            {% endif %}
+
+                                        {% empty %}
+
+                                            <span
+                                                class="badge
+                                                       text-bg-warning"
+                                            >
+                                                No role
+                                            </span>
+
+                                        {% endfor %}
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if staff.is_active %}
+
+                                            <span
+                                                class="badge bg-success"
+                                            >
+                                                Active
+                                            </span>
+
+                                        {% else %}
+
+                                            <span
+                                                class="badge bg-secondary"
+                                            >
+                                                Disabled
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if staff.last_login %}
+
+                                            {{ staff.last_login|date:"d M Y H:i" }}
+
+                                        {% else %}
+
+                                            <span class="text-muted">
+                                                Never
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <td class="text-end">
+
+                                        <a
+                                            href="{% url 'staff_manage_edit' staff.pk %}"
+                                            class="btn
+                                                   btn-outline-primary
+                                                   btn-sm"
+                                        >
+                                            Edit
+                                        </a>
+
+
+                                        <form
+                                            method="post"
+                                            action="{% url 'staff_manage_toggle_active' staff.pk %}"
+                                            class="d-inline"
+                                        >
+
+                                            {% csrf_token %}
+
+                                            {% if staff.is_active %}
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn
+                                                           btn-outline-danger
+                                                           btn-sm"
+                                                >
+                                                    Disable
+                                                </button>
+
+                                            {% else %}
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn
+                                                           btn-outline-success
+                                                           btn-sm"
+                                                >
+                                                    Activate
+                                                </button>
+
+                                            {% endif %}
+
+                                        </form>
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="text-center py-5">
+
+                    <i
+                        class="bi bi-people fs-1 text-muted"
+                    ></i>
+
+                    <h5 class="mt-3">
+                        No staff accounts yet
+                    </h5>
+
+                    <p class="text-muted">
+                        Create your first store
+                        staff account.
+                    </p>
+
+                    <a
+                        href="{% url 'staff_manage_create' %}"
+                        class="btn btn-primary"
+                    >
+                        Add Staff Member
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

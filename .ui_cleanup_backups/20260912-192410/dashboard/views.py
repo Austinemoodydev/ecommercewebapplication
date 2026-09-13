@@ -1,0 +1,1739 @@
+import csv
+from datetime import timedelta
+from decimal import Decimal
+
+from django.contrib import messages
+from accounts.staff_auth import staff_member_required
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Count, F, Q, Sum
+from django.db.models.functions import TruncDate
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.text import slugify
+from categories.models import Category
+from orders.inventory import release_order_inventory
+from orders.models import Order, OrderItem
+from products.models import Brand, Product, ProductImage, ProductVariant
+
+from .forms import (
+    AdminOrderShippingForm,
+    AdminProductForm,
+    AdminProductGalleryForm,
+    AdminProductVariantForm,
+)
+
+
+from payments.models import MpesaTransaction, RefundRequest, ReturnRequest
+
+@login_required
+def dashboard(request):
+    return render(request, "dashboard/dashboard.html")
+
+
+@login_required
+def order_history(request):
+    orders = Order.objects.filter(user=request.user).order_by("-created_at")
+    return render(request, "dashboard/order_history.html", {"orders": orders})
+
+
+@login_required
+def order_detail(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    return render(request, "dashboard/order_detail.html", {"order": order, "items": order.items.select_related("product")})
+
+
+
+@staff_member_required
+def admin_dashboard(request):
+    User = get_user_model()
+
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+
+    # ---------------------------------------------------------
+    # TODAY'S ORDERS
+    # ---------------------------------------------------------
+
+    today_orders = Order.objects.filter(
+        created_at__date=today
+    )
+
+    today_paid_orders = today_orders.filter(
+        payment_status="paid"
+    )
+
+    today_revenue = (
+        today_paid_orders.aggregate(
+            total=Sum("total_amount")
+        )["total"]
+        or Decimal("0.00")
+    )
+
+    # ---------------------------------------------------------
+    # THIS MONTH
+    # ---------------------------------------------------------
+
+    month_paid_orders = Order.objects.filter(
+        payment_status="paid",
+        created_at__date__gte=month_start,
+        created_at__date__lte=today,
+    )
+
+    month_revenue = (
+        month_paid_orders.aggregate(
+            total=Sum("total_amount")
+        )["total"]
+        or Decimal("0.00")
+    )
+
+    # ---------------------------------------------------------
+    # ORDERS REQUIRING ATTENTION
+    # ---------------------------------------------------------
+
+    open_orders = Order.objects.filter(
+        status__in=[
+            "pending",
+            "confirmed",
+            "processing",
+            "shipped",
+        ]
+    )
+
+    pending_orders = Order.objects.filter(
+        status="pending"
+    ).count()
+
+    processing_orders = Order.objects.filter(
+        status="processing"
+    ).count()
+
+    shipped_orders = Order.objects.filter(
+        status="shipped"
+    ).count()
+
+    # ---------------------------------------------------------
+    # PRODUCTS / STOCK
+    # ---------------------------------------------------------
+
+    active_products = Product.objects.filter(
+        is_active=True
+    )
+
+    total_products = active_products.count()
+
+    out_of_stock_count = active_products.filter(
+        stock__lte=F("reserved_stock")
+    ).count()
+
+    low_stock_products = [
+        product
+        for product in active_products.order_by("stock")[:50]
+        if 0 < product.available_stock <= 5
+    ][:8]
+
+    low_stock_count = sum(
+        1
+        for product in active_products
+        if 0 < product.available_stock <= 5
+    )
+
+    # ---------------------------------------------------------
+    # CUSTOMERS
+    # ---------------------------------------------------------
+
+    customers = User.objects.filter(
+        is_staff=False
+    )
+
+    total_customers = customers.count()
+
+    new_customers_today = customers.filter(
+        date_joined__date=today
+    ).count()
+
+    # ---------------------------------------------------------
+    # PAYMENTS
+    # ---------------------------------------------------------
+
+    successful_payments_today = MpesaTransaction.objects.filter(
+        status="success",
+        created_at__date=today,
+    )
+
+    failed_payments = MpesaTransaction.objects.filter(
+        status="failed"
+    ).count()
+
+    pending_payments = MpesaTransaction.objects.filter(
+        status="pending"
+    ).count()
+
+    recent_payments = (
+        MpesaTransaction.objects
+        .select_related("order")
+        .order_by("-created_at")[:8]
+    )
+
+    # ---------------------------------------------------------
+    # PAYMENTS REQUIRING STAFF REVIEW
+    # ---------------------------------------------------------
+
+    payment_review_orders = (
+        Order.objects
+        .filter(
+            payment_review_required=True
+        )
+        .order_by("-updated_at")
+    )
+
+    payment_review_count = (
+        payment_review_orders.count()
+    )
+
+    # ---------------------------------------------------------
+    # RETURNS / REFUNDS
+    # ---------------------------------------------------------
+
+    pending_refunds = RefundRequest.objects.filter(
+        status="requested"
+    ).count()
+
+    pending_returns = ReturnRequest.objects.filter(
+        status="requested"
+    ).count()
+
+    # ---------------------------------------------------------
+    # RECENT ORDERS
+    # ---------------------------------------------------------
+
+    recent_orders = (
+        Order.objects
+        .select_related("user")
+        .prefetch_related("items")
+        .order_by("-created_at")[:8]
+    )
+
+    # ---------------------------------------------------------
+    # ORDER STATUS BREAKDOWN
+    # ---------------------------------------------------------
+
+    status_counts = (
+        Order.objects
+        .values("status")
+        .annotate(total=Count("id"))
+        .order_by("status")
+    )
+
+    # ---------------------------------------------------------
+    # TOP PRODUCTS THIS MONTH
+    # ---------------------------------------------------------
+
+    top_products = (
+        OrderItem.objects
+        .filter(
+            order__payment_status="paid",
+            order__created_at__date__gte=month_start,
+        )
+        .values("product_name")
+        .annotate(
+            units_sold=Sum("quantity"),
+            revenue=Sum("subtotal"),
+        )
+        .order_by("-units_sold")[:5]
+    )
+
+    context = {
+        # Revenue
+        "today_revenue": today_revenue,
+        "month_revenue": month_revenue,
+
+        # Orders
+        "today_orders_count": today_orders.count(),
+        "open_orders_count": open_orders.count(),
+        "pending_orders": pending_orders,
+        "processing_orders": processing_orders,
+        "shipped_orders": shipped_orders,
+
+        # Products
+        "total_products": total_products,
+        "low_stock_count": low_stock_count,
+        "out_of_stock_count": out_of_stock_count,
+        "low_stock_products": low_stock_products,
+
+        # Customers
+        "total_customers": total_customers,
+        "new_customers_today": new_customers_today,
+
+        # Payments
+        "failed_payments": failed_payments,
+        "pending_payments": pending_payments,
+        "successful_payments_today": successful_payments_today.count(),
+        "recent_payments": recent_payments,
+        "payment_review_count": payment_review_count,
+        "payment_review_orders": payment_review_orders[:5],
+
+        # Returns
+        "pending_refunds": pending_refunds,
+        "pending_returns": pending_returns,
+
+        # Lists
+        "recent_orders": recent_orders,
+        "status_counts": status_counts,
+        "top_products": top_products,
+    }
+
+    return render(
+        request,
+        "dashboard/admin/dashboard.html",
+        context,
+    )
+
+@staff_member_required
+def admin_analytics(request):
+    start_date, end_date = _report_dates(request)
+    paid_orders = _paid_orders(start_date, end_date)
+    start_dt, report_end = (
+        _report_datetime_range(
+            start_date,
+            end_date,
+        )
+    )
+
+    daily_orders = Order.objects.filter(
+        created_at__gte=start_dt,
+        created_at__lt=report_end,
+    )
+    top_products = OrderItem.objects.filter(
+        order__in=paid_orders,
+    ).values("product_name").annotate(
+        units=Sum("quantity"), revenue=Sum("subtotal")
+    ).order_by("-units", "product_name")[:10]
+    context = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "today_orders": daily_orders.count(),
+        "today_revenue": paid_orders.aggregate(total=Sum("total_amount"))["total"] or 0,
+        "week_revenue": paid_orders.aggregate(total=Sum("total_amount"))["total"] or 0,
+        "report_orders": paid_orders.count(),
+        "report_customers": paid_orders.values("user_id").distinct().count(),
+        "pending_orders": Order.objects.filter(status__in=["pending", "confirmed", "processing", "shipped"]).count(),
+        "status_counts": Order.objects.values("status").annotate(total=Count("id")).order_by("status"),
+        "recent_orders": Order.objects.select_related("user").order_by("-created_at")[:8],
+        "low_stock": Product.objects.filter(stock__lt=5).order_by("stock", "name")[:10],
+        "top_products": top_products,
+    }
+    return render(request, "dashboard/admin_analytics.html", context)
+
+
+def _report_dates(request):
+    today = timezone.localdate()
+    default_start = today - timedelta(days=29)
+    try:
+        start_date = timezone.datetime.strptime(request.GET.get("start", ""), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        start_date = default_start
+    try:
+        end_date = timezone.datetime.strptime(request.GET.get("end", ""), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        end_date = today
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    return start_date, end_date
+
+
+def _report_datetime_range(
+    start_date,
+    end_date,
+):
+    """
+    Convert report dates to timezone-aware datetime boundaries.
+    """
+
+    tz = timezone.get_current_timezone()
+
+    start_dt = timezone.make_aware(
+        timezone.datetime.combine(
+            start_date,
+            timezone.datetime.min.time(),
+        ),
+        tz,
+    )
+
+    end_dt = timezone.make_aware(
+        timezone.datetime.combine(
+            end_date + timedelta(days=1),
+            timezone.datetime.min.time(),
+        ),
+        tz,
+    )
+
+    return start_dt, end_dt
+
+
+def _paid_orders(start_date, end_date):
+
+    start_dt, end_dt = (
+        _report_datetime_range(
+            start_date,
+            end_date,
+        )
+    )
+
+    return Order.objects.filter(
+        payment_status__in=[
+            "paid",
+            "partially_refunded",
+            "refunded",
+        ],
+        created_at__gte=start_dt,
+        created_at__lt=end_dt,
+    )
+
+
+@staff_member_required
+def admin_sales_export(request):
+    start_date, end_date = _report_dates(request)
+    orders = _paid_orders(start_date, end_date).select_related("user").order_by("created_at")
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="sales-{start_date}-to-{end_date}.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["Order number", "Date", "Customer", "Status", "Payment status", "Total"])
+    for order in orders:
+        writer.writerow([
+            order.order_number,
+            order.created_at.isoformat(),
+            order.full_name,
+            order.get_status_display(),
+            order.get_payment_status_display(),
+            order.total_amount,
+        ])
+    return response
+
+
+def generate_unique_product_slug(
+    name,
+    product_id=None,
+):
+
+    base_slug = slugify(name)
+
+    slug = base_slug
+
+    counter = 2
+
+    while True:
+
+        queryset = Product.objects.filter(
+            slug=slug
+        )
+
+        if product_id:
+            queryset = queryset.exclude(
+                pk=product_id
+            )
+
+        if not queryset.exists():
+            return slug
+
+        slug = f"{base_slug}-{counter}"
+
+        counter += 1
+
+
+@staff_member_required
+def admin_product_create(request):
+
+    if request.method == "POST":
+
+        form = AdminProductForm(
+            request.POST,
+            request.FILES,
+        )
+
+        if form.is_valid():
+
+            product = form.save(
+                commit=False
+            )
+
+            product.slug = (
+                generate_unique_product_slug(
+                    product.name
+                )
+            )
+
+            product.save()
+
+            messages.success(
+                request,
+                (
+                    f"{product.name} was "
+                    f"created successfully."
+                ),
+            )
+
+            return redirect(
+                "admin_product_detail",
+                pk=product.pk,
+            )
+
+    else:
+
+        form = AdminProductForm()
+
+    return render(
+        request,
+        "dashboard/admin/products/form.html",
+        {
+            "form": form,
+            "page_title": "Add Product",
+            "submit_text": "Create Product",
+        },
+    )
+
+
+@staff_member_required
+def admin_product_detail(request, pk):
+
+    product = get_object_or_404(
+        Product.objects
+        .select_related(
+            "category",
+            "brand",
+        )
+        .prefetch_related(
+            "images",
+            "variants",
+        ),
+        pk=pk,
+    )
+
+    context = {
+        "product": product,
+
+        "gallery_images": (
+            product.images.all()
+        ),
+
+        "variants": (
+            product.variants
+            .all()
+            .order_by("name")
+        ),
+    }
+
+    return render(
+        request,
+        "dashboard/admin/products/detail.html",
+        context,
+    )
+
+
+@staff_member_required
+def admin_product_edit(request, pk):
+
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+    )
+
+    old_name = product.name
+
+    if request.method == "POST":
+
+        form = AdminProductForm(
+            request.POST,
+            request.FILES,
+            instance=product,
+        )
+
+        if form.is_valid():
+
+            product = form.save(
+                commit=False
+            )
+
+            # Keep URLs stable unless the name
+            # actually changes.
+            if product.name != old_name:
+
+                product.slug = (
+                    generate_unique_product_slug(
+                        product.name,
+                        product.pk,
+                    )
+                )
+
+            product.save()
+
+            messages.success(
+                request,
+                (
+                    f"{product.name} was "
+                    f"updated successfully."
+                ),
+            )
+
+            return redirect(
+                "admin_product_detail",
+                pk=product.pk,
+            )
+
+    else:
+
+        form = AdminProductForm(
+            instance=product
+        )
+
+    return render(
+        request,
+        "dashboard/admin/products/form.html",
+        {
+            "form": form,
+            "product": product,
+            "page_title": "Edit Product",
+            "submit_text": "Save Changes",
+        },
+    )
+
+
+@staff_member_required
+def admin_product_toggle_active(
+    request,
+    pk,
+):
+
+    if request.method != "POST":
+
+        return redirect(
+            "admin_product_detail",
+            pk=pk,
+        )
+
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+    )
+
+    product.is_active = (
+        not product.is_active
+    )
+
+    product.save(
+        update_fields=[
+            "is_active",
+            "updated_at",
+        ]
+    )
+
+    if product.is_active:
+
+        messages.success(
+            request,
+            f"{product.name} is now active.",
+        )
+
+    else:
+
+        messages.warning(
+            request,
+            (
+                f"{product.name} has been "
+                f"hidden from the storefront."
+            ),
+        )
+
+    return redirect(
+        "admin_product_detail",
+        pk=product.pk,
+    )
+
+
+@staff_member_required
+def admin_product_toggle_featured(
+    request,
+    pk,
+):
+
+    if request.method != "POST":
+
+        return redirect(
+            "admin_product_detail",
+            pk=pk,
+        )
+
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+    )
+
+    product.featured = (
+        not product.featured
+    )
+
+    product.save(
+        update_fields=[
+            "featured",
+            "updated_at",
+        ]
+    )
+
+    messages.success(
+        request,
+        (
+            f"{product.name} featured status "
+            f"was updated."
+        ),
+    )
+
+    return redirect(
+        "admin_product_detail",
+        pk=product.pk,
+    )
+
+
+@staff_member_required
+def admin_product_list(request):
+
+    products = (
+        Product.objects
+        .select_related(
+            "category",
+            "brand",
+        )
+        .prefetch_related(
+            "variants",
+            "images",
+        )
+        .order_by("-created_at")
+    )
+
+    # ---------------------------------------------------------
+    # SEARCH
+    # ---------------------------------------------------------
+
+    query = request.GET.get(
+        "q",
+        "",
+    ).strip()
+
+    if query:
+
+        products = products.filter(
+            Q(name__icontains=query)
+            | Q(sku__icontains=query)
+            | Q(category__name__icontains=query)
+            | Q(brand__name__icontains=query)
+        )
+
+    # ---------------------------------------------------------
+    # CATEGORY
+    # ---------------------------------------------------------
+
+    category_id = request.GET.get(
+        "category",
+        "",
+    )
+
+    if category_id.isdigit():
+
+        products = products.filter(
+            category_id=category_id
+        )
+
+    # ---------------------------------------------------------
+    # BRAND
+    # ---------------------------------------------------------
+
+    brand_id = request.GET.get(
+        "brand",
+        "",
+    )
+
+    if brand_id.isdigit():
+
+        products = products.filter(
+            brand_id=brand_id
+        )
+
+    # ---------------------------------------------------------
+    # STATUS
+    # ---------------------------------------------------------
+
+    status = request.GET.get(
+        "status",
+        "",
+    )
+
+    if status == "active":
+
+        products = products.filter(
+            is_active=True
+        )
+
+    elif status == "inactive":
+
+        products = products.filter(
+            is_active=False
+        )
+
+    # ---------------------------------------------------------
+    # FEATURED
+    # ---------------------------------------------------------
+
+    featured = request.GET.get(
+        "featured",
+        "",
+    )
+
+    if featured == "yes":
+
+        products = products.filter(
+            featured=True
+        )
+
+    # ---------------------------------------------------------
+    # STOCK FILTER
+    # ---------------------------------------------------------
+
+    stock_status = request.GET.get(
+        "stock",
+        "",
+    )
+
+    if stock_status == "out":
+
+        products = products.filter(
+            stock__lte=F("reserved_stock")
+        )
+
+    elif stock_status == "available":
+
+        products = products.filter(
+            stock__gt=F("reserved_stock")
+        )
+
+    # ---------------------------------------------------------
+    # COUNTS
+    # ---------------------------------------------------------
+
+    all_products = Product.objects.all()
+
+    counts = {
+        "all": all_products.count(),
+
+        "active": all_products.filter(
+            is_active=True
+        ).count(),
+
+        "inactive": all_products.filter(
+            is_active=False
+        ).count(),
+
+        "featured": all_products.filter(
+            featured=True,
+            is_active=True,
+        ).count(),
+
+        "out_of_stock": all_products.filter(
+            stock__lte=F("reserved_stock")
+        ).count(),
+    }
+
+    # Low stock is based on AVAILABLE stock,
+    # which is calculated in Python by your model.
+
+    low_stock_count = sum(
+        1
+        for product in all_products
+        if (
+            product.is_active
+            and 0 < product.available_stock <= 5
+        )
+    )
+
+    counts["low_stock"] = low_stock_count
+
+    # ---------------------------------------------------------
+    # PAGINATION
+    # ---------------------------------------------------------
+
+    paginator = Paginator(
+        products,
+        20,
+    )
+
+    page_obj = paginator.get_page(
+        request.GET.get("page")
+    )
+
+    context = {
+
+        "products": page_obj.object_list,
+
+        "page_obj": page_obj,
+
+        "counts": counts,
+
+        "categories": (
+            Category.objects
+            .all()
+            .order_by("name")
+        ),
+
+        "brands": (
+            Brand.objects
+            .all()
+            .order_by("name")
+        ),
+
+        "query": query,
+
+        "selected_category": category_id,
+
+        "selected_brand": brand_id,
+
+        "selected_status": status,
+
+        "selected_featured": featured,
+
+        "selected_stock": stock_status,
+    }
+
+    return render(
+        request,
+        "dashboard/admin/products/list.html",
+        context,
+    )
+
+
+@staff_member_required
+def admin_order_list(request):
+
+    orders = (
+        Order.objects
+        .select_related("user")
+        .prefetch_related("items", "mpesa_transactions")
+        .order_by("-created_at")
+    )
+
+    # ---------------------------------------------------------
+    # SEARCH
+    # ---------------------------------------------------------
+
+    query = request.GET.get("q", "").strip()
+
+    if query:
+        orders = orders.filter(
+            Q(order_number__icontains=query)
+            | Q(full_name__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(email__icontains=query)
+            | Q(tracking_number__icontains=query)
+            | Q(mpesa_transactions__mpesa_receipt_number__icontains=query)
+        ).distinct()
+
+    # ---------------------------------------------------------
+    # ORDER STATUS FILTER
+    # ---------------------------------------------------------
+
+    status = request.GET.get("status", "").strip()
+
+    valid_statuses = dict(Order.STATUS_CHOICES)
+
+    if status in valid_statuses:
+        orders = orders.filter(status=status)
+
+    # ---------------------------------------------------------
+    # PAYMENT FILTER
+    # ---------------------------------------------------------
+
+    payment_status = request.GET.get(
+        "payment_status",
+        "",
+    ).strip()
+
+    valid_payment_statuses = dict(
+        Order.PAYMENT_STATUS_CHOICES
+    )
+
+    if payment_status in valid_payment_statuses:
+        orders = orders.filter(
+            payment_status=payment_status
+        )
+
+    # ---------------------------------------------------------
+    # DATE FILTERS
+    # ---------------------------------------------------------
+
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+
+    if start_date:
+        orders = orders.filter(
+            created_at__date__gte=start_date
+        )
+
+    if end_date:
+        orders = orders.filter(
+            created_at__date__lte=end_date
+        )
+
+    # ---------------------------------------------------------
+    # COUNTS
+    # ---------------------------------------------------------
+
+    all_orders = Order.objects.all()
+
+    counts = {
+        "all": all_orders.count(),
+
+        "pending": all_orders.filter(
+            status="pending"
+        ).count(),
+
+        "confirmed": all_orders.filter(
+            status="confirmed"
+        ).count(),
+
+        "processing": all_orders.filter(
+            status="processing"
+        ).count(),
+
+        "shipped": all_orders.filter(
+            status="shipped"
+        ).count(),
+
+        "delivered": all_orders.filter(
+            status="delivered"
+        ).count(),
+
+        "cancelled": all_orders.filter(
+            status="cancelled"
+        ).count(),
+    }
+
+    # ---------------------------------------------------------
+    # PAGINATION
+    # ---------------------------------------------------------
+
+    paginator = Paginator(orders, 20)
+
+    page_number = request.GET.get("page")
+
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "page_obj": page_obj,
+        "orders": page_obj.object_list,
+
+        "query": query,
+        "selected_status": status,
+        "selected_payment_status": payment_status,
+
+        "start_date": start_date,
+        "end_date": end_date,
+
+        "counts": counts,
+
+        "status_choices": Order.STATUS_CHOICES,
+        "payment_status_choices": Order.PAYMENT_STATUS_CHOICES,
+    }
+
+    return render(
+        request,
+        "dashboard/admin/orders/list.html",
+        context,
+    )
+
+
+@staff_member_required
+def admin_order_detail(request, order_number):
+
+    order = get_object_or_404(
+        Order.objects
+        .select_related("user", "coupon")
+        .prefetch_related(
+            "items__product",
+            "items__variant",
+            "mpesa_transactions",
+            "refund_requests",
+            "return_requests",
+        ),
+        order_number=order_number,
+    )
+
+    latest_payment = (
+        order.mpesa_transactions
+        .order_by("-created_at")
+        .first()
+    )
+
+    shipping_form = AdminOrderShippingForm(
+        instance=order
+    )
+
+    context = {
+        "order": order,
+        "items": order.items.all(),
+        "latest_payment": latest_payment,
+        "shipping_form": shipping_form,
+        "refund_requests": order.refund_requests.all(),
+        "return_requests": order.return_requests.all(),
+    }
+
+    return render(
+        request,
+        "dashboard/admin/orders/detail.html",
+        context,
+    )
+
+
+ORDER_SETTLED_PAYMENT_STATUSES = {
+    "paid",
+    "partially_refunded",
+    "refunded",
+}
+
+
+def _allowed_order_transitions(order):
+
+    transitions = {
+        "pending": [],
+        "confirmed": ["processing"],
+        "processing": ["shipped"],
+        "shipped": ["delivered"],
+        "delivered": [],
+        "cancelled": [],
+    }
+
+    allowed = transitions.get(
+        order.status,
+        [],
+    ).copy()
+
+    # Unpaid pending orders may be cancelled.
+    if (
+        order.status == "pending"
+        and order.payment_status == "pending"
+    ):
+        allowed.append("cancelled")
+
+    return allowed
+
+
+@staff_member_required
+def admin_order_update_status(
+    request,
+    order_number,
+):
+
+    if request.method != "POST":
+        return redirect(
+            "admin_order_detail",
+            order_number=order_number,
+        )
+
+    requested_status = request.POST.get(
+        "status",
+        "",
+    ).strip()
+
+    with transaction.atomic():
+
+        order = get_object_or_404(
+            Order.objects.select_for_update(),
+            order_number=order_number,
+        )
+
+        allowed = _allowed_order_transitions(
+            order
+        )
+
+        if requested_status not in allowed:
+
+            messages.error(
+                request,
+                (
+                    f"Order cannot move from "
+                    f"{order.get_status_display()} "
+                    f"to {requested_status.title()}."
+                ),
+            )
+
+            return redirect(
+                "admin_order_detail",
+                order_number=order.order_number,
+            )
+
+        # -----------------------------------------------------
+        # PROCESSING
+        # -----------------------------------------------------
+
+        if requested_status == "processing":
+
+            if order.payment_status not in ORDER_SETTLED_PAYMENT_STATUSES:
+
+                messages.error(
+                    request,
+                    "Only paid orders can be processed.",
+                )
+
+                return redirect(
+                    "admin_order_detail",
+                    order_number=order.order_number,
+                )
+
+        # -----------------------------------------------------
+        # SHIPPING
+        # -----------------------------------------------------
+
+        if requested_status == "shipped":
+
+            if not order.courier.strip():
+
+                messages.error(
+                    request,
+                    "Add the courier before marking this order as shipped.",
+                )
+
+                return redirect(
+                    "admin_order_detail",
+                    order_number=order.order_number,
+                )
+
+            if not order.tracking_number.strip():
+
+                messages.error(
+                    request,
+                    "Add a tracking number before shipping.",
+                )
+
+                return redirect(
+                    "admin_order_detail",
+                    order_number=order.order_number,
+                )
+
+        # -----------------------------------------------------
+        # DELIVERED
+        # -----------------------------------------------------
+
+        if requested_status == "delivered":
+
+            if order.payment_status not in ORDER_SETTLED_PAYMENT_STATUSES:
+
+                messages.error(
+                    request,
+                    "An unpaid order cannot be marked as delivered.",
+                )
+
+                return redirect(
+                    "admin_order_detail",
+                    order_number=order.order_number,
+                )
+
+        # -----------------------------------------------------
+        # CANCEL UNPAID ORDER
+        # -----------------------------------------------------
+
+        if requested_status == "cancelled":
+
+            if order.payment_status != "pending":
+
+                messages.error(
+                    request,
+                    (
+                        "Paid orders cannot be directly cancelled. "
+                        "Use the refund workflow."
+                    ),
+                )
+
+                return redirect(
+                    "admin_order_detail",
+                    order_number=order.order_number,
+                )
+
+            release_order_inventory(order)
+
+        order.status = requested_status
+
+        order.save(
+            update_fields=[
+                "status",
+                "updated_at",
+            ]
+        )
+
+    messages.success(
+        request,
+        (
+            f"Order {order.order_number} is now "
+            f"{order.get_status_display()}."
+        ),
+    )
+
+    return redirect(
+        "admin_order_detail",
+        order_number=order.order_number,
+    )
+
+
+@staff_member_required
+def admin_order_update_shipping(
+    request,
+    order_number,
+):
+
+    if request.method != "POST":
+        return redirect(
+            "admin_order_detail",
+            order_number=order_number,
+        )
+
+    order = get_object_or_404(
+        Order,
+        order_number=order_number,
+    )
+
+    if order.status in [
+        "delivered",
+        "cancelled",
+    ]:
+
+        messages.error(
+            request,
+            "Shipping information cannot be changed for this order.",
+        )
+
+        return redirect(
+            "admin_order_detail",
+            order_number=order.order_number,
+        )
+
+    form = AdminOrderShippingForm(
+        request.POST,
+        instance=order,
+    )
+
+    if form.is_valid():
+
+        form.save()
+
+        messages.success(
+            request,
+            "Delivery information updated.",
+        )
+
+    else:
+
+        messages.error(
+            request,
+            "Please correct the delivery information.",
+        )
+
+    return redirect(
+        "admin_order_detail",
+        order_number=order.order_number,
+    )
+
+@staff_member_required
+def admin_product_gallery(
+    request,
+    pk,
+):
+
+    product = get_object_or_404(
+        Product.objects.prefetch_related(
+            "images"
+        ),
+        pk=pk,
+    )
+
+    if request.method == "POST":
+
+        form = AdminProductGalleryForm(
+            request.POST,
+            request.FILES,
+        )
+
+        if form.is_valid():
+
+            uploaded_images = (
+                form.cleaned_data["images"]
+            )
+
+            for image in uploaded_images:
+
+                ProductImage.objects.create(
+                    product=product,
+                    image=image,
+                    alt_text=product.name,
+                )
+
+            messages.success(
+                request,
+                (
+                    f"{len(uploaded_images)} "
+                    "gallery image(s) uploaded."
+                ),
+            )
+
+            return redirect(
+                "admin_product_gallery",
+                pk=product.pk,
+            )
+
+    else:
+
+        form = AdminProductGalleryForm()
+
+    return render(
+        request,
+        (
+            "dashboard/admin/products/"
+            "gallery.html"
+        ),
+        {
+            "product": product,
+            "form": form,
+            "gallery_images": (
+                product.images.all()
+            ),
+        },
+    )
+
+
+@staff_member_required
+def admin_product_gallery_delete(
+    request,
+    pk,
+    image_id,
+):
+
+    if request.method != "POST":
+
+        return redirect(
+            "admin_product_gallery",
+            pk=pk,
+        )
+
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+    )
+
+    image = get_object_or_404(
+        ProductImage,
+        pk=image_id,
+        product=product,
+    )
+
+    image_file = image.image
+
+    image.delete()
+
+    # Delete physical file only after
+    # database row has been removed.
+    if image_file:
+        try:
+            image_file.delete(
+                save=False
+            )
+        except Exception:
+            pass
+
+    messages.success(
+        request,
+        "Gallery image removed.",
+    )
+
+    return redirect(
+        "admin_product_gallery",
+        pk=product.pk,
+    )
+
+
+@staff_member_required
+def admin_product_variant_create(
+    request,
+    pk,
+):
+
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+    )
+
+    if request.method == "POST":
+
+        form = AdminProductVariantForm(
+            request.POST
+        )
+
+        if form.is_valid():
+
+            variant = form.save(
+                commit=False
+            )
+
+            variant.product = product
+
+            variant.save()
+
+            messages.success(
+                request,
+                (
+                    f"Variant "
+                    f"{variant.name} created."
+                ),
+            )
+
+            return redirect(
+                "admin_product_detail",
+                pk=product.pk,
+            )
+
+    else:
+
+        form = AdminProductVariantForm()
+
+    return render(
+        request,
+        (
+            "dashboard/admin/products/"
+            "variant_form.html"
+        ),
+        {
+            "product": product,
+            "form": form,
+            "page_title": (
+                "Add Product Variant"
+            ),
+            "submit_text": (
+                "Create Variant"
+            ),
+        },
+    )
+
+
+@staff_member_required
+def admin_product_variant_edit(
+    request,
+    pk,
+    variant_id,
+):
+
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+    )
+
+    variant = get_object_or_404(
+        ProductVariant,
+        pk=variant_id,
+        product=product,
+    )
+
+    if request.method == "POST":
+
+        form = AdminProductVariantForm(
+            request.POST,
+            instance=variant,
+        )
+
+        if form.is_valid():
+
+            variant = form.save()
+
+            messages.success(
+                request,
+                (
+                    f"Variant "
+                    f"{variant.name} updated."
+                ),
+            )
+
+            return redirect(
+                "admin_product_detail",
+                pk=product.pk,
+            )
+
+    else:
+
+        form = AdminProductVariantForm(
+            instance=variant
+        )
+
+    return render(
+        request,
+        (
+            "dashboard/admin/products/"
+            "variant_form.html"
+        ),
+        {
+            "product": product,
+            "variant": variant,
+            "form": form,
+            "page_title": (
+                "Edit Product Variant"
+            ),
+            "submit_text": (
+                "Save Variant"
+            ),
+        },
+    )
+
+
+@staff_member_required
+def admin_product_variant_toggle(
+    request,
+    pk,
+    variant_id,
+):
+
+    if request.method != "POST":
+
+        return redirect(
+            "admin_product_detail",
+            pk=pk,
+        )
+
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+    )
+
+    variant = get_object_or_404(
+        ProductVariant,
+        pk=variant_id,
+        product=product,
+    )
+
+    if (
+        variant.is_active
+        and variant.reserved_stock > 0
+    ):
+
+        messages.error(
+            request,
+            (
+                "This variant currently has "
+                "reserved stock and cannot "
+                "be hidden yet."
+            ),
+        )
+
+        return redirect(
+            "admin_product_detail",
+            pk=product.pk,
+        )
+
+    variant.is_active = (
+        not variant.is_active
+    )
+
+    variant.save(
+        update_fields=[
+            "is_active",
+        ]
+    )
+
+    messages.success(
+        request,
+        (
+            f"{variant.name} is now "
+            f"{'active' if variant.is_active else 'hidden'}."
+        ),
+    )
+
+    return redirect(
+        "admin_product_detail",
+        pk=product.pk,
+    )
+
+
+@staff_member_required
+def admin_product_variant_archive(
+    request,
+    pk,
+    variant_id,
+):
+
+    if request.method != "POST":
+
+        return redirect(
+            "admin_product_detail",
+            pk=pk,
+        )
+
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+    )
+
+    variant = get_object_or_404(
+        ProductVariant,
+        pk=variant_id,
+        product=product,
+    )
+
+    if variant.reserved_stock > 0:
+
+        messages.error(
+            request,
+            (
+                "This variant cannot be "
+                "archived because some units "
+                "are reserved by pending orders."
+            ),
+        )
+
+        return redirect(
+            "admin_product_detail",
+            pk=product.pk,
+        )
+
+    # We intentionally DO NOT delete the row.
+    # OrderItem.variant uses PROTECT and old
+    # order history must remain valid.
+    variant.is_active = False
+
+    variant.save(
+        update_fields=[
+            "is_active",
+        ]
+    )
+
+    messages.warning(
+        request,
+        (
+            f"{variant.name} was archived "
+            "and hidden from customers."
+        ),
+    )
+
+    return redirect(
+        "admin_product_detail",
+        pk=product.pk,
+    )
+
+
+
+# ============================================================
+# CATALOG MANAGEMENT
+# ============================================================
+
+from .catalog_views import (
+    admin_category_list,
+    admin_category_create,
+    admin_category_edit,
+    admin_category_toggle,
+    admin_brand_list,
+    admin_brand_create,
+    admin_brand_edit,
+    admin_brand_toggle,
+)

@@ -1,3 +1,5 @@
+from accounts.store_roles import STORE_OWNER
+from django.contrib.auth.models import Group
 from decimal import Decimal
 
 from django.contrib.auth import (
@@ -30,6 +32,14 @@ class AdminPaymentTests(TestCase):
                 is_staff=True,
                 is_active=True,
             )
+        )
+
+        store_owner_group, _ = Group.objects.get_or_create(
+            name=STORE_OWNER,
+        )
+
+        self.staff.groups.add(
+            store_owner_group
         )
 
         self.customer = (

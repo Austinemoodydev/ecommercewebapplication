@@ -1,3 +1,5 @@
+from accounts.store_roles import STORE_OWNER
+from django.contrib.auth.models import Group
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -72,6 +74,14 @@ class Phase12DFinancialReportTests(
                 email="admin@example.com",
                 is_staff=True,
             )
+        )
+
+        store_owner_group, _ = Group.objects.get_or_create(
+            name=STORE_OWNER,
+        )
+
+        self.staff.groups.add(
+            store_owner_group
         )
 
 

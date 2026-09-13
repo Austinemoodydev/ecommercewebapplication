@@ -1,16 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 body {
-    background: #f4f1e9;
-    color: #17211b;
+    background: #F8FAFC;
+    color: #0F172A;
     font-family: 'DM Sans', sans-serif;
 }
 
 .card {
     border-radius: 1rem;
-    background: #fffdf8;
-    border: 1px solid #deded2 !important;
-    box-shadow: 0 22px 55px rgba(23, 33, 27, .12) !important;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 22px 55px rgba(15, 23, 42, .12) !important;
 }
 
 h1,
@@ -23,12 +23,13 @@ input,
 select,
 textarea {
     border-radius: .55rem !important;
-    border-color: #cfd5ca !important;
+    border-color: #CBD5E1 !important;
     padding: .7rem .85rem !important;
 }
 
-button {
-    border-radius: 999px !important;
+button,
+.btn {
+    border-radius: .65rem !important;
     font-weight: 700;
 }
 
@@ -39,7 +40,35 @@ button {
 }
 
 a {
-    color: #1f6f5b;
+    color: #3B82F6;
     text-decoration: none;
     font-weight: 600;
+}
+
+.form-label {
+    color: #334155;
+    font-weight: 600;
+    margin-bottom: .45rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 .2rem rgba(59, 130, 246, .12);
+}
+
+.btn-primary {
+    background: #3B82F6;
+    border-color: #3B82F6;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background: #2563EB;
+    border-color: #2563EB;
+}
+
+.auth-note {
+    color: #64748B;
+    font-size: .875rem;
 }

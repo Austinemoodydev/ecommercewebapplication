@@ -1,0 +1,160 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+{{ title }}
+{% endblock %}
+
+{% block page_heading %}
+{{ title }}
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container-fluid py-3">
+
+    <div class="row justify-content-center">
+
+        <div class="col-xl-7 col-lg-8">
+
+            <div
+                class="card border-0 shadow-sm"
+            >
+
+                <div class="card-body p-4">
+
+                    <div class="mb-4">
+
+                        <h3 class="mb-1">
+                            {{ title }}
+                        </h3>
+
+                        <p class="text-muted mb-0">
+
+                            Staff permissions are controlled
+                            by the selected role.
+
+                        </p>
+
+                    </div>
+
+
+                    <form method="post">
+
+                        {% csrf_token %}
+
+
+                        {% if form.non_field_errors %}
+
+                            <div
+                                class="alert alert-danger"
+                            >
+
+                                {{ form.non_field_errors }}
+
+                            </div>
+
+                        {% endif %}
+
+
+                        {% for field in form %}
+
+                            <div class="mb-3">
+
+                                {% if field.field.widget.input_type == "checkbox" %}
+
+                                    <div class="form-check">
+
+                                        {{ field }}
+
+                                        <label
+                                            class="form-check-label"
+                                            for="{{ field.id_for_label }}"
+                                        >
+
+                                            {{ field.label }}
+
+                                        </label>
+
+                                    </div>
+
+                                {% else %}
+
+                                    <label
+                                        class="form-label"
+                                        for="{{ field.id_for_label }}"
+                                    >
+
+                                        {{ field.label }}
+
+                                    </label>
+
+                                    {{ field }}
+
+                                {% endif %}
+
+
+                                {% if field.help_text %}
+
+                                    <div
+                                        class="form-text"
+                                    >
+                                        {{ field.help_text|safe }}
+                                    </div>
+
+                                {% endif %}
+
+
+                                {% for error in field.errors %}
+
+                                    <div
+                                        class="text-danger small mt-1"
+                                    >
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+                        {% endfor %}
+
+
+                        <div
+                            class="d-flex gap-2 mt-4"
+                        >
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+
+                                {{ submit_label }}
+
+                            </button>
+
+
+                            <a
+                                href="{% url 'staff_manage_list' %}"
+                                class="btn btn-outline-secondary"
+                            >
+
+                                Cancel
+
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

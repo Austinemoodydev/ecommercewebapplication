@@ -3,7 +3,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
+from accounts.staff_auth import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -18,6 +18,7 @@ from categories.models import Category
 from orders.inventory import release_order_inventory
 from orders.models import Order, OrderItem
 from products.models import Brand, Product, ProductImage, ProductVariant
+from wishlist.models import Wishlist
 
 from .forms import (
     AdminOrderShippingForm,
@@ -31,7 +32,31 @@ from payments.models import MpesaTransaction, RefundRequest, ReturnRequest
 
 @login_required
 def dashboard(request):
-    return render(request, "dashboard/dashboard.html")
+
+    orders = (
+        Order.objects
+        .filter(user=request.user)
+        .order_by("-created_at")
+    )
+
+    context = {
+        "orders_count": orders.count(),
+        "wishlist_count_dashboard": (
+            Wishlist.objects
+            .filter(user=request.user)
+            .count()
+        ),
+        "addresses_count": (
+            request.user.addresses.count()
+        ),
+        "recent_orders": orders[:5],
+    }
+
+    return render(
+        request,
+        "dashboard/dashboard.html",
+        context,
+    )
 
 
 @login_required

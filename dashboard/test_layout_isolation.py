@@ -1,3 +1,5 @@
+from accounts.store_roles import STORE_OWNER
+from django.contrib.auth.models import Group
 from pathlib import Path
 
 from django.contrib.auth import (
@@ -27,6 +29,14 @@ class LayoutIsolationTests(
                 role=User.ADMIN,
                 is_staff=True,
             )
+        )
+
+        store_owner_group, _ = Group.objects.get_or_create(
+            name=STORE_OWNER,
+        )
+
+        self.staff.groups.add(
+            store_owner_group
         )
 
 

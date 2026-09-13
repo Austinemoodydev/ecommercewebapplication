@@ -1,0 +1,579 @@
+{% extends "dashboard/admin/base.html" %}
+
+
+{% block title %}
+Dashboard | Store Management
+{% endblock %}
+
+
+{% block page_heading %}
+Dashboard
+{% endblock %}
+
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div>
+        <h1>Store Dashboard</h1>
+
+        <p>
+            Welcome back,
+            {{ request.user.first_name|default:request.user.username }}.
+            Here's what is happening in your store.
+        </p>
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     MAIN KPI CARDS
+====================================================== -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-xl-3 col-md-6">
+
+        <div class="dashboard-card stat-card">
+
+            <div class="stat-icon">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+
+            <div>
+                <span class="stat-label">
+                    Today's Revenue
+                </span>
+
+                <h3>
+                    KES {{ today_revenue|floatformat:2 }}
+                </h3>
+
+                <small>
+                    {{ today_orders_count }} orders today
+                </small>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-3 col-md-6">
+
+        <div class="dashboard-card stat-card">
+
+            <div class="stat-icon">
+                <i class="bi bi-bag-check"></i>
+            </div>
+
+            <div>
+                <span class="stat-label">
+                    Open Orders
+                </span>
+
+                <h3>
+                    {{ open_orders_count }}
+                </h3>
+
+                <small>
+                    {{ pending_orders }} waiting confirmation
+                </small>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-3 col-md-6">
+
+        <div class="dashboard-card stat-card">
+
+            <div class="stat-icon">
+                <i class="bi bi-people"></i>
+            </div>
+
+            <div>
+                <span class="stat-label">
+                    Customers
+                </span>
+
+                <h3>
+                    {{ total_customers }}
+                </h3>
+
+                <small>
+                    +{{ new_customers_today }} today
+                </small>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-3 col-md-6">
+
+        <div class="dashboard-card stat-card">
+
+            <div class="stat-icon">
+                <i class="bi bi-box-seam"></i>
+            </div>
+
+            <div>
+                <span class="stat-label">
+                    Products
+                </span>
+
+                <h3>
+                    {{ total_products }}
+                </h3>
+
+                <small>
+                    {{ low_stock_count }} low stock
+                </small>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     ATTENTION CARDS
+====================================================== -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-lg-3 col-md-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Processing</span>
+
+            <strong>
+                {{ processing_orders }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-3 col-md-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Shipped</span>
+
+            <strong>
+                {{ shipped_orders }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-3 col-md-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Failed Payments</span>
+
+            <strong>
+                {{ failed_payments }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-3 col-md-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>Returns / Refunds</span>
+
+            <strong>
+                {{ pending_returns|add:pending_refunds }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-3 col-md-6">
+
+        <div class="dashboard-card mini-stat">
+
+            <span>
+                Payment Reviews
+            </span>
+
+            <strong>
+                {{ payment_review_count }}
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     RECENT ORDERS
+====================================================== -->
+
+<div class="row g-4">
+
+    <div class="col-xl-8">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Recent Orders</h2>
+                    <p>Latest orders received by your store.</p>
+                </div>
+
+    href="{% url 'admin_order_list' %}"
+    class="btn btn-sm btn-primary"
+>
+    View All
+</a>
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table align-middle dashboard-table">
+
+                    <thead>
+
+                    <tr>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Payment</th>
+                        <th>Total</th>
+                    </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                    {% for order in recent_orders %}
+
+                    <tr>
+
+                        <td>
+                            
+
+    href="{% url 'admin_order_detail' order.order_number %}"
+    class="text-decoration-none fw-bold"
+>
+    {{ order.order_number }}
+</a>
+                            <small class="d-block text-muted">
+                                {{ order.created_at|date:"d M Y H:i" }}
+                            </small>
+                        </td>
+
+
+                        <td>
+                            {{ order.full_name }}
+
+                            <small class="d-block text-muted">
+                                {{ order.phone }}
+                            </small>
+                        </td>
+
+
+                        <td>
+
+                            <span class="status-badge status-{{ order.status }}">
+                                {{ order.get_status_display }}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            {% if order.payment_status == "paid" %}
+
+                                <span class="badge text-bg-success">
+                                    Paid
+                                </span>
+
+                            {% elif order.payment_status == "failed" %}
+
+                                <span class="badge text-bg-danger">
+                                    Failed
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-warning">
+                                    {{ order.get_payment_status_display }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            KES {{ order.total_amount|floatformat:2 }}
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            class="text-center py-5 text-muted"
+                        >
+                            No orders have been placed yet.
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ==================================================
+         LOW STOCK
+    =================================================== -->
+
+    <div class="col-xl-4">
+
+        <div class="dashboard-card mb-4">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Low Stock</h2>
+
+                    <p>
+                        Products requiring attention.
+                    </p>
+                </div>
+
+            </div>
+
+
+            {% for product in low_stock_products %}
+
+                <div class="stock-item">
+
+                    <div>
+
+                        <strong>
+                            {{ product.name }}
+                        </strong>
+
+                        <small>
+                            {{ product.sku }}
+                        </small>
+
+                    </div>
+
+                    <span class="stock-count">
+                        {{ product.available_stock }} left
+                    </span>
+
+                </div>
+
+            {% empty %}
+
+                <div class="text-muted py-3">
+                    Stock levels look good.
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- MONTH SALES -->
+
+        <div class="dashboard-card">
+
+            <span class="stat-label">
+                Revenue This Month
+            </span>
+
+            <h2 class="mt-2">
+                KES {{ month_revenue|floatformat:2 }}
+            </h2>
+
+            <p class="text-muted mb-0">
+                Paid orders since the beginning of this month.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     TOP PRODUCTS / PAYMENTS
+====================================================== -->
+
+<div class="row g-4 mt-1">
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Top Products</h2>
+                    <p>Best selling products this month.</p>
+                </div>
+
+            </div>
+
+
+            {% for product in top_products %}
+
+                <div class="list-row">
+
+                    <div>
+
+                        <strong>
+                            {{ product.product_name }}
+                        </strong>
+
+                        <small>
+                            {{ product.units_sold }} units sold
+                        </small>
+
+                    </div>
+
+
+                    <strong>
+                        KES {{ product.revenue|floatformat:2 }}
+                    </strong>
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No paid sales this month.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card">
+
+            <div class="card-header-custom">
+
+                <div>
+                    <h2>Recent M-Pesa Payments</h2>
+                    <p>Latest payment transactions.</p>
+                </div>
+
+            </div>
+
+
+            {% for payment in recent_payments %}
+
+                <div class="list-row">
+
+                    <div>
+
+                        <strong>
+                            {{ payment.phone_number }}
+                        </strong>
+
+                        <small>
+                            {{ payment.order.order_number }}
+                        </small>
+
+                    </div>
+
+
+                    <div class="text-end">
+
+                        <strong>
+                            KES {{ payment.amount|floatformat:2 }}
+                        </strong>
+
+                        <small class="d-block">
+
+                            {% if payment.status == "success" %}
+
+                                <span class="text-success">
+                                    Successful
+                                </span>
+
+                            {% elif payment.status == "failed" %}
+
+                                <span class="text-danger">
+                                    Failed
+                                </span>
+
+                            {% else %}
+
+                                {{ payment.get_status_display }}
+
+                            {% endif %}
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No payment transactions yet.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

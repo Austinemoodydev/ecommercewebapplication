@@ -1,22 +1,257 @@
-{% extends 'accounts/auth_base.html' %}
+{% extends "accounts/auth_base.html" %}
 {% load socialaccount %}
-{% block title %}Create Account{% endblock %}
+
+{% block title %}
+Create account | OnlineShop
+{% endblock %}
+
+
 {% block content %}
-<form method="POST">
-{% csrf_token %}
-<div class="mb-3"><label>Username</label>{{ form.username }}</div>
-<div class="mb-3"><label>Email</label>{{ form.email }}</div>
-<div class="mb-3"><label>Phone</label>{{ form.phone }}</div>
-<div class="mb-3"><label>Password</label><div class="input-group">{{ form.password1 }}<button type="button" class="btn btn-outline-secondary" onclick="togglePassword('id_password1')"><i class="bi bi-eye"></i></button></div></div>
-<div class="mb-3"><label>Confirm Password</label><div class="input-group">{{ form.password2 }}<button type="button" class="btn btn-outline-secondary" onclick="togglePassword('id_password2')"><i class="bi bi-eye"></i></button></div></div>
-<div class="form-check mb-3"><input class="form-check-input" type="checkbox" required><label>I agree to the <a href="#">Terms &amp; Conditions</a></label></div>
-<button class="btn btn-primary w-100">Create Account</button>
-<hr>
-<div class="d-grid gap-2 mb-3">
-  <a class="btn btn-outline-danger" href="{% provider_login_url 'google' %}">Continue with Google</a>
-  <a class="btn btn-outline-primary" href="{% provider_login_url 'facebook' %}">Continue with Facebook</a>
-  <a class="btn btn-outline-dark" href="{% provider_login_url 'apple' %}">Continue with Apple</a>
+
+
+<div class="text-center mb-4">
+
+    <h3 class="mb-1">
+        Create your account
+    </h3>
+
+    <p class="text-muted mb-0">
+        Join OnlineShop for faster checkout,
+        order tracking and saved addresses.
+    </p>
+
 </div>
-<div class="text-center">Already have an account? <a href="{% url 'login' %}">Login</a></div>
+
+
+<form method="post">
+
+    {% csrf_token %}
+
+
+    {% if form.non_field_errors %}
+
+        <div class="alert alert-danger">
+
+            {% for error in form.non_field_errors %}
+
+                <div>
+                    {{ error }}
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="mb-3">
+
+        <label class="form-label">
+            Username
+        </label>
+
+        {{ form.username }}
+
+        {% for error in form.username.errors %}
+            <div class="text-danger small mt-1">
+                {{ error }}
+            </div>
+        {% endfor %}
+
+    </div>
+
+
+    <div class="mb-3">
+
+        <label class="form-label">
+            Email address
+        </label>
+
+        {{ form.email }}
+
+        {% for error in form.email.errors %}
+            <div class="text-danger small mt-1">
+                {{ error }}
+            </div>
+        {% endfor %}
+
+    </div>
+
+
+    <div class="mb-3">
+
+        <label class="form-label">
+            Phone
+        </label>
+
+        {{ form.phone }}
+
+        {% for error in form.phone.errors %}
+            <div class="text-danger small mt-1">
+                {{ error }}
+            </div>
+        {% endfor %}
+
+    </div>
+
+
+    <div class="mb-3">
+
+        <label class="form-label">
+            Password
+        </label>
+
+        <div class="input-group">
+
+            {{ form.password1 }}
+
+            <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="togglePassword('id_password1')"
+                aria-label="Show password"
+            >
+
+                <i class="bi bi-eye"></i>
+
+            </button>
+
+        </div>
+
+        {% for error in form.password1.errors %}
+            <div class="text-danger small mt-1">
+                {{ error }}
+            </div>
+        {% endfor %}
+
+    </div>
+
+
+    <div class="mb-3">
+
+        <label class="form-label">
+            Confirm password
+        </label>
+
+        <div class="input-group">
+
+            {{ form.password2 }}
+
+            <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="togglePassword('id_password2')"
+                aria-label="Show password"
+            >
+
+                <i class="bi bi-eye"></i>
+
+            </button>
+
+        </div>
+
+        {% for error in form.password2.errors %}
+            <div class="text-danger small mt-1">
+                {{ error }}
+            </div>
+        {% endfor %}
+
+    </div>
+
+
+    <div class="form-check mb-4">
+
+        <input
+            class="form-check-input"
+            type="checkbox"
+            id="termsAccepted"
+            required
+        >
+
+        <label
+            class="form-check-label"
+            for="termsAccepted"
+        >
+
+            I agree to the
+
+            <a
+                href="{% url 'terms' %}"
+                target="_blank"
+                rel="noopener"
+            >
+                Terms &amp; Conditions
+            </a>
+
+            and
+
+            <a
+                href="{% url 'privacy' %}"
+                target="_blank"
+                rel="noopener"
+            >
+                Privacy Policy
+            </a>.
+
+        </label>
+
+    </div>
+
+
+    <button
+        type="submit"
+        class="btn btn-primary w-100 py-2"
+    >
+
+        Create account
+
+    </button>
+
 </form>
+
+
+<div
+    class="d-flex align-items-center my-4"
+>
+
+    <hr class="flex-grow-1">
+
+    <span class="text-muted small px-3">
+        OR
+    </span>
+
+    <hr class="flex-grow-1">
+
+</div>
+
+
+<a
+    class="btn btn-outline-secondary w-100 py-2"
+    href="{% provider_login_url 'google' %}"
+>
+
+    <i class="bi bi-google me-2"></i>
+
+    Sign up with Google
+
+</a>
+
+
+<div class="text-center mt-4">
+
+    <span class="text-muted">
+        Already have an account?
+    </span>
+
+    <a
+        href="{% url 'login' %}"
+        class="ms-1 fw-semibold"
+    >
+        Sign in
+    </a>
+
+</div>
+
+
 {% endblock %}

@@ -1,3 +1,5 @@
+from accounts.store_roles import STORE_OWNER
+from django.contrib.auth.models import Group
 from datetime import timedelta
 from decimal import Decimal
 
@@ -36,6 +38,14 @@ class Phase14BAdminAbandonedCartTests(
                 password="pass12345",
                 is_staff=True,
             )
+        )
+
+        store_owner_group, _ = Group.objects.get_or_create(
+            name=STORE_OWNER,
+        )
+
+        self.staff.groups.add(
+            store_owner_group
         )
 
 

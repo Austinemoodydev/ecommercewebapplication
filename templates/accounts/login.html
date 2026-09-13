@@ -1,15 +1,171 @@
-{% extends "base.html" %}
+{% extends "accounts/auth_base.html" %}
 {% load socialaccount %}
+
+{% block title %}
+Sign in | OnlineShop
+{% endblock %}
+
+
 {% block content %}
-<div class="container py-5" style="max-width: 400px;">
-  <h2 class="mb-4">Login</h2>
-  <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit" class="btn btn-warning w-100">Login</button></form>
-  <p class="text-center mt-3"><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
-  <div class="text-center text-muted my-3">or continue with</div>
-  <div class="d-grid gap-2">
-    <a class="btn btn-outline-danger" href="{% provider_login_url 'google' %}">Continue with Google</a>
-    <a class="btn btn-outline-primary" href="{% provider_login_url 'facebook' %}">Continue with Facebook</a>
-    <a class="btn btn-outline-dark" href="{% provider_login_url 'apple' %}">Continue with Apple</a>
-  </div>
+
+
+<div class="text-center mb-4">
+
+    <h3 class="mb-1">
+        Welcome back
+    </h3>
+
+    <p class="text-muted mb-0">
+        Sign in to continue shopping,
+        track orders and manage your account.
+    </p>
+
 </div>
+
+
+<form method="post">
+
+    {% csrf_token %}
+
+
+    {% if form.non_field_errors %}
+
+        <div class="alert alert-danger">
+
+            {% for error in form.non_field_errors %}
+
+                <div>
+                    {{ error }}
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="mb-3">
+
+        <label
+            for="{{ form.username.id_for_label }}"
+            class="form-label"
+        >
+            Username
+        </label>
+
+        {{ form.username }}
+
+        {% for error in form.username.errors %}
+
+            <div class="text-danger small mt-1">
+                {{ error }}
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    <div class="mb-2">
+
+        <label
+            for="{{ form.password.id_for_label }}"
+            class="form-label"
+        >
+            Password
+        </label>
+
+        {{ form.password }}
+
+        {% for error in form.password.errors %}
+
+            <div class="text-danger small mt-1">
+                {{ error }}
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    <div class="text-end mb-4">
+
+        <a
+            href="{% url 'password_reset' %}"
+            class="small"
+        >
+            Forgot password?
+        </a>
+
+    </div>
+
+
+    {% if next %}
+
+        <input
+            type="hidden"
+            name="next"
+            value="{{ next }}"
+        >
+
+    {% endif %}
+
+
+    <button
+        type="submit"
+        class="btn btn-primary w-100 py-2"
+    >
+
+        Sign in
+
+    </button>
+
+</form>
+
+
+<div
+    class="d-flex align-items-center my-4"
+>
+
+    <hr class="flex-grow-1">
+
+    <span class="text-muted small px-3">
+        OR
+    </span>
+
+    <hr class="flex-grow-1">
+
+</div>
+
+
+<a
+    class="btn btn-outline-secondary w-100 py-2"
+    href="{% provider_login_url 'google' %}"
+>
+
+    <i class="bi bi-google me-2"></i>
+
+    Continue with Google
+
+</a>
+
+
+<div
+    class="text-center mt-4"
+>
+
+    <span class="text-muted">
+        New to OnlineShop?
+    </span>
+
+    <a
+        href="{% url 'register' %}"
+        class="ms-1 fw-semibold"
+    >
+        Create an account
+    </a>
+
+</div>
+
 {% endblock %}

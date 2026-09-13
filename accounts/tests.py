@@ -95,5 +95,5 @@ class LoginRedirectTests(TestCase):
 			"password": "test-password",
 		})
 
-		self.assertEqual(settings.LOGIN_REDIRECT_URL, "/")
-		self.assertRedirects(response, reverse("home"))
+		self.assertEqual(settings.LOGIN_REDIRECT_URL, "/shop/")
+		self.assertRedirects(response, reverse("shop"))

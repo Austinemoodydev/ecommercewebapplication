@@ -163,7 +163,7 @@ def change_delivery_status(
         "collected",
     ]:
 
-        if order.payment_status not in SETTLED_DELIVERY_PAYMENT_STATUSES:
+        if order.payment_status not in FULFILLABLE_PAYMENT_STATUSES:
 
             raise ValidationError(
                 (

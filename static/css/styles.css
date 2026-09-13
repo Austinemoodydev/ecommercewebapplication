@@ -1,14 +1,14 @@
 :root {
-    --ink: #17211b;
-    --muted: #68736b;
-    --brand: #1f6f5b;
-    --brand-dark: #144b3f;
-    --accent: #e1a744;
-    --coral: #d96c4f;
-    --surface: #fffdf8;
-    --canvas: #f4f1e9;
-    --line: #deded2;
-    --shadow: 0 18px 45px rgba(23, 33, 27, .09);
+    --ink: #0F172A;
+    --muted: #64748B;
+    --brand: #3B82F6;
+    --brand-dark: #2563EB;
+    --accent: #F97316;
+    --coral: #F97316;
+    --surface: #FFFFFF;
+    --canvas: #F8FAFC;
+    --line: #E2E8F0;
+    --shadow: 0 18px 45px rgba(15, 23, 42, .10);
 }
 
 * {
@@ -48,7 +48,7 @@ h6,
 .storefront-nav {
     background: var(--brand-dark);
     padding: .85rem 0;
-    box-shadow: 0 5px 18px rgba(20, 75, 63, .18);
+    box-shadow: 0 5px 18px rgba(37, 99, 235, .16);
 }
 
 .navbar-brand {
@@ -63,7 +63,7 @@ h6,
 }
 
 .storefront-nav .nav-link {
-    color: #d9e8df !important;
+    color: #DBEAFE !important;
     font-weight: 600;
     padding: .55rem .8rem !important;
 }
@@ -74,7 +74,7 @@ h6,
 }
 
 .nav-offer {
-    color: #f4c96f !important;
+    color: #FDBA74 !important;
 }
 
 .nav-search {
@@ -82,7 +82,7 @@ h6,
     border: 1px solid rgba(255, 255, 255, .24);
     border-radius: 999px;
     overflow: hidden;
-    background: #fffdf8;
+    background: #FFFFFF;
 }
 
 .nav-search input {
@@ -93,7 +93,7 @@ h6,
 
 .nav-search .btn {
     color: var(--brand);
-    background: #fffdf8;
+    background: #FFFFFF;
 }
 
 .nav-icon {
@@ -136,14 +136,14 @@ h6,
     padding: 3.5rem 3rem;
     border-radius: 1.4rem;
     color: #fff;
-    background: linear-gradient(120deg, #184b40, #2c806a);
+    background: linear-gradient(120deg, #2563EB, #2563EB);
     margin-bottom: 2rem;
     overflow: hidden;
     box-shadow: var(--shadow);
 }
 
 .page-hero--offers {
-    background: linear-gradient(120deg, #9a4e37, #d88452);
+    background: linear-gradient(120deg, #C2410C, #FB923C);
 }
 
 .eyebrow {
@@ -164,11 +164,11 @@ h6,
 .page-hero p {
     max-width: 42rem;
     margin: 0;
-    color: #dbeafe;
+    color: #DBEAFE;
 }
 
 .page-hero--offers p {
-    color: #ffedd5;
+    color: #FFEDD5;
 }
 
 .category-card,
@@ -191,7 +191,7 @@ h6,
     height: 185px;
     width: 100%;
     object-fit: cover;
-    background: #dce7dc;
+    background: #EFF6FF;
 }
 
 .category-placeholder {
@@ -199,7 +199,7 @@ h6,
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #dce7dc;
+    background: #EFF6FF;
     color: var(--brand);
     font-size: 2.5rem;
 }
@@ -232,7 +232,7 @@ h6,
     width: 100%;
     height: 220px;
     object-fit: cover;
-    background: #e8e7df;
+    background: #F1F5F9;
 }
 
 .product-card .card-body {
@@ -260,7 +260,7 @@ h6,
 }
 
 .price-old {
-    color: #9b9f94;
+    color: #94A3B8;
     font-size: .84rem;
     text-decoration: line-through;
     margin-left: .4rem;
@@ -280,7 +280,7 @@ h6,
 
 .empty-state {
     background: var(--surface);
-    border: 1px dashed #bfc9bc;
+    border: 1px dashed #CBD5E1;
     border-radius: .75rem;
     padding: 3rem 1.5rem;
     text-align: center;
@@ -311,28 +311,41 @@ h6,
 }
 
 .btn-success {
-    background: var(--brand);
-    border-color: var(--brand);
+    background: #198754;
+    border-color: #198754;
+}
+
+.btn-success:hover,
+.btn-success:focus {
+    background: #157347;
+    border-color: #146c43;
 }
 
 .btn-warning {
     background: var(--accent);
     border-color: var(--accent);
-    color: var(--ink);
+    color: #FFFFFF;
+}
+
+.btn-warning:hover,
+.btn-warning:focus {
+    background: #EA580C;
+    border-color: #EA580C;
+    color: #FFFFFF;
 }
 
 .form-control,
 .form-select {
-    border-color: #cfd5ca;
+    border-color: #CBD5E1;
     border-radius: .55rem;
     padding: .7rem .85rem;
-    background: #fffefa;
+    background: #FFFFFF;
 }
 
 .form-control:focus,
 .form-select:focus {
     border-color: var(--brand);
-    box-shadow: 0 0 0 .2rem rgba(31, 111, 91, .13);
+    box-shadow: 0 0 0 .2rem rgba(59, 130, 246, .14);
 }
 
 .table {
@@ -373,7 +386,7 @@ footer {
 
 footer a,
 footer li {
-    color: #d9e8df;
+    color: #DBEAFE;
 }
 
 @media (max-width:991.98px) {

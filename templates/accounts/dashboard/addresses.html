@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 
@@ -47,15 +47,27 @@
                     <div class="mt-3">
 
                         {% if not address.is_default %}
-                        <a href="{% url 'set_default_address' address.id %}" class="btn btn-outline-success btn-sm">
-                            Make Default
-                        </a>
+                        <form method="post"
+                              action="{% url 'set_default_address' address.id %}"
+                              class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-outline-success btn-sm">
+                                Make Default
+                            </button>
+                        </form>
                         {% endif %}
 
-                        <a href="{% url 'delete_address' address.id %}" class="btn btn-outline-danger btn-sm"
-                           onclick="return confirm('Delete this address?');">
-                            Delete
-                        </a>
+                        <form method="post"
+                              action="{% url 'delete_address' address.id %}"
+                              class="d-inline"
+                              onsubmit="return confirm('Delete this address?');">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-outline-danger btn-sm">
+                                Delete
+                            </button>
+                        </form>
 
                     </div>
 

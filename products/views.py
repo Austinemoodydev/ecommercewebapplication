@@ -3,6 +3,7 @@ from django.db.models import F
 from django.shortcuts import render
 
 from categories.models import Category
+from orders.models import OrderItem
 from .filters import ProductFilter
 from .models import Brand, Product
 from .services.product_service import ProductService
@@ -29,10 +30,41 @@ def offers(request):
 
 
 def product_detail(request, slug):
+
     product = ProductService.get_product(slug)
-    related_products = Product.objects.select_related("category", "brand").filter(
-        category=product.category, is_active=True
-    ).exclude(id=product.id)[:4]
-    return render(request, "products/product_detail.html", {
-        "product": product, "related_products": related_products,
-    })
+
+    related_products = (
+        Product.objects
+        .select_related(
+            "category",
+            "brand",
+        )
+        .filter(
+            category=product.category,
+            is_active=True,
+        )
+        .exclude(id=product.id)[:4]
+    )
+
+    can_review = False
+
+    if request.user.is_authenticated:
+
+        can_review = OrderItem.objects.filter(
+            order__user=request.user,
+            order__payment_status__in=[
+                "paid",
+                "partially_refunded",
+            ],
+            product=product,
+        ).exists()
+
+    return render(
+        request,
+        "products/product_detail.html",
+        {
+            "product": product,
+            "related_products": related_products,
+            "can_review": can_review,
+        },
+    )
