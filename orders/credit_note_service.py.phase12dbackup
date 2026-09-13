@@ -1,0 +1,350 @@
+from decimal import Decimal
+
+from django.conf import settings
+from django.db import transaction
+from django.db.models import Sum
+
+from orders.models import (
+    CreditNoteDocument,
+    Order,
+)
+
+from payments.models import (
+    RefundRequest,
+)
+
+
+from core.store_settings import (
+    business_address,
+    get_store_settings,
+)
+
+
+ZERO = Decimal("0.00")
+
+
+def _money(
+    value,
+):
+
+    return format(
+        Decimal(
+            value or ZERO
+        ),
+        ".2f",
+    )
+
+
+def _store_snapshot():
+
+    store = (
+        get_store_settings()
+    )
+
+
+    return {
+
+        "name":
+            store.store_name,
+
+        "legal_name":
+            store.legal_name,
+
+        "business_registration_number":
+            store.business_registration_number,
+
+        "tax_pin":
+            store.tax_pin,
+
+        "email":
+            store.support_email,
+
+        "phone":
+            store.support_phone,
+
+        "address":
+            business_address(
+                store
+            ),
+
+        "website":
+            store.website_url,
+
+        "currency_code":
+            store.currency_code,
+
+        "currency_symbol":
+            store.currency_symbol,
+
+        "document_footer":
+            store.document_footer,
+    }
+
+
+
+def build_credit_note_snapshot(
+    refund,
+):
+
+    order = refund.order
+
+
+    total_processed_refunds = (
+        RefundRequest.objects
+        .filter(
+            order=order,
+            status="processed",
+        )
+        .aggregate(
+            total=Sum(
+                "amount"
+            )
+        )[
+            "total"
+        ]
+        or ZERO
+    )
+
+
+    remaining_amount = (
+        Decimal(
+            order.total_amount
+        )
+        - Decimal(
+            total_processed_refunds
+        )
+    )
+
+
+    if remaining_amount < ZERO:
+        remaining_amount = ZERO
+
+
+    items = []
+
+
+    for item in order.items.all():
+
+        items.append(
+            {
+
+                "product_name":
+                    item.product_name,
+
+                "variant_name":
+                    item.variant_name,
+
+                "quantity":
+                    item.quantity,
+
+                "price":
+                    _money(
+                        item.price
+                    ),
+
+                "subtotal":
+                    _money(
+                        item.subtotal
+                    ),
+            }
+        )
+
+
+    return {
+
+        "schema_version": 1,
+
+        "store":
+            _store_snapshot(),
+
+        "order": {
+
+            "order_number":
+                order.order_number,
+
+            "full_name":
+                order.full_name,
+
+            "phone":
+                order.phone,
+
+            "email":
+                order.email,
+
+            "total_amount":
+                _money(
+                    order.total_amount
+                ),
+
+            "payment_method":
+                order.payment_method,
+
+            "payment_status":
+                order.payment_status,
+        },
+
+        "refund": {
+
+            "id":
+                refund.pk,
+
+            "amount":
+                _money(
+                    refund.amount
+                ),
+
+            "reason":
+                refund.reason,
+
+            "external_reference":
+                refund.external_reference,
+
+            "processed_at":
+                (
+                    refund.processed_at
+                    .isoformat()
+                    if refund.processed_at
+                    else None
+                ),
+
+            "processed_by":
+                (
+                    refund.processed_by
+                    .get_username()
+                    if refund.processed_by
+                    else ""
+                ),
+        },
+
+        "items":
+            items,
+
+        "total_processed_refunds":
+            _money(
+                total_processed_refunds
+            ),
+
+        "remaining_amount":
+            _money(
+                remaining_amount
+            ),
+    }
+
+
+def _credit_note_number(
+    refund,
+):
+
+    store = (
+        get_store_settings()
+    )
+
+
+    prefix = (
+        store.credit_note_prefix
+        or "CN"
+    )
+
+
+    prefix = (
+        prefix
+        .strip()
+        .upper()
+    )
+
+
+    # Refund ID provides stable uniqueness.
+    return (
+        f"{prefix}-"
+        f"{refund.order.order_number}-"
+        f"{refund.pk:02d}"
+    )
+
+
+@transaction.atomic
+def get_or_issue_credit_note(
+    *,
+    refund,
+    issued_by=None,
+):
+
+    locked_refund = (
+        RefundRequest.objects
+        .select_for_update()
+        .select_related(
+            "order",
+            "processed_by",
+        )
+        .get(
+            pk=refund.pk
+        )
+    )
+
+
+    if locked_refund.status != "processed":
+
+        raise ValueError(
+            "Credit notes can only be issued "
+            "for processed refunds."
+        )
+
+
+    if not locked_refund.external_reference:
+
+        raise ValueError(
+            "Processed refund must have an "
+            "external reference before a "
+            "credit note is issued."
+        )
+
+
+    existing = (
+        CreditNoteDocument.objects
+        .filter(
+            refund_request=locked_refund
+        )
+        .first()
+    )
+
+
+    if existing:
+        return existing
+
+
+    locked_refund = (
+        RefundRequest.objects
+        .select_related(
+            "order",
+            "processed_by",
+        )
+        .prefetch_related(
+            "order__items",
+        )
+        .get(
+            pk=locked_refund.pk
+        )
+    )
+
+
+    return (
+        CreditNoteDocument.objects
+        .create(
+            order=locked_refund.order,
+
+            refund_request=locked_refund,
+
+            document_number=(
+                _credit_note_number(
+                    locked_refund
+                )
+            ),
+
+            snapshot=(
+                build_credit_note_snapshot(
+                    locked_refund
+                )
+            ),
+
+            issued_by=issued_by,
+        )
+    )

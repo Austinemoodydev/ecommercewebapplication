@@ -1,0 +1,1737 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Sales Reports
+{% endblock %}
+
+{% block page_heading %}
+Sales Reports
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="dashboard-heading">
+
+    <div>
+
+        <h1>
+            Sales & Business Analytics
+        </h1>
+
+        <p>
+            Revenue, orders, refunds, delivery costs,
+            products and customer performance.
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- FILTERS -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <form
+        method="GET"
+        class="row g-3 align-items-end"
+    >
+
+        <div class="col-md-4">
+
+            <label class="form-label">
+                From
+            </label>
+
+            <input
+                type="date"
+                name="start"
+                value="{{ start_date|date:'Y-m-d' }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div class="col-md-4">
+
+            <label class="form-label">
+                To
+            </label>
+
+            <input
+                type="date"
+                name="end"
+                value="{{ end_date|date:'Y-m-d' }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div class="col-md-2">
+
+            <button
+                class="btn btn-primary w-100"
+            >
+                Apply
+            </button>
+
+        </div>
+
+
+        <div class="col-md-2">
+
+            <a
+                href="{% url 'admin_sales_reports_csv' %}?start={{ start_date|date:'Y-m-d' }}&end={{ end_date|date:'Y-m-d' }}"
+                class="btn btn-outline-success w-100"
+            >
+                Export CSV
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- REVENUE KPI -->
+<!-- ===================================================== -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Gross Revenue
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ gross_revenue|floatformat:2 }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Refunds
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ processed_refunds|floatformat:2 }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Net Revenue
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ net_revenue|floatformat:2 }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Estimated Gross Profit
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ estimated_gross_profit|floatformat:2 }}
+            </div>
+
+            <small class="text-muted">
+
+                {% if legacy_cost_items %}
+
+                    Includes
+                    {{ legacy_cost_items }}
+                    legacy item{{ legacy_cost_items|pluralize }}
+                    using estimated historical cost.
+
+                {% else %}
+
+                    Uses sale-time cost snapshots.
+
+                {% endif %}
+
+            </small>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- ORDER KPI -->
+<!-- ===================================================== -->
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Total Orders
+            </small>
+
+            <div class="fs-3 fw-bold">
+                {{ total_orders }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Paid Orders
+            </small>
+
+            <div class="fs-3 fw-bold">
+                {{ paid_order_count }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Cancelled
+            </small>
+
+            <div class="fs-3 fw-bold">
+                {{ cancelled_orders }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="dashboard-card h-100">
+
+            <small class="text-muted">
+                Average Order Value
+            </small>
+
+            <div class="fs-3 fw-bold">
+                KES {{ average_order_value|floatformat:2 }}
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- DELIVERY / PAYMENT -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-4">
+                Delivery Financials
+            </h2>
+
+
+            <div class="d-flex justify-content-between border-bottom py-2">
+
+                <span>
+                    Customer Delivery Charges
+                </span>
+
+                <strong>
+                    KES {{ delivery_income|floatformat:2 }}
+                </strong>
+
+            </div>
+
+
+            <div class="d-flex justify-content-between border-bottom py-2">
+
+                <span>
+                    Actual Delivery Cost
+                </span>
+
+                <strong>
+                    KES {{ actual_delivery_cost|floatformat:2 }}
+                </strong>
+
+            </div>
+
+
+            <div class="d-flex justify-content-between py-2">
+
+                <span>
+                    Delivery Margin
+                </span>
+
+                <strong>
+                    KES {{ delivery_margin|floatformat:2 }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-4">
+                Payment Collection
+            </h2>
+
+
+            <div class="d-flex justify-content-between border-bottom py-2">
+
+                <span>
+                    Successful M-PESA
+                </span>
+
+                <strong>
+                    {{ successful_mpesa_count }}
+                </strong>
+
+            </div>
+
+
+            <div class="d-flex justify-content-between border-bottom py-2">
+
+                <span>
+                    M-PESA Collected
+                </span>
+
+                <strong>
+                    KES {{ mpesa_collected|floatformat:2 }}
+                </strong>
+
+            </div>
+
+
+            <div class="d-flex justify-content-between py-2">
+
+                <span>
+                    Estimated Product Cost
+                </span>
+
+                <strong>
+                    KES {{ estimated_cogs|floatformat:2 }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- ===================================================== -->
+<!-- ACCOUNTING DATA QUALITY -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+
+        <div>
+
+            <h2 class="h5 mb-1">
+                Accounting Data Quality
+            </h2>
+
+            <p class="text-muted mb-0">
+                Historical cost coverage for orders
+                in the selected period.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="row g-3 mt-2">
+
+
+        <div class="col-md-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Snapshot Items
+                </small>
+
+                <div class="fs-4 fw-bold">
+                    {{ historical_cost_items }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Legacy Items
+                </small>
+
+                <div class="fs-4 fw-bold">
+                    {{ legacy_cost_items }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Historical COGS
+                </small>
+
+                <div class="fs-5 fw-bold">
+                    KES {{ historical_cogs|floatformat:2 }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Legacy Estimated COGS
+                </small>
+
+                <div class="fs-5 fw-bold">
+                    KES {{ legacy_estimated_cogs|floatformat:2 }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    {% if legacy_cost_items %}
+
+        <div
+            class="
+                alert
+                alert-warning
+                mt-3
+                mb-0
+            "
+        >
+
+            <strong>
+                Legacy accounting data:
+            </strong>
+
+            Some older order items were created before
+            historical cost snapshots existed.
+
+            Their cost is estimated using the current
+            product cost and may not equal the original
+            purchase cost.
+
+        </div>
+
+    {% else %}
+
+        <div
+            class="
+                alert
+                alert-success
+                mt-3
+                mb-0
+            "
+        >
+
+            All items in this report contain
+            sale-time cost snapshots.
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- DAILY SALES -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <h2 class="h5 mb-3">
+        Daily Sales
+    </h2>
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th>Date</th>
+                    <th>Orders</th>
+                    <th class="text-end">
+                        Revenue
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for row in daily_sales %}
+
+                    <tr>
+
+                        <td>
+                            {{ row.day|date:"d M Y" }}
+                        </td>
+
+                        <td>
+                            {{ row.orders }}
+                        </td>
+
+                        <td class="text-end">
+                            KES {{ row.revenue|floatformat:2 }}
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="3"
+                            class="text-center text-muted py-4"
+                        >
+                            No paid sales in this period.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- TOP PRODUCTS / CUSTOMERS -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Top Products
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Product</th>
+
+                            <th class="text-end">
+                                Qty
+                            </th>
+
+                            <th class="text-end">
+                                Revenue
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in top_products %}
+
+                            <tr>
+
+                                <td>
+                                    {{ row.product_name }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.quantity_sold }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.revenue|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="text-muted text-center"
+                                >
+                                    No sales.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Top Customers
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Customer</th>
+
+                            <th class="text-end">
+                                Orders
+                            </th>
+
+                            <th class="text-end">
+                                Spent
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in top_customers %}
+
+                            <tr>
+
+                                <td>
+
+                                    {{ row.full_name }}
+
+                                    <small class="d-block text-muted">
+                                        {{ row.phone }}
+                                    </small>
+
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.order_count }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.total_spent|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="text-muted text-center"
+                                >
+                                    No customers.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- STATUS BREAKDOWNS -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5">
+                Order Status
+            </h2>
+
+            {% for row in order_statuses %}
+
+                <div class="d-flex justify-content-between border-bottom py-2">
+
+                    <span>
+                        {{ row.status|title }}
+                    </span>
+
+                    <strong>
+                        {{ row.total }}
+                    </strong>
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No orders.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5">
+                Payment Status
+            </h2>
+
+            {% for row in payment_statuses %}
+
+                <div class="d-flex justify-content-between border-bottom py-2">
+
+                    <span>
+                        {{ row.payment_status|title }}
+                    </span>
+
+                    <strong>
+                        {{ row.total }}
+                    </strong>
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted">
+                    No orders.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- ===================================================== -->
+<!-- ADVANCED BUSINESS ANALYTICS -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <div class="card-header-custom">
+
+        <div>
+
+            <h2>
+                Advanced Business Analytics
+            </h2>
+
+            <p>
+                Customer loyalty, refunds and
+                paid-order performance.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="row g-3">
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Unique Customers
+                </small>
+
+                <div class="fs-3 fw-bold">
+                    {{ unique_customer_count }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Repeat Customers
+                </small>
+
+                <div class="fs-3 fw-bold">
+                    {{ repeat_customer_count }}
+                </div>
+
+                <small class="text-muted">
+                    {{ repeat_customer_rate|floatformat:2 }}%
+                    of customers
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Refund Rate
+                </small>
+
+                <div class="fs-3 fw-bold">
+                    {{ refund_rate|floatformat:2 }}%
+                </div>
+
+                <small class="text-muted">
+                    {{ advanced_refund_count }}
+                    processed refund{{ advanced_refund_count|pluralize }}
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Paid Order Rate
+                </small>
+
+                <div class="fs-3 fw-bold">
+                    {{ paid_conversion_rate|floatformat:2 }}%
+                </div>
+
+                <small class="text-muted">
+                    Paid orders / orders created
+                </small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- CATEGORY / BRAND -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+
+    <div class="col-xl-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Category Performance
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th class="text-end">
+                                Units
+                            </th>
+
+                            <th class="text-end">
+                                Revenue
+                            </th>
+
+                            <th class="text-end">
+                                Share
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in category_performance %}
+
+                            <tr>
+
+                                <td>
+                                    {{ row.product__category__name }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.quantity_sold }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.revenue|floatformat:2 }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.share_percent|floatformat:1 }}%
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="4"
+                                    class="text-center text-muted"
+                                >
+                                    No category sales.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Brand Performance
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Brand
+                            </th>
+
+                            <th class="text-end">
+                                Units
+                            </th>
+
+                            <th class="text-end">
+                                Revenue
+                            </th>
+
+                            <th class="text-end">
+                                Share
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in brand_performance %}
+
+                            <tr>
+
+                                <td>
+                                    {{ row.product__brand__name }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.quantity_sold }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.revenue|floatformat:2 }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.share_percent|floatformat:1 }}%
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="4"
+                                    class="text-center text-muted"
+                                >
+                                    No brand sales.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- GEOGRAPHY -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+
+    <div class="col-xl-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Sales by County
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                County
+                            </th>
+
+                            <th class="text-end">
+                                Orders
+                            </th>
+
+                            <th class="text-end">
+                                Customers
+                            </th>
+
+                            <th class="text-end">
+                                Revenue
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in county_performance %}
+
+                            <tr>
+
+                                <td>
+                                    {{ row.county }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.order_count }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.customer_count }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.revenue|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="4"
+                                    class="text-center text-muted"
+                                >
+                                    No county sales.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Sales by Town / City
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Location
+                            </th>
+
+                            <th class="text-end">
+                                Orders
+                            </th>
+
+                            <th class="text-end">
+                                Revenue
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in town_performance %}
+
+                            <tr>
+
+                                <td>
+
+                                    {{ row.city }}
+
+                                    <small class="d-block text-muted">
+                                        {{ row.county }}
+                                    </small>
+
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.order_count }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.revenue|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="text-center text-muted"
+                                >
+                                    No town sales.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- DELIVERY PROVIDER PROFITABILITY -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <h2 class="h5 mb-3">
+        Delivery Provider Profitability
+    </h2>
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Provider
+                    </th>
+
+                    <th>
+                        Type
+                    </th>
+
+                    <th class="text-end">
+                        Deliveries
+                    </th>
+
+                    <th class="text-end">
+                        Charged
+                    </th>
+
+                    <th class="text-end">
+                        Actual Cost
+                    </th>
+
+                    <th class="text-end">
+                        Margin
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for row in delivery_provider_performance %}
+
+                    <tr>
+
+                        <td class="fw-semibold">
+                            {{ row.provider }}
+                        </td>
+
+                        <td>
+                            {{ row.management_type|title }}
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.delivery_count }}
+                        </td>
+
+                        <td class="text-end">
+                            KES {{ row.customer_charge|floatformat:2 }}
+                        </td>
+
+                        <td class="text-end">
+                            KES {{ row.actual_cost|floatformat:2 }}
+                        </td>
+
+                        <td class="text-end">
+
+                            {% if row.margin < 0 %}
+
+                                <span class="text-danger fw-bold">
+                                    KES {{ row.margin|floatformat:2 }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="text-success fw-bold">
+                                    KES {{ row.margin|floatformat:2 }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="text-center text-muted py-4"
+                        >
+                            No delivery financial data.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- MONTHLY TREND / REPEAT CUSTOMERS -->
+<!-- ===================================================== -->
+
+<div class="row g-4 mb-4">
+
+
+    <div class="col-xl-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Monthly Sales Trend
+            </h2>
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Month
+                            </th>
+
+                            <th class="text-end">
+                                Orders
+                            </th>
+
+                            <th class="text-end">
+                                Revenue
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in monthly_sales %}
+
+                            <tr>
+
+                                <td>
+                                    {{ row.month|date:"M Y" }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.order_count }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.revenue|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="text-center text-muted"
+                                >
+                                    No monthly sales.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-6">
+
+        <div class="dashboard-card h-100">
+
+            <h2 class="h5 mb-3">
+                Repeat Customers
+            </h2>
+
+            <div class="mb-3">
+
+                <small class="text-muted">
+                    Revenue from repeat customers
+                </small>
+
+                <div class="fs-4 fw-bold">
+
+                    KES {{ repeat_customer_revenue|floatformat:2 }}
+
+                </div>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Customer
+                            </th>
+
+                            <th class="text-end">
+                                Orders
+                            </th>
+
+                            <th class="text-end">
+                                Spent
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in top_repeat_customers %}
+
+                            <tr>
+
+                                <td>
+
+                                    {{ row.full_name }}
+
+                                    <small class="d-block text-muted">
+                                        {{ row.phone }}
+                                    </small>
+
+                                </td>
+
+                                <td class="text-end">
+                                    {{ row.order_count }}
+                                </td>
+
+                                <td class="text-end">
+                                    KES {{ row.total_spent|floatformat:2 }}
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="text-center text-muted"
+                                >
+                                    No repeat customers
+                                    in this period yet.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="
+        alert
+        alert-info
+        mb-4
+    "
+>
+
+    <strong>
+        Refund allocation note:
+    </strong>
+
+    Product, brand and category figures show
+    gross paid sales.
+
+    Your current refund model records refunds at
+    order level rather than allocating the refunded
+    amount to individual order items, so the system
+    does not fabricate product-level net sales.
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- RECENT PAID ORDERS -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card">
+
+    <h2 class="h5 mb-3">
+        Recent Paid Orders
+    </h2>
+
+    <div class="table-responsive">
+
+        <table class="table align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Date</th>
+
+                    <th class="text-end">
+                        Total
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for order in recent_orders %}
+
+                    <tr>
+
+                        <td>
+
+                            <a
+                                href="{% url 'admin_order_detail' order.order_number %}"
+                            >
+                                {{ order.order_number }}
+                            </a>
+
+                        </td>
+
+                        <td>
+                            {{ order.full_name }}
+                        </td>
+
+                        <td>
+                            {{ order.get_status_display }}
+                        </td>
+
+                        <td>
+                            {{ order.get_payment_status_display }}
+                        </td>
+
+                        <td>
+                            {{ order.created_at|date:"d M Y H:i" }}
+                        </td>
+
+                        <td class="text-end">
+                            KES {{ order.total_amount|floatformat:2 }}
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="text-center text-muted py-4"
+                        >
+                            No paid orders.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

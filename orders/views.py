@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import Address
 from cart.selectors.cart_selector import CartSelector
+from cart.services.cart_activity_service import CartActivityService
 from .forms import CheckoutForm
 from django.http import JsonResponse
 
@@ -18,10 +19,28 @@ from .models import Coupon, DeliveryArea, Order, OrderItem
 from .utils import generate_order_number
 from products.models import Product
 from delivery.models import Delivery, DeliveryZone
+
+
+from core.models import StoreSettings
+
+from core.store_settings import (
+    get_store_settings,
+)
+
+from .pricing import (
+    calculate_order_pricing,
+    minimum_order_satisfied,
+)
 from .inventory import release_order_inventory
 
-@login_required
-@ratelimit(key="user", rate="10/m", method="POST", block=True)
+
+from .guest_access import (
+    generate_guest_access_token,
+    hash_guest_access_token,
+    verify_guest_access_token,
+)
+
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
 def checkout(request):
 
     cart = CartSelector.get_cart(request)
@@ -31,9 +50,87 @@ def checkout(request):
     if not items.exists():
         return redirect("cart")
 
-    addresses = Address.objects.filter(user=request.user)
 
-    default_address = addresses.filter(is_default=True).first()
+    # A genuine checkout visit counts as cart activity.
+    # Mini-cart/background requests do not.
+    CartActivityService.mark_checkout_started(
+        cart
+    )
+
+
+    # ---------------------------------------------------------
+    # STORE-WIDE CHECKOUT CONTROLS
+    # ---------------------------------------------------------
+
+    store_settings = (
+        get_store_settings()
+    )
+
+    checkout_subtotal = (
+        cart.total_price
+    )
+
+
+    if not store_settings.orders_enabled:
+
+        messages.error(
+            request,
+            (
+                store_settings.checkout_closed_message
+                or
+                "Online ordering is temporarily unavailable."
+            ),
+        )
+
+        return redirect(
+            "cart"
+        )
+
+
+    if not minimum_order_satisfied(
+        subtotal=checkout_subtotal,
+        minimum_order_amount=(
+            store_settings
+            .minimum_order_amount
+        ),
+    ):
+
+        messages.error(
+            request,
+            (
+                "The minimum order amount is "
+                f"{store_settings.currency_symbol} "
+                f"{store_settings.minimum_order_amount:.2f}."
+            ),
+        )
+
+        return redirect(
+            "cart"
+        )
+
+
+    if request.user.is_authenticated:
+
+        addresses = (
+            Address.objects
+            .filter(
+                user=request.user
+            )
+        )
+
+        default_address = (
+            addresses
+            .filter(
+                is_default=True
+            )
+            .first()
+        )
+
+    else:
+
+        addresses = Address.objects.none()
+
+        default_address = None
 
     delivery_zones = (
         DeliveryZone.objects
@@ -52,7 +149,34 @@ def checkout(request):
 
     if request.method == "POST":
 
-        if form.is_valid():
+        form_valid = form.is_valid()
+
+
+        if (
+            form_valid
+            and
+            not request.user.is_authenticated
+            and
+            not (
+                form.cleaned_data.get(
+                    "email"
+                )
+                or ""
+            ).strip()
+        ):
+
+            form.add_error(
+                "email",
+                (
+                    "Email is required for guest checkout "
+                    "so you can securely access your order."
+                ),
+            )
+
+            form_valid = False
+
+
+        if form_valid:
 
             for item in items:
                 available_stock = item.variant.available_stock if item.variant else item.product.available_stock
@@ -60,9 +184,71 @@ def checkout(request):
                     stock_error = f"Only {available_stock} of {item.product.name} left in stock."
                     break
 
-        if form.is_valid() and not stock_error:
+        if form_valid and not stock_error:
 
             with transaction.atomic():
+
+                # Store configuration can change while a
+                # customer is on the checkout page.
+                #
+                # Re-read it under a database lock so the
+                # order gets one internally consistent
+                # financial snapshot.
+                get_store_settings()
+
+                store_settings = (
+                    StoreSettings.objects
+                    .select_for_update()
+                    .get(
+                        pk=StoreSettings.SINGLETON_PK
+                    )
+                )
+
+
+                subtotal = (
+                    cart.total_price
+                )
+
+
+                if not store_settings.orders_enabled:
+
+                    messages.error(
+                        request,
+                        (
+                            store_settings.checkout_closed_message
+                            or
+                            (
+                                "Online ordering is temporarily "
+                                "unavailable."
+                            )
+                        ),
+                    )
+
+                    return redirect(
+                        "cart"
+                    )
+
+
+                if not minimum_order_satisfied(
+                    subtotal=subtotal,
+                    minimum_order_amount=(
+                        store_settings
+                        .minimum_order_amount
+                    ),
+                ):
+
+                    messages.error(
+                        request,
+                        (
+                            "Your cart no longer meets "
+                            "the minimum order amount."
+                        ),
+                    )
+
+                    return redirect(
+                        "cart"
+                    )
+
 
                 delivery_zone = (
                     DeliveryZone.objects
@@ -75,8 +261,6 @@ def checkout(request):
                         is_active=True,
                     )
                 )
-
-                subtotal = cart.total_price
 
                 if (
                     delivery_zone.pricing_mode
@@ -128,10 +312,65 @@ def checkout(request):
                         else:
                             coupon_obj = None
 
-                total_amount = subtotal + shipping_cost - discount
+                pricing = (
+                    calculate_order_pricing(
+                        subtotal=subtotal,
+                        shipping_cost=shipping_cost,
+                        discount=discount,
+                        tax_enabled=(
+                            store_settings.tax_enabled
+                        ),
+                        tax_rate=(
+                            store_settings.tax_rate
+                        ),
+                    )
+                )
+
+
+                tax_amount = (
+                    pricing[
+                        "tax_amount"
+                    ]
+                )
+
+                total_amount = (
+                    pricing[
+                        "total_amount"
+                    ]
+                )
+
+
+                guest_access_token = None
+                guest_access_token_hash = ""
+
+
+                if not request.user.is_authenticated:
+
+                    guest_access_token = (
+                        generate_guest_access_token()
+                    )
+
+                    guest_access_token_hash = (
+                        hash_guest_access_token(
+                            guest_access_token
+                        )
+                    )
+
 
                 order = Order.objects.create(
-                    user=request.user,
+                    user=(
+                        request.user
+                        if request.user.is_authenticated
+                        else None
+                    ),
+
+                    guest_checkout=(
+                        not request.user.is_authenticated
+                    ),
+
+                    guest_access_token_hash=(
+                        guest_access_token_hash
+                    ),
                     order_number=generate_order_number(),
 
                     full_name=form.cleaned_data["full_name"],
@@ -164,6 +403,34 @@ def checkout(request):
                     subtotal=subtotal,
                     shipping_cost=shipping_cost,
                     discount=discount,
+
+                    tax_enabled_at_checkout=(
+                        store_settings.tax_enabled
+                    ),
+
+                    tax_rate_at_checkout=(
+                        store_settings.tax_rate
+                        if store_settings.tax_enabled
+                        else Decimal("0.00")
+                    ),
+
+                    tax_amount=tax_amount,
+
+                    minimum_order_amount_at_checkout=(
+                        store_settings
+                        .minimum_order_amount
+                    ),
+
+                    currency_code_at_checkout=(
+                        store_settings
+                        .currency_code
+                    ),
+
+                    currency_symbol_at_checkout=(
+                        store_settings
+                        .currency_symbol
+                    ),
+
                     coupon=coupon_obj,
                     total_amount=total_amount,
 
@@ -282,6 +549,7 @@ def checkout(request):
                             "delivery_zones": delivery_zones,
                             "form": form,
                             "stock_error": stock_error,
+                            "store_settings": store_settings,
                         },
                     )
 
@@ -354,9 +622,27 @@ def checkout(request):
                         subtotal=item.subtotal,
                     )
 
+                CartActivityService.mark_converted(
+                    cart
+                )
+
                 cart.items.all().delete()
 
-            return redirect("order_confirmation", order_number=order.order_number)
+            if order.guest_checkout:
+
+                return redirect(
+                    "guest_order_confirmation",
+                    order_number=(
+                        order.order_number
+                    ),
+                    token=guest_access_token,
+                )
+
+
+            return redirect(
+                "order_confirmation",
+                order_number=order.order_number,
+            )
 
     return render(
         request,
@@ -369,8 +655,89 @@ def checkout(request):
             "delivery_zones": delivery_zones,
             "form": form,
             "stock_error": stock_error,
+            "store_settings": store_settings,
         },
     )
+
+
+def _get_guest_order_or_404(
+    order_number,
+    token,
+):
+
+    order = get_object_or_404(
+        Order.objects.prefetch_related(
+            "items__product",
+            "items__variant",
+        ),
+        order_number=order_number,
+        guest_checkout=True,
+        user__isnull=True,
+    )
+
+
+    if not verify_guest_access_token(
+        order,
+        token,
+    ):
+
+        from django.http import Http404
+
+        raise Http404(
+            "Order not found."
+        )
+
+
+    return order
+
+
+
+def guest_order_confirmation(
+    request,
+    order_number,
+    token,
+):
+
+    order = _get_guest_order_or_404(
+        order_number,
+        token,
+    )
+
+
+    return render(
+        request,
+        "orders/order_confirmation.html",
+        {
+            "order": order,
+            "guest_access_token": token,
+            "is_guest_order": True,
+        },
+    )
+
+
+
+def guest_order_detail(
+    request,
+    order_number,
+    token,
+):
+
+    order = _get_guest_order_or_404(
+        order_number,
+        token,
+    )
+
+
+    return render(
+        request,
+        "orders/guest_order_detail.html",
+        {
+            "order": order,
+            "items": order.items.all(),
+            "guest_access_token": token,
+        },
+    )
+
 
 
 @login_required

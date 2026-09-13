@@ -195,9 +195,22 @@ class Phase11BNotificationEventTests(
         )
 
 
+        # External delivery is disabled for this test user.
+        # The in-app notification is successful without making
+        # an email/SMS provider attempt.
         self.assertEqual(
             notification.attempts,
-            1,
+            0,
+        )
+
+        self.assertEqual(
+            notification.email_status,
+            "skipped",
+        )
+
+        self.assertEqual(
+            notification.sms_status,
+            "skipped",
         )
 
 
@@ -291,15 +304,55 @@ class Phase11BNotificationEventTests(
         )
 
 
+    @patch(
+        "notifications.tasks.send_mail"
+    )
     def test_manual_retry_reuses_same_row(
-        self
+        self,
+        mocked_send_mail,
     ):
+
+        # Phase 11D retries specific failed channels.
+        # Enable email for this test and disable SMS.
+        self.customer.email_notifications = True
+        self.customer.sms_notifications = False
+
+        self.customer.save(
+            update_fields=[
+                "email_notifications",
+                "sms_notifications",
+            ]
+        )
+
+
+        from notifications.preference_service import (
+            get_notification_preferences,
+        )
+
+
+        preferences = (
+            get_notification_preferences(
+                self.customer
+            )
+        )
+
+        preferences.email_enabled = True
+        preferences.sms_enabled = False
+
+        preferences.save(
+            update_fields=[
+                "email_enabled",
+                "sms_enabled",
+                "updated_at",
+            ]
+        )
+
 
         notification = (
             Notification.objects.create(
                 user=self.customer,
                 order_id=self.order.pk,
-                channel="email_and_sms",
+                channel="email",
                 event_key="test:manual-retry",
                 subject=(
                     "Retry test — "
@@ -308,7 +361,12 @@ class Phase11BNotificationEventTests(
                 message="Retry email message",
                 sms_message="Retry SMS",
                 status="failed",
+                email_status="failed",
+                sms_status="not_requested",
+                email_attempts=1,
+                sms_attempts=0,
                 attempts=1,
+                email_error="Temporary failure",
                 last_error="Temporary failure",
             )
         )
@@ -337,6 +395,30 @@ class Phase11BNotificationEventTests(
 
 
         self.assertEqual(
+            notification.email_status,
+            "sent",
+        )
+
+
+        self.assertEqual(
+            notification.sms_status,
+            "not_requested",
+        )
+
+
+        self.assertEqual(
+            notification.email_attempts,
+            2,
+        )
+
+
+        self.assertEqual(
+            notification.sms_attempts,
+            0,
+        )
+
+
+        self.assertEqual(
             notification.attempts,
             2,
         )
@@ -346,6 +428,9 @@ class Phase11BNotificationEventTests(
             notification.last_error,
             "",
         )
+
+
+        mocked_send_mail.assert_called_once()
 
 
     @patch(
@@ -374,13 +459,9 @@ class Phase11BNotificationEventTests(
         )
 
 
-        with self.assertRaises(
-            RuntimeError
-        ):
-
-            send_payment_confirmation.run(
-                self.order.pk
-            )
+        send_payment_confirmation.run(
+            self.order.pk
+        )
 
 
         notification = (
@@ -396,6 +477,30 @@ class Phase11BNotificationEventTests(
         self.assertEqual(
             notification.status,
             "failed",
+        )
+
+
+        self.assertEqual(
+            notification.email_status,
+            "failed",
+        )
+
+
+        self.assertEqual(
+            notification.sms_status,
+            "skipped",
+        )
+
+
+        self.assertEqual(
+            notification.email_attempts,
+            1,
+        )
+
+
+        self.assertEqual(
+            notification.sms_attempts,
+            0,
         )
 
 

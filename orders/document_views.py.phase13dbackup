@@ -1,0 +1,510 @@
+from django.conf import settings
+from django.contrib import messages
+
+from django.contrib.admin.views.decorators import (
+    staff_member_required,
+)
+
+from django.contrib.auth.decorators import (
+    login_required,
+)
+
+from django.core.mail import send_mail
+
+from django.db.models import F
+
+from django.http import Http404
+
+from django.shortcuts import (
+    get_object_or_404,
+    redirect,
+    render,
+)
+
+from django.utils import timezone
+
+from django.views.decorators.http import (
+    require_POST,
+)
+
+from orders.document_service import (
+    get_or_issue_order_document,
+)
+
+from orders.models import (
+    Order,
+    OrderDocument,
+)
+
+
+SETTLED_PAYMENT_STATUSES = {
+    "paid",
+    "partially_refunded",
+    "refunded",
+}
+
+
+def _document_queryset():
+
+    return (
+        Order.objects
+        .select_related(
+            "user",
+            "coupon",
+        )
+        .prefetch_related(
+            "items",
+            "mpesa_transactions",
+            "refund_requests",
+        )
+    )
+
+
+def _issue(
+    *,
+    request,
+    order,
+    document_type,
+):
+
+    if (
+        document_type == "receipt"
+        and order.payment_status
+        not in SETTLED_PAYMENT_STATUSES
+    ):
+
+        raise Http404(
+            "Receipt is not available "
+            "for an unpaid order."
+        )
+
+
+    return (
+        get_or_issue_order_document(
+            order=order,
+            document_type=document_type,
+            issued_by=request.user,
+        )
+    )
+
+
+def _render(
+    request,
+    document,
+):
+
+    template = (
+        "orders/documents/"
+        f"{document.document_type}.html"
+    )
+
+
+    return render(
+        request,
+        template,
+        {
+            "document":
+                document,
+
+            "snapshot":
+                document.snapshot,
+
+            "order":
+                document.order,
+
+            "document_title":
+                document.get_document_type_display(),
+
+            "document_number":
+                document.document_number,
+
+            "email_url_name":
+                (
+                    "admin_order_document_email"
+                    if request.user.is_staff
+                    else
+                    "customer_order_document_email"
+                ),
+        },
+    )
+
+
+# ============================================================
+# CUSTOMER DOCUMENTS
+# ============================================================
+
+@login_required
+def customer_invoice(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+        user=request.user,
+    )
+
+
+    document = _issue(
+        request=request,
+        order=order,
+        document_type="invoice",
+    )
+
+
+    return _render(
+        request,
+        document,
+    )
+
+
+@login_required
+def customer_receipt(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+        user=request.user,
+    )
+
+
+    document = _issue(
+        request=request,
+        order=order,
+        document_type="receipt",
+    )
+
+
+    return _render(
+        request,
+        document,
+    )
+
+
+# ============================================================
+# ADMIN DOCUMENTS
+# ============================================================
+
+@staff_member_required
+def admin_invoice(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+    )
+
+
+    document = _issue(
+        request=request,
+        order=order,
+        document_type="invoice",
+    )
+
+
+    return _render(
+        request,
+        document,
+    )
+
+
+@staff_member_required
+def admin_receipt(
+    request,
+    order_number,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+    )
+
+
+    document = _issue(
+        request=request,
+        order=order,
+        document_type="receipt",
+    )
+
+
+    return _render(
+        request,
+        document,
+    )
+
+
+# ============================================================
+# EMAIL DELIVERY
+# ============================================================
+
+def _send_document_email(
+    request,
+    document,
+):
+
+    snapshot = document.snapshot
+
+    order_snapshot = snapshot[
+        "order"
+    ]
+
+    recipient = (
+        order_snapshot.get(
+            "email"
+        )
+        or ""
+    ).strip()
+
+
+    if not recipient:
+
+        messages.error(
+            request,
+            "This order does not have "
+            "a customer email address.",
+        )
+
+        return False
+
+
+    absolute_url = (
+        request.build_absolute_uri(
+            customer_document_view_url(
+                document,
+            )
+        )
+    )
+
+
+    subject = (
+        f"{document.get_document_type_display()} "
+        f"{document.document_number}"
+    )
+
+
+    body = (
+        f"Hello "
+        f"{order_snapshot.get('full_name', 'Customer')},\n\n"
+        f"Your "
+        f"{document.get_document_type_display().lower()} "
+        f"for order "
+        f"{order_snapshot['order_number']} "
+        f"is available.\n\n"
+        f"Document number: "
+        f"{document.document_number}\n"
+        f"Order total: "
+        f"{order_snapshot.get('currency_symbol', 'KSh')} "
+        f"{order_snapshot['total_amount']}\n\n"
+        f"View document:\n"
+        f"{absolute_url}\n\n"
+        f"Thank you."
+    )
+
+
+    send_mail(
+        subject=subject,
+        message=body,
+        from_email=getattr(
+            settings,
+            "DEFAULT_FROM_EMAIL",
+            None,
+        ),
+        recipient_list=[
+            recipient
+        ],
+        fail_silently=False,
+    )
+
+
+    (
+        OrderDocument.objects
+        .filter(
+            pk=document.pk
+        )
+        .update(
+            email_count=(
+                F("email_count")
+                + 1
+            ),
+            last_emailed_at=timezone.now(),
+        )
+    )
+
+
+    document.refresh_from_db(
+        fields=[
+            "email_count",
+            "last_emailed_at",
+        ]
+    )
+
+
+    messages.success(
+        request,
+        f"{document.get_document_type_display()} "
+        f"sent to {recipient}.",
+    )
+
+
+    return True
+
+
+def customer_document_view_url(
+    document,
+):
+
+    from django.urls import reverse
+
+
+    route = (
+        "customer_order_invoice"
+        if (
+            document.document_type
+            == "invoice"
+        )
+        else
+        "customer_order_receipt"
+    )
+
+
+    return reverse(
+        route,
+        args=[
+            document.order.order_number
+        ],
+    )
+
+
+
+def document_view_url(
+    request,
+    document,
+):
+
+    from django.urls import reverse
+
+
+    if request.user.is_staff:
+
+        route = (
+            "admin_order_invoice"
+            if (
+                document.document_type
+                == "invoice"
+            )
+            else
+            "admin_order_receipt"
+        )
+
+    else:
+
+        route = (
+            "customer_order_invoice"
+            if (
+                document.document_type
+                == "invoice"
+            )
+            else
+            "customer_order_receipt"
+        )
+
+
+    return reverse(
+        route,
+        args=[
+            document.order.order_number
+        ],
+    )
+
+
+@login_required
+@require_POST
+def customer_document_email(
+    request,
+    order_number,
+    document_type,
+):
+
+    if document_type not in {
+        "invoice",
+        "receipt",
+    }:
+
+        raise Http404
+
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+        user=request.user,
+    )
+
+
+    document = _issue(
+        request=request,
+        order=order,
+        document_type=document_type,
+    )
+
+
+    _send_document_email(
+        request,
+        document,
+    )
+
+
+    return redirect(
+        document_view_url(
+            request,
+            document,
+        )
+    )
+
+
+@staff_member_required
+@require_POST
+def admin_document_email(
+    request,
+    order_number,
+    document_type,
+):
+
+    if document_type not in {
+        "invoice",
+        "receipt",
+    }:
+
+        raise Http404
+
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+    )
+
+
+    document = _issue(
+        request=request,
+        order=order,
+        document_type=document_type,
+    )
+
+
+    _send_document_email(
+        request,
+        document,
+    )
+
+
+    return redirect(
+        document_view_url(
+            request,
+            document,
+        )
+    )

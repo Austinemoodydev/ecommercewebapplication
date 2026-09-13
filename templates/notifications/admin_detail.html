@@ -1,0 +1,438 @@
+{% extends "dashboard/admin/base.html" %}
+
+
+{% block admin_content %}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+
+        <div>
+
+            <a
+                href="{% url 'admin_notifications' %}"
+                class="text-decoration-none"
+            >
+                ← Notifications
+            </a>
+
+            <h1 class="h3 mt-2 mb-1">
+                Notification Detail
+            </h1>
+
+            <p class="text-muted mb-0">
+                {{ notification.subject }}
+            </p>
+
+        </div>
+
+
+        {% if notification.status == "failed" or notification.status == "partial" %}
+
+            <form
+                method="post"
+                action="{% url 'admin_retry_notification' notification.pk %}"
+            >
+
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="btn btn-outline-danger"
+                >
+                    Retry Available Failed Channels
+                </button>
+
+            </form>
+
+        {% endif %}
+
+    </div>
+
+
+    <div class="row g-4">
+
+        <div class="col-xl-8">
+
+            <div class="dashboard-card mb-4">
+
+                <h5 class="mb-3">
+                    Notification
+                </h5>
+
+
+                <dl class="row mb-0">
+
+                    <dt class="col-md-3">
+                        Customer
+                    </dt>
+
+                    <dd class="col-md-9">
+                        {{ notification.user.username }}
+
+                        {% if notification.user.email %}
+                            — {{ notification.user.email }}
+                        {% endif %}
+                    </dd>
+
+
+                    <dt class="col-md-3">
+                        Category
+                    </dt>
+
+                    <dd class="col-md-9">
+                        {{ notification.get_category_display }}
+                    </dd>
+
+
+                    <dt class="col-md-3">
+                        Requested channel
+                    </dt>
+
+                    <dd class="col-md-9">
+                        {{ notification.channel }}
+                    </dd>
+
+
+                    <dt class="col-md-3">
+                        Event key
+                    </dt>
+
+                    <dd class="col-md-9">
+                        {{ notification.event_key|default:"—" }}
+                    </dd>
+
+
+                    <dt class="col-md-3">
+                        Overall status
+                    </dt>
+
+                    <dd class="col-md-9">
+
+                        {% if notification.status == "sent" %}
+
+                            <span class="badge bg-success">
+                                Sent
+                            </span>
+
+                        {% elif notification.status == "failed" %}
+
+                            <span class="badge bg-danger">
+                                Failed
+                            </span>
+
+                        {% elif notification.status == "partial" %}
+
+                            <span class="badge bg-warning text-dark">
+                                Partial
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-secondary">
+                                Pending
+                            </span>
+
+                        {% endif %}
+
+                    </dd>
+
+
+                    <dt class="col-md-3">
+                        Created
+                    </dt>
+
+                    <dd class="col-md-9">
+                        {{ notification.created_at|date:"d M Y H:i:s" }}
+                    </dd>
+
+
+                    <dt class="col-md-3">
+                        Updated
+                    </dt>
+
+                    <dd class="col-md-9">
+                        {{ notification.updated_at|date:"d M Y H:i:s" }}
+                    </dd>
+
+                </dl>
+
+            </div>
+
+
+            <div class="dashboard-card mb-4">
+
+                <h5>
+                    Email Message
+                </h5>
+
+                <p class="text-muted">
+                    {{ notification.message|linebreaksbr }}
+                </p>
+
+            </div>
+
+
+            {% if notification.sms_message %}
+
+                <div class="dashboard-card">
+
+                    <h5>
+                        SMS Message
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        {{ notification.sms_message }}
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <div class="col-xl-4">
+
+            <!-- EMAIL -->
+
+            <div class="dashboard-card mb-4">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
+                    <h5 class="mb-0">
+                        Email Delivery
+                    </h5>
+
+
+                    {% if notification.email_status == "sent" %}
+
+                        <span class="badge bg-success">
+                            Sent
+                        </span>
+
+                    {% elif notification.email_status == "failed" %}
+
+                        <span class="badge bg-danger">
+                            Failed
+                        </span>
+
+                    {% elif notification.email_status == "skipped" %}
+
+                        <span class="badge bg-secondary">
+                            Skipped
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge bg-light text-dark">
+                            {{ notification.email_status }}
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <p class="mb-2">
+
+                    Attempts:
+
+                    <strong>
+                        {{ notification.email_attempts }}
+                        /
+                        {{ max_channel_attempts }}
+                    </strong>
+
+                </p>
+
+
+                <p class="mb-2">
+
+                    Sent:
+
+                    <strong>
+                        {% if notification.email_sent_at %}
+                            {{ notification.email_sent_at|date:"d M Y H:i:s" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+
+                </p>
+
+
+                {% if notification.email_error %}
+
+                    <div class="alert alert-danger small">
+                        {{ notification.email_error }}
+                    </div>
+
+                {% endif %}
+
+
+                {% if email_retry_available %}
+
+                    <form
+                        method="post"
+                        action="{% url 'admin_retry_notification_channel' notification.pk 'email' %}"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="btn btn-outline-danger w-100"
+                        >
+                            Retry Email Only
+                        </button>
+
+                    </form>
+
+                {% elif notification.email_status == "failed" %}
+
+                    <div class="alert alert-warning small mb-0">
+                        Email retry limit reached.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- SMS -->
+
+            <div class="dashboard-card mb-4">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
+                    <h5 class="mb-0">
+                        SMS Delivery
+                    </h5>
+
+
+                    {% if notification.sms_status == "sent" %}
+
+                        <span class="badge bg-success">
+                            Sent
+                        </span>
+
+                    {% elif notification.sms_status == "failed" %}
+
+                        <span class="badge bg-danger">
+                            Failed
+                        </span>
+
+                    {% elif notification.sms_status == "skipped" %}
+
+                        <span class="badge bg-secondary">
+                            Skipped
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge bg-light text-dark">
+                            {{ notification.sms_status }}
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <p class="mb-2">
+
+                    Attempts:
+
+                    <strong>
+                        {{ notification.sms_attempts }}
+                        /
+                        {{ max_channel_attempts }}
+                    </strong>
+
+                </p>
+
+
+                <p class="mb-2">
+
+                    Sent:
+
+                    <strong>
+                        {% if notification.sms_sent_at %}
+                            {{ notification.sms_sent_at|date:"d M Y H:i:s" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+
+                </p>
+
+
+                {% if notification.sms_error %}
+
+                    <div class="alert alert-danger small">
+                        {{ notification.sms_error }}
+                    </div>
+
+                {% endif %}
+
+
+                {% if sms_retry_available %}
+
+                    <form
+                        method="post"
+                        action="{% url 'admin_retry_notification_channel' notification.pk 'sms' %}"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="btn btn-outline-danger w-100"
+                        >
+                            Retry SMS Only
+                        </button>
+
+                    </form>
+
+                {% elif notification.sms_status == "failed" %}
+
+                    <div class="alert alert-warning small mb-0">
+                        SMS retry limit reached.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            {% if order %}
+
+                <div class="dashboard-card">
+
+                    <h5>
+                        Related Order
+                    </h5>
+
+                    <div class="mb-2">
+                        {{ order.order_number }}
+                    </div>
+
+                    <a
+                        href="{% url 'admin_order_detail' order.order_number %}"
+                        class="btn btn-outline-primary btn-sm"
+                    >
+                        Open Order
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

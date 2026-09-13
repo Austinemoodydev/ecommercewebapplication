@@ -350,10 +350,9 @@ if "SETTLED_DELIVERY_PAYMENT_STATUSES =" not in text:
 
     helper = '''
 
-SETTLED_DELIVERY_PAYMENT_STATUSES = {
+FULFILLABLE_PAYMENT_STATUSES = {
     "paid",
     "partially_refunded",
-    "refunded",
 }
 
 

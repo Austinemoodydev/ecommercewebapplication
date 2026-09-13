@@ -4,12 +4,25 @@
 
 <div class="container py-5">
 
+    {% if is_guest_request %}
+
+    <a
+        href="{% url 'guest_order_detail' order.order_number guest_access_token %}"
+        class="btn btn-outline-secondary btn-sm mb-4"
+    >
+        &larr; Back to Order
+    </a>
+
+    {% else %}
+
     <a
         href="{% url 'customer_returns_refunds' %}"
         class="btn btn-outline-secondary btn-sm mb-4"
     >
         &larr; Returns & Refunds
     </a>
+
+    {% endif %}
 
 
     <div class="row g-4">

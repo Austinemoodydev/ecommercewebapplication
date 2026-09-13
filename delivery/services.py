@@ -13,10 +13,9 @@ from .models import (
 
 
 
-SETTLED_DELIVERY_PAYMENT_STATUSES = {
+FULFILLABLE_PAYMENT_STATUSES = {
     "paid",
     "partially_refunded",
-    "refunded",
 }
 
 

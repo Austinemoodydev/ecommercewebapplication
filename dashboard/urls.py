@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 from . import reports_views
+from . import abandoned_cart_views
+from core import settings_views
 from orders import document_views
 from orders import credit_note_views
 from delivery.customer_views import (
@@ -102,6 +104,34 @@ urlpatterns = [
         "admin/",
         views.admin_dashboard,
         name="admin_dashboard",
+    ),
+
+
+    # =========================================================
+    # STORE SETTINGS
+    # =========================================================
+
+    path(
+        "admin/settings/",
+        settings_views.admin_store_settings,
+        name="admin_store_settings",
+    ),
+
+
+    # =========================================================
+    # ABANDONED CARTS
+    # =========================================================
+
+    path(
+        "admin/abandoned-carts/",
+        abandoned_cart_views.admin_abandoned_cart_list,
+        name="admin_abandoned_cart_list",
+    ),
+
+    path(
+        "admin/abandoned-carts/<int:pk>/",
+        abandoned_cart_views.admin_abandoned_cart_detail,
+        name="admin_abandoned_cart_detail",
     ),
 
 

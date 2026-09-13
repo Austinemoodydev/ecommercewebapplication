@@ -3,15 +3,17 @@ from decimal import Decimal
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
 from django.conf import settings
 from django.utils import timezone
 from django.db import transaction as db_transaction
 from django_ratelimit.decorators import ratelimit
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 
 from orders.models import Order
+from orders.guest_access import verify_guest_access_token
 from .models import MpesaTransaction
 from .forms import RefundRequestForm, ReturnRequestForm
 from .models import RefundRequest, ReturnRequest
@@ -45,21 +47,84 @@ def _payment_is_settled(order):
     )
 
 
-@login_required
+def _get_authorized_payment_order(
+    request,
+    order_number,
+    guest_token=None,
+    lock=False,
+):
+
+    queryset = Order.objects
+
+    if lock:
+        queryset = queryset.select_for_update()
+
+
+    if guest_token:
+
+        order = get_object_or_404(
+            queryset,
+            order_number=order_number,
+            guest_checkout=True,
+            user__isnull=True,
+        )
+
+        if not verify_guest_access_token(
+            order,
+            guest_token,
+        ):
+
+            raise Http404(
+                "Order not found."
+            )
+
+        return order
+
+
+    if not request.user.is_authenticated:
+
+        raise Http404(
+            "Order not found."
+        )
+
+
+    return get_object_or_404(
+        queryset,
+        order_number=order_number,
+        user=request.user,
+        guest_checkout=False,
+    )
+
+
 @ratelimit(
-    key="user",
+    key="ip",
     rate="5/m",
     method="POST",
     block=True,
 )
-def initiate_payment(request, order_number):
+def initiate_payment(
+    request,
+    order_number,
+    token=None,
+):
+
+    if (
+        token is None
+        and
+        not request.user.is_authenticated
+    ):
+
+        return redirect_to_login(
+            request.get_full_path()
+        )
+
 
     if request.method != "POST":
 
-        order = get_object_or_404(
-            Order,
-            order_number=order_number,
-            user=request.user,
+        order = _get_authorized_payment_order(
+            request,
+            order_number,
+            guest_token=token,
         )
 
         return render(
@@ -81,15 +146,22 @@ def initiate_payment(request, order_number):
                     order.delivery_quote_expires_at
                     <= timezone.now()
                 ),
+
+                "guest_access_token": token,
+
+                "is_guest_payment": bool(
+                    token
+                ),
             },
         )
 
     with db_transaction.atomic():
 
-        order = get_object_or_404(
-            Order.objects.select_for_update(),
-            order_number=order_number,
-            user=request.user,
+        order = _get_authorized_payment_order(
+            request,
+            order_number,
+            guest_token=token,
+            lock=True,
         )
 
         if (
@@ -813,16 +885,27 @@ def mpesa_callback(request):
     )
 
 
-@login_required
 def check_payment_status(
     request,
     order_number,
+    token=None,
 ):
 
-    order = get_object_or_404(
-        Order,
-        order_number=order_number,
-        user=request.user,
+    if (
+        token is None
+        and
+        not request.user.is_authenticated
+    ):
+
+        return redirect_to_login(
+            request.get_full_path()
+        )
+
+
+    order = _get_authorized_payment_order(
+        request,
+        order_number,
+        guest_token=token,
     )
 
     transaction = (

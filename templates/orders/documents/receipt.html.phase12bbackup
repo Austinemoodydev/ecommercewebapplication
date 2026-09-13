@@ -1,0 +1,296 @@
+{% extends "orders/documents/base.html" %}
+
+
+{% block document_content %}
+
+<header class="header">
+
+    <div class="brand">
+
+        <h1>
+            {{ snapshot.store.name }}
+        </h1>
+
+        {% if snapshot.store.address %}
+            <p>{{ snapshot.store.address }}</p>
+        {% endif %}
+
+        {% if snapshot.store.phone %}
+            <p>{{ snapshot.store.phone }}</p>
+        {% endif %}
+
+        {% if snapshot.store.email %}
+            <p>{{ snapshot.store.email }}</p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="document-meta">
+
+        <h2>Receipt</h2>
+
+        <p>
+            <strong>
+                {{ document.document_number }}
+            </strong>
+        </p>
+
+        <p>
+            Order:
+            {{ snapshot.order.order_number }}
+        </p>
+
+        <p>
+            Issued:
+            {{ document.issued_at|date:"d M Y H:i" }}
+        </p>
+
+        <span class="status">
+            {{ snapshot.order.payment_status_display }}
+        </span>
+
+    </div>
+
+</header>
+
+
+<section class="grid">
+
+    <div class="info-block">
+
+        <h3 class="section-title">
+            Received From
+        </h3>
+
+        <p>
+            <strong>
+                {{ snapshot.order.full_name }}
+            </strong>
+        </p>
+
+        <p>
+            {{ snapshot.order.phone }}
+        </p>
+
+        {% if snapshot.order.email %}
+            <p>{{ snapshot.order.email }}</p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="info-block">
+
+        <h3 class="section-title">
+            Payment Details
+        </h3>
+
+        <p>
+            Method:
+            {{ snapshot.order.payment_method|upper }}
+        </p>
+
+
+        {% if snapshot.payment %}
+
+            {% if snapshot.payment.mpesa_receipt_number %}
+
+                <p>
+
+                    M-PESA Receipt:
+
+                    <strong>
+                        {{ snapshot.payment.mpesa_receipt_number }}
+                    </strong>
+
+                </p>
+
+            {% endif %}
+
+
+            <p>
+                Payment Phone:
+                {{ snapshot.payment.phone_number }}
+            </p>
+
+            <p>
+                Payment Amount:
+                KES {{ snapshot.payment.amount }}
+            </p>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<table>
+
+    <thead>
+
+        <tr>
+
+            <th>Item</th>
+
+            <th class="text-right">
+                Price
+            </th>
+
+            <th class="text-right">
+                Qty
+            </th>
+
+            <th class="text-right">
+                Amount
+            </th>
+
+        </tr>
+
+    </thead>
+
+
+    <tbody>
+
+        {% for item in snapshot.items %}
+
+            <tr>
+
+                <td>
+
+                    <strong>
+                        {{ item.product_name }}
+                    </strong>
+
+                    {% if item.variant_name %}
+
+                        <div class="small">
+                            {{ item.variant_name }}
+                        </div>
+
+                    {% endif %}
+
+                </td>
+
+                <td class="text-right">
+                    KES {{ item.price }}
+                </td>
+
+                <td class="text-right">
+                    {{ item.quantity }}
+                </td>
+
+                <td class="text-right">
+                    KES {{ item.subtotal }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+
+<div class="totals">
+
+    <div class="total-row">
+
+        <span>Order Total</span>
+
+        <strong>
+            KES {{ snapshot.order.total_amount }}
+        </strong>
+
+    </div>
+
+
+    {% if snapshot.refund_total != "0.00" %}
+
+        <div class="total-row refund-row">
+
+            <span>Refunded</span>
+
+            <strong>
+                - KES {{ snapshot.refund_total }}
+            </strong>
+
+        </div>
+
+
+        <div class="total-row grand-total">
+
+            <span>Net Amount</span>
+
+            <span>
+                KES {{ snapshot.net_amount }}
+            </span>
+
+        </div>
+
+    {% else %}
+
+        <div class="total-row grand-total">
+
+            <span>Amount Paid</span>
+
+            <span>
+                KES {{ snapshot.order.total_amount }}
+            </span>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+{% if snapshot.refunds %}
+
+    <div class="payment-box">
+
+        <h3>
+            Refund History
+        </h3>
+
+
+        {% for refund in snapshot.refunds %}
+
+            <p>
+
+                KES {{ refund.amount }}
+
+                {% if refund.external_reference %}
+
+                    —
+                    Ref:
+                    {{ refund.external_reference }}
+
+                {% endif %}
+
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+{% endif %}
+
+
+<div class="footer">
+
+    <p>
+        Payment receipt for order
+        {{ snapshot.order.order_number }}.
+    </p>
+
+    <p>
+        Thank you for shopping with
+        {{ snapshot.store.name }}.
+    </p>
+
+</div>
+
+{% endblock %}

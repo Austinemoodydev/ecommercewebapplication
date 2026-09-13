@@ -10,6 +10,12 @@ from orders.models import (
 )
 
 
+from core.store_settings import (
+    business_address,
+    get_store_settings,
+)
+
+
 ZERO = Decimal("0.00")
 
 
@@ -28,38 +34,53 @@ def _money_string(
 
 def _store_snapshot():
 
+    store = (
+        get_store_settings()
+    )
+
+
     return {
 
-        "name": getattr(
-            settings,
-            "STORE_NAME",
-            "Online Shop",
-        ),
+        "name":
+            store.store_name,
 
-        "email": getattr(
-            settings,
-            "STORE_EMAIL",
-            "",
-        ),
+        "legal_name":
+            store.legal_name,
 
-        "phone": getattr(
-            settings,
-            "STORE_PHONE",
-            "",
-        ),
 
-        "address": getattr(
-            settings,
-            "STORE_ADDRESS",
-            "",
-        ),
+        "business_registration_number":
+            store.business_registration_number,
 
-        "website": getattr(
-            settings,
-            "STORE_WEBSITE",
-            "",
-        ),
+        "tax_pin":
+            store.tax_pin,
+
+        "email":
+            store.support_email,
+
+        "phone":
+            store.support_phone,
+
+        "whatsapp":
+            store.whatsapp_number,
+
+        "address":
+            business_address(
+                store
+            ),
+
+        "website":
+            store.website_url,
+
+        "currency_code":
+            store.currency_code,
+
+        "currency_symbol":
+            store.currency_symbol,
+
+        "document_footer":
+            store.document_footer,
     }
+
 
 
 def _successful_payment(
@@ -384,6 +405,25 @@ def build_order_document_snapshot(
                     order.discount
                 ),
 
+            "tax_enabled":
+                order.tax_enabled_at_checkout,
+
+            "tax_rate":
+                _money_string(
+                    order.tax_rate_at_checkout
+                ),
+
+            "tax_amount":
+                _money_string(
+                    order.tax_amount
+                ),
+
+            "currency_code":
+                order.currency_code_at_checkout,
+
+            "currency_symbol":
+                order.currency_symbol_at_checkout,
+
             "total_amount":
                 _money_string(
                     order.total_amount
@@ -439,19 +479,37 @@ def _document_number(
     document_type,
 ):
 
+    store = (
+        get_store_settings()
+    )
+
+
     if document_type == "invoice":
 
-        prefix = "INV"
+        prefix = (
+            store.invoice_prefix
+            or "INV"
+        )
 
     elif document_type == "receipt":
 
-        prefix = "RCP"
+        prefix = (
+            store.receipt_prefix
+            or "RCP"
+        )
 
     else:
 
         raise ValueError(
             "Unknown document type."
         )
+
+
+    prefix = (
+        prefix
+        .strip()
+        .upper()
+    )
 
 
     return (

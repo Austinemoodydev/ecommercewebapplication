@@ -165,6 +165,22 @@ def admin_credit_note(
     )
 
 
+def _customer_credit_note_url(
+    document,
+):
+
+    from django.urls import reverse
+
+
+    return reverse(
+        "customer_credit_note",
+        args=[
+            document.refund_request_id
+        ],
+    )
+
+
+
 def _credit_note_url(
     request,
     document,
@@ -220,8 +236,7 @@ def _send_credit_note_email(
 
     url = (
         request.build_absolute_uri(
-            _credit_note_url(
-                request,
+            _customer_credit_note_url(
                 document,
             )
         )
@@ -245,7 +260,8 @@ def _send_credit_note_email(
         f"Credit note: "
         f"{document.document_number}\n"
 
-        f"Refund amount: KES "
+        f"Refund amount: "
+        f"{snapshot['order'].get('currency_symbol', 'KSh')} "
         f"{snapshot['refund']['amount']}\n"
 
         f"Refund reference: "

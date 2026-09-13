@@ -14,6 +14,12 @@ from payments.models import (
 )
 
 
+from core.store_settings import (
+    business_address,
+    get_store_settings,
+)
+
+
 ZERO = Decimal("0.00")
 
 
@@ -31,38 +37,49 @@ def _money(
 
 def _store_snapshot():
 
+    store = (
+        get_store_settings()
+    )
+
+
     return {
 
-        "name": getattr(
-            settings,
-            "STORE_NAME",
-            "Online Shop",
-        ),
+        "name":
+            store.store_name,
 
-        "email": getattr(
-            settings,
-            "STORE_EMAIL",
-            "",
-        ),
+        "legal_name":
+            store.legal_name,
 
-        "phone": getattr(
-            settings,
-            "STORE_PHONE",
-            "",
-        ),
+        "business_registration_number":
+            store.business_registration_number,
 
-        "address": getattr(
-            settings,
-            "STORE_ADDRESS",
-            "",
-        ),
+        "tax_pin":
+            store.tax_pin,
 
-        "website": getattr(
-            settings,
-            "STORE_WEBSITE",
-            "",
-        ),
+        "email":
+            store.support_email,
+
+        "phone":
+            store.support_phone,
+
+        "address":
+            business_address(
+                store
+            ),
+
+        "website":
+            store.website_url,
+
+        "currency_code":
+            store.currency_code,
+
+        "currency_symbol":
+            store.currency_symbol,
+
+        "document_footer":
+            store.document_footer,
     }
+
 
 
 def build_credit_note_snapshot(
@@ -159,6 +176,22 @@ def build_credit_note_snapshot(
                     order.total_amount
                 ),
 
+            "currency_code":
+                order.currency_code_at_checkout,
+
+            "currency_symbol":
+                order.currency_symbol_at_checkout,
+
+            "tax_amount":
+                _money(
+                    order.tax_amount
+                ),
+
+            "tax_rate":
+                _money(
+                    order.tax_rate_at_checkout
+                ),
+
             "payment_method":
                 order.payment_method,
 
@@ -218,9 +251,27 @@ def _credit_note_number(
     refund,
 ):
 
+    store = (
+        get_store_settings()
+    )
+
+
+    prefix = (
+        store.credit_note_prefix
+        or "CN"
+    )
+
+
+    prefix = (
+        prefix
+        .strip()
+        .upper()
+    )
+
+
     # Refund ID provides stable uniqueness.
     return (
-        f"CN-"
+        f"{prefix}-"
         f"{refund.order.order_number}-"
         f"{refund.pk:02d}"
     )

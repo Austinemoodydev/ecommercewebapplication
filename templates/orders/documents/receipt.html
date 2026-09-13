@@ -196,12 +196,31 @@
 
 <div class="totals">
 
+    {% if snapshot.order.tax_amount and snapshot.order.tax_amount != "0.00" %}
+
+    <div class="total-row">
+
+        <span>
+            Tax included
+            ({{ snapshot.order.tax_rate }}%)
+        </span>
+
+        <strong>
+            {{ snapshot.order.currency_symbol|default:"KSh" }}
+            {{ snapshot.order.tax_amount }}
+        </strong>
+
+    </div>
+
+    {% endif %}
+
+
     <div class="total-row">
 
         <span>Order Total</span>
 
         <strong>
-            KES {{ snapshot.order.total_amount }}
+            {{ snapshot.order.currency_symbol|default:'KSh' }} {{ snapshot.order.total_amount }}
         </strong>
 
     </div>
@@ -237,7 +256,7 @@
             <span>Amount Paid</span>
 
             <span>
-                KES {{ snapshot.order.total_amount }}
+                {{ snapshot.order.currency_symbol|default:'KSh' }} {{ snapshot.order.total_amount }}
             </span>
 
         </div>

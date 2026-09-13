@@ -193,6 +193,181 @@ def build_sales_report(
     )
 
 
+    # --------------------------------------------------------
+    # Historical financial snapshots
+    #
+    # IMPORTANT:
+    # These values come from each Order snapshot.
+    # We NEVER recalculate old orders using today's tax
+    # or currency configuration.
+    # --------------------------------------------------------
+
+    merchandise_subtotal = _money(
+        paid_orders.aggregate(
+            total=Coalesce(
+                Sum(
+                    "subtotal"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            )
+        )["total"]
+    )
+
+
+    discounts_given = _money(
+        paid_orders.aggregate(
+            total=Coalesce(
+                Sum(
+                    "discount"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            )
+        )["total"]
+    )
+
+
+    net_merchandise_before_tax = (
+        merchandise_subtotal
+        - discounts_given
+    )
+
+
+    tax_collected = _money(
+        paid_orders.aggregate(
+            total=Coalesce(
+                Sum(
+                    "tax_amount"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            )
+        )["total"]
+    )
+
+
+    taxable_order_count = (
+        paid_orders
+        .filter(
+            tax_amount__gt=ZERO
+        )
+        .count()
+    )
+
+
+    non_taxable_order_count = (
+        paid_orders.count()
+        - taxable_order_count
+    )
+
+
+    currency_breakdown = list(
+        paid_orders
+        .values(
+            "currency_code_at_checkout",
+            "currency_symbol_at_checkout",
+        )
+        .annotate(
+            order_count=Count(
+                "id"
+            ),
+
+            subtotal=Coalesce(
+                Sum(
+                    "subtotal"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            ),
+
+            discount=Coalesce(
+                Sum(
+                    "discount"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            ),
+
+            tax=Coalesce(
+                Sum(
+                    "tax_amount"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            ),
+
+            delivery=Coalesce(
+                Sum(
+                    "shipping_cost"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            ),
+
+            total=Coalesce(
+                Sum(
+                    "total_amount"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            ),
+        )
+        .order_by(
+            "currency_code_at_checkout",
+            "currency_symbol_at_checkout",
+        )
+    )
+
+
+    currency_pairs = {
+        (
+            row[
+                "currency_code_at_checkout"
+            ],
+            row[
+                "currency_symbol_at_checkout"
+            ],
+        )
+        for row in currency_breakdown
+    }
+
+
+    has_mixed_currencies = (
+        len(currency_pairs) > 1
+    )
+
+
+    if len(currency_pairs) == 1:
+
+        (
+            report_currency_code,
+            report_currency_symbol,
+        ) = next(
+            iter(
+                currency_pairs
+            )
+        )
+
+        report_currency_label = (
+            report_currency_code
+            or report_currency_symbol
+            or "KES"
+        )
+
+    elif has_mixed_currencies:
+
+        report_currency_code = "MIXED"
+        report_currency_symbol = ""
+        report_currency_label = "MIXED"
+
+    else:
+
+        report_currency_code = "KES"
+        report_currency_symbol = "KSh"
+        report_currency_label = "KES"
+
+
     processed_refund_qs = (
         RefundRequest.objects
         .filter(
@@ -424,8 +599,14 @@ def build_sales_report(
     )
 
 
+    # Tax collected is separated from operating profit.
+    #
+    # Refunds are already deducted through net_revenue.
+    # Item-level tax allocation on refunds can be added later
+    # if tax-refund accounting requires it.
     estimated_gross_profit = (
         net_revenue
+        - tax_collected
         - estimated_cogs
         - actual_delivery_cost
     )
@@ -579,9 +760,46 @@ def build_sales_report(
             revenue=Sum(
                 "total_amount"
             ),
+            tax=Sum(
+                "tax_amount"
+            ),
         )
         .order_by(
             "day"
+        )
+    )
+
+
+    daily_tax = (
+        paid_orders
+        .annotate(
+            day=TruncDate(
+                "created_at"
+            )
+        )
+        .values(
+            "day"
+        )
+        .annotate(
+            tax=Coalesce(
+                Sum(
+                    "tax_amount"
+                ),
+                ZERO,
+                output_field=DecimalField(),
+            )
+        )
+        .order_by(
+            "day"
+        )
+    )
+
+
+    financial_orders = (
+        paid_orders
+        .order_by(
+            "created_at",
+            "id",
         )
     )
 
@@ -615,6 +833,50 @@ def build_sales_report(
 
         "gross_revenue": (
             gross_revenue
+        ),
+
+        "merchandise_subtotal": (
+            merchandise_subtotal
+        ),
+
+        "discounts_given": (
+            discounts_given
+        ),
+
+        "net_merchandise_before_tax": (
+            net_merchandise_before_tax
+        ),
+
+        "tax_collected": (
+            tax_collected
+        ),
+
+        "taxable_order_count": (
+            taxable_order_count
+        ),
+
+        "non_taxable_order_count": (
+            non_taxable_order_count
+        ),
+
+        "currency_breakdown": (
+            currency_breakdown
+        ),
+
+        "has_mixed_currencies": (
+            has_mixed_currencies
+        ),
+
+        "report_currency_code": (
+            report_currency_code
+        ),
+
+        "report_currency_symbol": (
+            report_currency_symbol
+        ),
+
+        "report_currency_label": (
+            report_currency_label
         ),
 
         "processed_refunds": (
@@ -703,6 +965,14 @@ def build_sales_report(
 
         "daily_sales": (
             daily_sales
+        ),
+
+        "daily_tax": (
+            daily_tax
+        ),
+
+        "financial_orders": (
+            financial_orders
         ),
 
         "recent_orders": (
@@ -802,6 +1072,55 @@ def sales_reports_csv(
         ),
 
         (
+            "Merchandise Subtotal",
+            context[
+                "merchandise_subtotal"
+            ],
+        ),
+
+        (
+            "Discounts Given",
+            context[
+                "discounts_given"
+            ],
+        ),
+
+        (
+            "Net Merchandise Before Tax",
+            context[
+                "net_merchandise_before_tax"
+            ],
+        ),
+
+        (
+            "Tax Collected",
+            context[
+                "tax_collected"
+            ],
+        ),
+
+        (
+            "Taxable Orders",
+            context[
+                "taxable_order_count"
+            ],
+        ),
+
+        (
+            "Non-taxable Orders",
+            context[
+                "non_taxable_order_count"
+            ],
+        ),
+
+        (
+            "Report Currency",
+            context[
+                "report_currency_label"
+            ],
+        ),
+
+        (
             "Processed Refunds",
             context[
                 "processed_refunds"
@@ -896,6 +1215,107 @@ def sales_reports_csv(
             [
                 name,
                 value,
+            ]
+        )
+
+
+    writer.writerow([])
+
+    writer.writerow(
+        [
+            "Order Financial Detail"
+        ]
+    )
+
+    writer.writerow(
+        [
+            "Order Number",
+            "Created",
+            "Subtotal",
+            "Discount",
+            "Tax Rate %",
+            "Tax Amount",
+            "Delivery",
+            "Total",
+            "Currency Code",
+            "Currency Symbol",
+            "Payment Status",
+        ]
+    )
+
+
+    for order in context[
+        "financial_orders"
+    ]:
+
+        writer.writerow(
+            [
+                order.order_number,
+                order.created_at,
+                order.subtotal,
+                order.discount,
+                order.tax_rate_at_checkout,
+                order.tax_amount,
+                order.shipping_cost,
+                order.total_amount,
+                order.currency_code_at_checkout,
+                order.currency_symbol_at_checkout,
+                order.payment_status,
+            ]
+        )
+
+
+    writer.writerow([])
+    writer.writerow(
+        [
+            "Currency Breakdown"
+        ]
+    )
+
+    writer.writerow(
+        [
+            "Currency",
+            "Symbol",
+            "Orders",
+            "Subtotal",
+            "Discount",
+            "Tax",
+            "Delivery",
+            "Total",
+        ]
+    )
+
+
+    for row in context[
+        "currency_breakdown"
+    ]:
+
+        writer.writerow(
+            [
+                row[
+                    "currency_code_at_checkout"
+                ],
+                row[
+                    "currency_symbol_at_checkout"
+                ],
+                row[
+                    "order_count"
+                ],
+                row[
+                    "subtotal"
+                ],
+                row[
+                    "discount"
+                ],
+                row[
+                    "tax"
+                ],
+                row[
+                    "delivery"
+                ],
+                row[
+                    "total"
+                ],
             ]
         )
 

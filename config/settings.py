@@ -288,3 +288,18 @@ SOCIALACCOUNT_PROVIDERS = {
 # ============================================================
 
 RETURN_WINDOW_DAYS = 14
+
+
+# ============================================================
+# ABANDONED CARTS
+# ============================================================
+
+# A cart is considered abandoned only when it still contains
+# products, has not produced an order, and has had no genuine
+# cart/checkout activity for this many hours.
+CART_ABANDONED_AFTER_HOURS = int(
+    os.environ.get(
+        "CART_ABANDONED_AFTER_HOURS",
+        "24",
+    )
+)

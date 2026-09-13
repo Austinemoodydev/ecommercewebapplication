@@ -1,5 +1,6 @@
-﻿from django.conf import settings
+from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class Cart(models.Model):
@@ -19,7 +20,30 @@ class Cart(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    # --------------------------------------------------------
+    # ABANDONED CART LIFECYCLE
+    # --------------------------------------------------------
+
+    last_activity_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    checkout_started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    converted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
 
     @property
     def total_items(self):

@@ -2,6 +2,10 @@ from wishlist.models import Wishlist
 from cart.models import Cart
 from django.conf import settings
 
+from core.store_settings import (
+    get_store_settings,
+)
+
 
 def global_context(request):
 
@@ -28,7 +32,15 @@ def global_context(request):
                 for item in cart.items.all()
             )
 
+    store_settings = (
+        get_store_settings()
+    )
+
+
     return {
+
+        "store_settings":
+            store_settings,
 
         "wishlist_count": wishlist_count,
 

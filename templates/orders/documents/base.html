@@ -271,7 +271,15 @@
 
 <div class="document-toolbar no-print">
 
-    {% if request.user.is_staff %}
+    {% if is_guest_document %}
+
+        <a
+            href="{% url 'guest_order_detail' order.order_number guest_access_token %}"
+        >
+            Back to Order
+        </a>
+
+    {% elif request.user.is_staff %}
 
         <a
             href="{% url 'admin_order_detail' order.order_number %}"
@@ -290,7 +298,7 @@
     {% endif %}
 
 
-    {% if snapshot.order.email %}
+    {% if snapshot.order.email and not is_guest_document %}
 
         {% if is_credit_note %}
 

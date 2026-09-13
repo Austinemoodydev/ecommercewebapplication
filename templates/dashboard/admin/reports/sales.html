@@ -113,7 +113,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                KES {{ gross_revenue|floatformat:2 }}
+                {{ report_currency_label }} {{ gross_revenue|floatformat:2 }}
             </div>
 
         </div>
@@ -130,7 +130,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                KES {{ processed_refunds|floatformat:2 }}
+                {{ report_currency_label }} {{ processed_refunds|floatformat:2 }}
             </div>
 
         </div>
@@ -147,7 +147,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                KES {{ net_revenue|floatformat:2 }}
+                {{ report_currency_label }} {{ net_revenue|floatformat:2 }}
             </div>
 
         </div>
@@ -164,7 +164,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                KES {{ estimated_gross_profit|floatformat:2 }}
+                {{ report_currency_label }} {{ estimated_gross_profit|floatformat:2 }}
             </div>
 
             <small class="text-muted">
@@ -187,6 +187,255 @@ Sales Reports
         </div>
 
     </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- HISTORICAL FINANCIAL BREAKDOWN -->
+<!-- ===================================================== -->
+
+<div class="dashboard-card mb-4">
+
+    <div
+        class="
+            d-flex
+            justify-content-between
+            align-items-start
+            flex-wrap
+            gap-3
+            mb-3
+        "
+    >
+
+        <div>
+
+            <h2 class="h5 mb-1">
+                Historical Financial Breakdown
+            </h2>
+
+            <p class="text-muted mb-0">
+                Tax and currency values are taken from
+                each order's checkout snapshot.
+            </p>
+
+        </div>
+
+        <span class="badge bg-light text-dark border">
+
+            Currency:
+            {{ report_currency_label }}
+
+        </span>
+
+    </div>
+
+
+    {% if has_mixed_currencies %}
+
+        <div class="alert alert-warning">
+
+            This period contains more than one currency.
+            Totals are not foreign-exchange converted.
+            Use the currency breakdown below for accurate
+            currency-by-currency reporting.
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="row g-3">
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Merchandise Subtotal
+                </small>
+
+                <div class="fs-5 fw-bold">
+
+                    {{ report_currency_label }}
+                    {{ merchandise_subtotal|floatformat:2 }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Discounts
+                </small>
+
+                <div class="fs-5 fw-bold">
+
+                    {{ report_currency_label }}
+                    {{ discounts_given|floatformat:2 }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Net Merchandise Before Tax
+                </small>
+
+                <div class="fs-5 fw-bold">
+
+                    {{ report_currency_label }}
+                    {{ net_merchandise_before_tax|floatformat:2 }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="border rounded p-3 h-100">
+
+                <small class="text-muted">
+                    Tax Collected
+                </small>
+
+                <div class="fs-5 fw-bold">
+
+                    {{ report_currency_label }}
+                    {{ tax_collected|floatformat:2 }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="row g-3 mt-1">
+
+        <div class="col-md-6">
+
+            <div class="border rounded p-3">
+
+                <small class="text-muted">
+                    Taxable Paid Orders
+                </small>
+
+                <div class="fs-4 fw-bold">
+                    {{ taxable_order_count }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6">
+
+            <div class="border rounded p-3">
+
+                <small class="text-muted">
+                    Non-taxable Paid Orders
+                </small>
+
+                <div class="fs-4 fw-bold">
+                    {{ non_taxable_order_count }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {% if currency_breakdown %}
+
+        <div class="table-responsive mt-4">
+
+            <table class="table align-middle">
+
+                <thead>
+
+                    <tr>
+                        <th>Currency</th>
+                        <th>Orders</th>
+                        <th>Subtotal</th>
+                        <th>Discount</th>
+                        <th>Tax</th>
+                        <th>Delivery</th>
+                        <th>Total</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in currency_breakdown %}
+
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    {{ row.currency_code_at_checkout }}
+                                </strong>
+
+                                {{ row.currency_symbol_at_checkout }}
+                            </td>
+
+                            <td>
+                                {{ row.order_count }}
+                            </td>
+
+                            <td>
+                                {{ row.subtotal|floatformat:2 }}
+                            </td>
+
+                            <td>
+                                {{ row.discount|floatformat:2 }}
+                            </td>
+
+                            <td>
+                                {{ row.tax|floatformat:2 }}
+                            </td>
+
+                            <td>
+                                {{ row.delivery|floatformat:2 }}
+                            </td>
+
+                            <td>
+                                {{ row.total|floatformat:2 }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% endif %}
 
 </div>
 
@@ -257,7 +506,7 @@ Sales Reports
             </small>
 
             <div class="fs-3 fw-bold">
-                KES {{ average_order_value|floatformat:2 }}
+                {{ report_currency_label }} {{ average_order_value|floatformat:2 }}
             </div>
 
         </div>
@@ -289,7 +538,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    KES {{ delivery_income|floatformat:2 }}
+                    {{ report_currency_label }} {{ delivery_income|floatformat:2 }}
                 </strong>
 
             </div>
@@ -302,7 +551,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    KES {{ actual_delivery_cost|floatformat:2 }}
+                    {{ report_currency_label }} {{ actual_delivery_cost|floatformat:2 }}
                 </strong>
 
             </div>
@@ -315,7 +564,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    KES {{ delivery_margin|floatformat:2 }}
+                    {{ report_currency_label }} {{ delivery_margin|floatformat:2 }}
                 </strong>
 
             </div>
@@ -354,7 +603,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    KES {{ mpesa_collected|floatformat:2 }}
+                    {{ report_currency_label }} {{ mpesa_collected|floatformat:2 }}
                 </strong>
 
             </div>
@@ -367,7 +616,7 @@ Sales Reports
                 </span>
 
                 <strong>
-                    KES {{ estimated_cogs|floatformat:2 }}
+                    {{ report_currency_label }} {{ estimated_cogs|floatformat:2 }}
                 </strong>
 
             </div>
@@ -450,7 +699,7 @@ Sales Reports
                 </small>
 
                 <div class="fs-5 fw-bold">
-                    KES {{ historical_cogs|floatformat:2 }}
+                    {{ report_currency_label }} {{ historical_cogs|floatformat:2 }}
                 </div>
 
             </div>
@@ -467,7 +716,7 @@ Sales Reports
                 </small>
 
                 <div class="fs-5 fw-bold">
-                    KES {{ legacy_estimated_cogs|floatformat:2 }}
+                    {{ report_currency_label }} {{ legacy_estimated_cogs|floatformat:2 }}
                 </div>
 
             </div>
@@ -567,7 +816,7 @@ Sales Reports
                         </td>
 
                         <td class="text-end">
-                            KES {{ row.revenue|floatformat:2 }}
+                            {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
                         </td>
 
                     </tr>
@@ -647,7 +896,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    KES {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
                                 </td>
 
                             </tr>
@@ -729,7 +978,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    KES {{ row.total_spent|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.total_spent|floatformat:2 }}
                                 </td>
 
                             </tr>
@@ -1012,7 +1261,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    KES {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
                                 </td>
 
                                 <td class="text-end">
@@ -1098,7 +1347,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    KES {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
                                 </td>
 
                                 <td class="text-end">
@@ -1197,7 +1446,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    KES {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
                                 </td>
 
                             </tr>
@@ -1281,7 +1530,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    KES {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
                                 </td>
 
                             </tr>
@@ -1380,11 +1629,11 @@ Sales Reports
                         </td>
 
                         <td class="text-end">
-                            KES {{ row.customer_charge|floatformat:2 }}
+                            {{ report_currency_label }} {{ row.customer_charge|floatformat:2 }}
                         </td>
 
                         <td class="text-end">
-                            KES {{ row.actual_cost|floatformat:2 }}
+                            {{ report_currency_label }} {{ row.actual_cost|floatformat:2 }}
                         </td>
 
                         <td class="text-end">
@@ -1392,13 +1641,13 @@ Sales Reports
                             {% if row.margin < 0 %}
 
                                 <span class="text-danger fw-bold">
-                                    KES {{ row.margin|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.margin|floatformat:2 }}
                                 </span>
 
                             {% else %}
 
                                 <span class="text-success fw-bold">
-                                    KES {{ row.margin|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.margin|floatformat:2 }}
                                 </span>
 
                             {% endif %}
@@ -1485,7 +1734,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    KES {{ row.revenue|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.revenue|floatformat:2 }}
                                 </td>
 
                             </tr>
@@ -1532,7 +1781,7 @@ Sales Reports
 
                 <div class="fs-4 fw-bold">
 
-                    KES {{ repeat_customer_revenue|floatformat:2 }}
+                    {{ report_currency_label }} {{ repeat_customer_revenue|floatformat:2 }}
 
                 </div>
 
@@ -1584,7 +1833,7 @@ Sales Reports
                                 </td>
 
                                 <td class="text-end">
-                                    KES {{ row.total_spent|floatformat:2 }}
+                                    {{ report_currency_label }} {{ row.total_spent|floatformat:2 }}
                                 </td>
 
                             </tr>
@@ -1706,7 +1955,7 @@ Sales Reports
                         </td>
 
                         <td class="text-end">
-                            KES {{ order.total_amount|floatformat:2 }}
+                            {{ report_currency_label }} {{ order.total_amount|floatformat:2 }}
                         </td>
 
                     </tr>

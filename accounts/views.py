@@ -9,13 +9,229 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404
+from django.db import transaction
+from django.contrib import messages
 
 from .forms import RegisterForm, AddressForm, ProfileForm
 from .models import Address
 
+from orders.models import Order
+
+from orders.guest_access import (
+    verify_guest_access_token,
+)
+
+
+PENDING_GUEST_ORDER_KEY = (
+    "pending_guest_order_claim"
+)
+
+
+
+def _get_guest_order_for_claim(
+    order_number,
+    token,
+    *,
+    lock=False,
+):
+
+    queryset = Order.objects
+
+
+    if lock:
+
+        queryset = (
+            queryset.select_for_update()
+        )
+
+
+    order = get_object_or_404(
+        queryset,
+        order_number=order_number,
+        user__isnull=True,
+        guest_checkout=True,
+    )
+
+
+    if not verify_guest_access_token(
+        order,
+        token,
+    ):
+
+        raise Http404(
+            "Order not found."
+        )
+
+
+    return order
+
+
+
+def _store_pending_guest_claim(
+    request,
+    order_number,
+    token,
+):
+
+    # Validate BEFORE storing anything
+    # in the session.
+
+    _get_guest_order_for_claim(
+        order_number,
+        token,
+    )
+
+
+    request.session[
+        PENDING_GUEST_ORDER_KEY
+    ] = {
+        "order_number": order_number,
+        "token": token,
+    }
+
+
+    request.session.modified = True
+
+
+
+@transaction.atomic
+def _claim_guest_order(
+    user,
+    order_number,
+    token,
+):
+
+    order = _get_guest_order_for_claim(
+        order_number,
+        token,
+        lock=True,
+    )
+
+
+    # Account must be active and email
+    # verified before ownership transfer.
+
+    if (
+        not user.is_active
+        or
+        not user.email_verified
+    ):
+
+        raise PermissionError(
+            "Verify your email before "
+            "linking this order."
+        )
+
+
+    order.user = user
+
+    order.guest_checkout = False
+
+    # Destroy the guest credential.
+    # The old private URL stops working
+    # immediately after this commit.
+
+    order.guest_access_token_hash = ""
+
+
+    order.save(
+        update_fields=[
+            "user",
+            "guest_checkout",
+            "guest_access_token_hash",
+            "updated_at",
+        ]
+    )
+
+
+    return order
+
+
+
+def _claim_pending_order_if_possible(
+    request,
+    user,
+):
+
+    pending = request.session.get(
+        PENDING_GUEST_ORDER_KEY
+    )
+
+
+    if not pending:
+
+        return None
+
+
+    order_number = pending.get(
+        "order_number"
+    )
+
+    token = pending.get(
+        "token"
+    )
+
+
+    if not order_number or not token:
+
+        request.session.pop(
+            PENDING_GUEST_ORDER_KEY,
+            None,
+        )
+
+        return None
+
+
+    try:
+
+        order = _claim_guest_order(
+            user,
+            order_number,
+            token,
+        )
+
+    except (
+        Http404,
+        PermissionError,
+    ):
+
+        return None
+
+
+    request.session.pop(
+        PENDING_GUEST_ORDER_KEY,
+        None,
+    )
+
+
+    return order
+
+
 
 def register(request):
-    form = RegisterForm(request.POST or None)
+
+    claim_order = request.GET.get(
+        "claim_order"
+    )
+
+    claim_token = request.GET.get(
+        "claim_token"
+    )
+
+
+    if claim_order and claim_token:
+
+        _store_pending_guest_claim(
+            request,
+            claim_order,
+            claim_token,
+        )
+
+
+    form = RegisterForm(
+        request.POST or None
+    )
     if request.method == "POST":
         if form.is_valid():
             user = form.save(commit=False)
@@ -62,8 +278,32 @@ def verify_email(request, uidb64, token):
 
     user.is_active = True
     user.email_verified = True
-    user.save(update_fields=["is_active", "email_verified"])
-    return render(request, "accounts/verify_email.html", {"verified": True})
+
+    user.save(
+        update_fields=[
+            "is_active",
+            "email_verified",
+        ]
+    )
+
+
+    claimed_order = (
+        _claim_pending_order_if_possible(
+            request,
+            user,
+        )
+    )
+
+
+    return render(
+        request,
+        "accounts/verify_email.html",
+        {
+            "verified": True,
+            "claimed_order":
+                claimed_order,
+        },
+    )
 
 
 @login_required
@@ -132,3 +372,141 @@ def set_default_address(request, address_id):
 @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True), name="post")
 class RateLimitedLoginView(LoginView):
     template_name = "accounts/login.html"
+
+
+@ratelimit(
+    key="ip",
+    rate="10/m",
+    method="POST",
+    block=True,
+)
+def claim_guest_order(
+    request,
+    order_number,
+    token,
+):
+
+    order = _get_guest_order_for_claim(
+        order_number,
+        token,
+    )
+
+
+    if not request.user.is_authenticated:
+
+        _store_pending_guest_claim(
+            request,
+            order_number,
+            token,
+        )
+
+
+        if request.method == "POST":
+
+            return redirect(
+                (
+                    f"{reverse('login')}"
+                    f"?next="
+                    f"{reverse('claim_guest_order', args=[order_number, token])}"
+                )
+            )
+
+
+        return render(
+            request,
+            "accounts/claim_guest_order.html",
+            {
+                "order": order,
+                "guest_access_token":
+                    token,
+            },
+        )
+
+
+    if not request.user.email_verified:
+
+        messages.error(
+            request,
+            (
+                "Verify your account email "
+                "before linking this order."
+            ),
+        )
+
+
+        return render(
+            request,
+            "accounts/claim_guest_order.html",
+            {
+                "order": order,
+                "guest_access_token":
+                    token,
+                "requires_verification":
+                    True,
+            },
+            status=403,
+        )
+
+
+    if request.method != "POST":
+
+        return render(
+            request,
+            "accounts/claim_guest_order.html",
+            {
+                "order": order,
+                "guest_access_token":
+                    token,
+            },
+        )
+
+
+    try:
+
+        claimed_order = (
+            _claim_guest_order(
+                request.user,
+                order_number,
+                token,
+            )
+        )
+
+    except PermissionError:
+
+        return render(
+            request,
+            "accounts/claim_guest_order.html",
+            {
+                "order": order,
+                "guest_access_token":
+                    token,
+                "requires_verification":
+                    True,
+            },
+            status=403,
+        )
+
+
+    request.session.pop(
+        PENDING_GUEST_ORDER_KEY,
+        None,
+    )
+
+
+    messages.success(
+        request,
+        (
+            f"Order "
+            f"{claimed_order.order_number} "
+            "has been linked to your account."
+        ),
+    )
+
+
+    return redirect(
+        "order_detail",
+        order_number=(
+            claimed_order.order_number
+        ),
+    )
+

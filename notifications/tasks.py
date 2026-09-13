@@ -10,6 +10,11 @@ from notifications.preference_service import (
 )
 
 
+# Maximum total provider attempts for one notification/channel.
+# Initial delivery counts as one attempt.
+MAX_CHANNEL_DELIVERY_ATTEMPTS = 3
+
+
 # ============================================================
 # PROVIDERS
 # ============================================================
@@ -796,13 +801,229 @@ def send_credit_note_issued_notification(
 
 
 # ============================================================
-# MANUAL RETRY
+# MANUAL RETRY / OPERATIONS
 # ============================================================
+
+def _channel_attempts(
+    notification,
+    channel,
+):
+
+    if channel == "email":
+        return notification.email_attempts
+
+    if channel == "sms":
+        return notification.sms_attempts
+
+    raise ValueError(
+        f"Unsupported notification channel: {channel}"
+    )
+
+
+def _channel_status(
+    notification,
+    channel,
+):
+
+    if channel == "email":
+        return notification.email_status
+
+    if channel == "sms":
+        return notification.sms_status
+
+    raise ValueError(
+        f"Unsupported notification channel: {channel}"
+    )
+
+
+def channel_retry_available(
+    notification,
+    channel,
+):
+
+    """
+    A channel can be retried only when:
+
+    - it previously failed
+    - it has not reached the operational retry cap
+    """
+
+    return (
+        _channel_status(
+            notification,
+            channel,
+        )
+        == "failed"
+        and
+        _channel_attempts(
+            notification,
+            channel,
+        )
+        < MAX_CHANNEL_DELIVERY_ATTEMPTS
+    )
+
+
+def retryable_failed_channels(
+    notification,
+):
+
+    channels = set()
+
+
+    # --------------------------------------------------------
+    # MODERN PHASE 11D / 11E RECORDS
+    # --------------------------------------------------------
+
+    if channel_retry_available(
+        notification,
+        "email",
+    ):
+        channels.add(
+            "email"
+        )
+
+
+    if channel_retry_available(
+        notification,
+        "sms",
+    ):
+        channels.add(
+            "sms"
+        )
+
+
+    if channels:
+        return channels
+
+
+    # --------------------------------------------------------
+    # LEGACY COMPATIBILITY
+    # --------------------------------------------------------
+    #
+    # Notifications created before Phase 11D only had the
+    # overall `status` field.
+    #
+    # Example:
+    #
+    #   status="failed"
+    #   email_status="not_requested"
+    #   sms_status="not_requested"
+    #
+    # These rows must remain retryable after upgrading to
+    # per-channel delivery tracking.
+    #
+    # We intentionally enable this fallback only when both
+    # per-channel states are still "not_requested". This avoids
+    # accidentally retrying modern skipped/successful channels.
+
+    legacy_record = (
+        notification.status
+        in {
+            "failed",
+            "partial",
+        }
+        and
+        notification.email_status
+        == "not_requested"
+        and
+        notification.sms_status
+        == "not_requested"
+    )
+
+
+    if not legacy_record:
+        return channels
+
+
+    requested = (
+        _requested_channels(
+            notification
+        )
+    )
+
+
+    if (
+        "email" in requested
+        and
+        notification.email_attempts
+        < MAX_CHANNEL_DELIVERY_ATTEMPTS
+    ):
+        channels.add(
+            "email"
+        )
+
+
+    if (
+        "sms" in requested
+        and
+        notification.sms_attempts
+        < MAX_CHANNEL_DELIVERY_ATTEMPTS
+    ):
+        channels.add(
+            "sms"
+        )
+
+
+    return channels
+
+
+
+@shared_task
+def retry_notification_channel(
+    notification_id,
+    channel,
+):
+
+    """
+    Retry exactly one failed channel.
+
+    A successful email can therefore never be resent merely
+    because SMS failed, and vice versa.
+    """
+
+    from .models import Notification
+
+
+    if channel not in {
+        "email",
+        "sms",
+    }:
+        raise ValueError(
+            "Channel must be email or sms."
+        )
+
+
+    notification = (
+        Notification.objects
+        .get(
+            id=notification_id
+        )
+    )
+
+
+    if not channel_retry_available(
+        notification,
+        channel,
+    ):
+        return notification
+
+
+    return _deliver_notification_record(
+        notification,
+        channels={
+            channel
+        },
+    )
+
 
 @shared_task
 def retry_notification(
     notification_id,
 ):
+
+    """
+    Retry all failed channels that remain below the retry cap.
+    """
 
     from .models import Notification
 
@@ -815,37 +1036,11 @@ def retry_notification(
     )
 
 
-    failed_channels = set()
-
-
-    if notification.email_status == "failed":
-        failed_channels.add(
-            "email"
+    failed_channels = (
+        retryable_failed_channels(
+            notification
         )
-
-
-    if notification.sms_status == "failed":
-        failed_channels.add(
-            "sms"
-        )
-
-
-    # Compatibility with notifications created before
-    # Phase 11D.
-    if (
-        not failed_channels
-        and notification.status
-        in {
-            "failed",
-            "partial",
-        }
-    ):
-
-        failed_channels = (
-            _requested_channels(
-                notification
-            )
-        )
+    )
 
 
     if not failed_channels:
@@ -856,3 +1051,4 @@ def retry_notification(
         notification,
         channels=failed_channels,
     )
+

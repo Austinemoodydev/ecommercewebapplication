@@ -14,6 +14,27 @@
 
                     <h4 class="mb-4">Delivery Information</h4>
 
+
+                    {% if not request.user.is_authenticated %}
+
+                    <div class="alert alert-info">
+
+                        <strong>
+                            Guest checkout
+                        </strong>
+
+                        <div class="small mt-1">
+
+                            No account is required.
+                            Please provide a valid email address
+                            so your order can be securely accessed.
+
+                        </div>
+
+                    </div>
+
+                    {% endif %}
+
                     {% if stock_error %}
                     <div class="alert alert-danger">{{ stock_error }}</div>
                     {% endif %}
@@ -82,7 +103,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Full Name</label>
-                                <input type="text" name="full_name" class="form-control" value="{{ request.user.get_full_name }}" required>
+                                <input type="text" name="full_name" class="form-control" value="{% if request.user.is_authenticated %}{{ request.user.get_full_name }}{% endif %}" required>
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -93,8 +114,31 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" value="{{ request.user.email }}">
+
+                            <label class="form-label">
+                                Email
+                            </label>
+
+                            <input
+                                type="email"
+                                name="email"
+                                class="form-control"
+                                value="{% if request.user.is_authenticated %}{{ request.user.email }}{% endif %}"
+                                {% if not request.user.is_authenticated %}required{% endif %}
+                            >
+
+                            {% if form.email.errors %}
+
+                                <div class="text-danger small mt-1">
+
+                                    {% for error in form.email.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+
+                                </div>
+
+                            {% endif %}
+
                         </div>
 
                         <div class="row">
@@ -276,6 +320,22 @@
 
                     <h4 class="mb-4">Order Summary</h4>
 
+
+                    {% if store_settings.minimum_order_amount > 0 %}
+
+                    <div class="alert alert-light border small">
+
+                        Minimum order:
+
+                        <strong>
+                            {{ store_settings.currency_symbol }}
+                            {{ store_settings.minimum_order_amount }}
+                        </strong>
+
+                    </div>
+
+                    {% endif %}
+
                     {% for item in items %}
 
                     <div class="d-flex justify-content-between mb-3">
@@ -311,6 +371,33 @@
                         <span>Discount <span id="applied-coupon-code"></span></span>
                         <strong class="text-success">- KES <span id="discount-amount">0</span></strong>
                     </div>
+
+                    {% if store_settings.tax_enabled %}
+
+                    <div
+                        class="d-flex justify-content-between mt-2"
+                        id="tax-row"
+                    >
+
+                        <span>
+                            Tax
+                            ({{ store_settings.tax_rate }}%)
+                        </span>
+
+                        <strong>
+
+                            {{ store_settings.currency_symbol }}
+
+                            <span id="tax-amount">
+                                0.00
+                            </span>
+
+                        </strong>
+
+                    </div>
+
+                    {% endif %}
+
 
                     <div class="d-flex justify-content-between mt-2">
                         <span>Delivery</span>
@@ -358,6 +445,21 @@ document.addEventListener("DOMContentLoaded", function () {
     const totalEl = document.getElementById("checkout-total");
     const subtotal = {{ cart.total_price|default:0 }};
 
+    const taxEnabled = (
+        "{{ store_settings.tax_enabled|yesno:'true,false' }}"
+        === "true"
+    );
+
+    const taxRate = parseFloat(
+        "{{ store_settings.tax_rate|default:'0' }}"
+    ) || 0;
+
+    const taxAmountEl = (
+        document.getElementById(
+            "tax-amount"
+        )
+    );
+
     let currentFee = 0;
 
     const checkoutSubtotal = parseFloat(
@@ -366,8 +468,41 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentDiscount = 0;
 
     function recalcTotal() {
-        const total = subtotal + currentFee - currentDiscount;
-        totalEl.textContent = total.toFixed(2);
+
+        const taxableAmount = Math.max(
+            subtotal - currentDiscount,
+            0
+        );
+
+        const taxAmount = (
+            taxEnabled
+            ? (
+                taxableAmount
+                * taxRate
+                / 100
+            )
+            : 0
+        );
+
+
+        if (taxAmountEl) {
+
+            taxAmountEl.textContent = (
+                taxAmount.toFixed(2)
+            );
+        }
+
+
+        const total = (
+            taxableAmount
+            + taxAmount
+            + currentFee
+        );
+
+
+        totalEl.textContent = (
+            total.toFixed(2)
+        );
     }
 
     function getCookie(name) {
@@ -716,6 +851,9 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     }
+
+    recalcTotal();
+
 
     const detectBtn = document.getElementById("detect-location-btn");
     const statusEl = document.getElementById("location-status");

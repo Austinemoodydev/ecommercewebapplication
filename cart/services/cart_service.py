@@ -1,5 +1,6 @@
-﻿from cart.models import Cart, CartItem
+from cart.models import Cart, CartItem
 from cart.selectors.cart_selector import CartSelector
+from cart.services.cart_activity_service import CartActivityService
 
 
 class CartService:
@@ -20,6 +21,14 @@ class CartService:
                 item.quantity += 1
                 item.save()
 
+
+        CartActivityService.mark_activity(
+            cart,
+            reset_checkout=True,
+            reset_conversion=True,
+        )
+
+
         return cart
 
     @staticmethod
@@ -33,6 +42,14 @@ class CartService:
         if item and item.quantity < available_stock:
             item.quantity += 1
             item.save()
+
+
+        CartActivityService.mark_activity(
+            cart,
+            reset_checkout=True,
+            reset_conversion=True,
+        )
+
 
         return cart
 
@@ -50,6 +67,14 @@ class CartService:
             else:
                 item.delete()
 
+
+        CartActivityService.mark_activity(
+            cart,
+            reset_checkout=True,
+            reset_conversion=True,
+        )
+
+
         return cart
 
     @staticmethod
@@ -57,7 +82,17 @@ class CartService:
 
         cart = CartSelector.get_cart(request)
 
-        cart.items.filter(id=item_id).delete()
+        cart.items.filter(
+            id=item_id
+        ).delete()
+
+
+        CartActivityService.mark_activity(
+            cart,
+            reset_checkout=True,
+            reset_conversion=True,
+        )
+
 
         return cart
 
@@ -91,5 +126,12 @@ class CartService:
             else:
                 item.cart = user_cart
                 item.save()
+
+        CartActivityService.mark_activity(
+            user_cart,
+            reset_checkout=True,
+            reset_conversion=True,
+        )
+
 
         session_cart.delete()

@@ -1,0 +1,365 @@
+{% extends "dashboard/admin/base.html" %}
+
+
+{% block title %}
+Store Settings
+{% endblock %}
+
+
+{% block page_heading %}
+Store Settings
+{% endblock %}
+
+
+{% block admin_content %}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+
+        <h1 class="h3 mb-1">
+            Store Settings
+        </h1>
+
+        <p class="text-muted mb-0">
+            Manage business identity, contact details,
+            currency and ordering configuration.
+        </p>
+
+    </div>
+
+
+    <form method="post">
+
+        {% csrf_token %}
+
+
+        {% if form.non_field_errors %}
+
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+
+        {% endif %}
+
+
+        <!-- BUSINESS IDENTITY -->
+
+        <div class="dashboard-card mb-4">
+
+            <h5 class="mb-3">
+                Business Identity
+            </h5>
+
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Store Name
+                    </label>
+
+                    {{ form.store_name }}
+
+                    {% for error in form.store_name.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Legal / Registered Name
+                    </label>
+
+                    {{ form.legal_name }}
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Support Email
+                    </label>
+
+                    {{ form.support_email }}
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Support Phone
+                    </label>
+
+                    {{ form.support_phone }}
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        WhatsApp Number
+                    </label>
+
+                    {{ form.whatsapp_number }}
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Website
+                    </label>
+
+                    {{ form.website_url }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ADDRESS -->
+
+        <div class="dashboard-card mb-4">
+
+            <h5 class="mb-3">
+                Business Address
+            </h5>
+
+
+            <div class="row g-3">
+
+                <div class="col-12">
+
+                    <label class="form-label">
+                        Street / Building Address
+                    </label>
+
+                    {{ form.address }}
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        City / Town
+                    </label>
+
+                    {{ form.city }}
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        County
+                    </label>
+
+                    {{ form.county }}
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Country
+                    </label>
+
+                    {{ form.country }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- FINANCE -->
+
+        <div class="dashboard-card mb-4">
+
+            <h5 class="mb-3">
+                Currency & Tax
+            </h5>
+
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Currency Code
+                    </label>
+
+                    {{ form.currency_code }}
+
+                    {% for error in form.currency_code.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Currency Symbol
+                    </label>
+
+                    {{ form.currency_symbol }}
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Tax Rate (%)
+                    </label>
+
+                    {{ form.tax_rate }}
+
+                    {% for error in form.tax_rate.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="col-12">
+
+                    <div class="form-check form-switch">
+
+                        {{ form.tax_enabled }}
+
+                        <label
+                            class="form-check-label"
+                            for="{{ form.tax_enabled.id_for_label }}"
+                        >
+                            Enable tax calculation
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ORDER SETTINGS -->
+
+        <div class="dashboard-card mb-4">
+
+            <h5 class="mb-3">
+                Order Controls
+            </h5>
+
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Minimum Order Amount
+                    </label>
+
+                    {{ form.minimum_order_amount }}
+
+                    {% for error in form.minimum_order_amount.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="col-md-6 d-flex align-items-end">
+
+                    <div class="form-check form-switch mb-2">
+
+                        {{ form.orders_enabled }}
+
+                        <label
+                            class="form-check-label"
+                            for="{{ form.orders_enabled.id_for_label }}"
+                        >
+                            Accept new customer orders
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- DOCUMENTS -->
+
+        <div class="dashboard-card mb-4">
+
+            <h5 class="mb-3">
+                Invoice & Receipt Footer
+            </h5>
+
+            {{ form.document_footer }}
+
+        </div>
+
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+            <div class="small text-muted">
+
+                {% if store_settings.updated_at %}
+
+                    Last updated:
+                    {{ store_settings.updated_at|date:"d M Y H:i" }}
+
+                    {% if store_settings.updated_by %}
+                        by {{ store_settings.updated_by.username }}
+                    {% endif %}
+
+                {% endif %}
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                <i class="bi bi-check-lg me-1"></i>
+                Save Settings
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

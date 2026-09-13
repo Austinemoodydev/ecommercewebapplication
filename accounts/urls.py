@@ -1,8 +1,13 @@
-﻿from django.urls import path
+from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
+    path(
+        "claim-order/<str:order_number>/<str:token>/",
+        views.claim_guest_order,
+        name="claim_guest_order",
+    ),
     path("register/", views.register, name="register"),
     path("verify-email/<uidb64>/<token>/", views.verify_email, name="verify_email"),
     path("login/", views.RateLimitedLoginView.as_view(), name="login"),

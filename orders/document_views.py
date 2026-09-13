@@ -36,6 +36,10 @@ from orders.models import (
     OrderDocument,
 )
 
+from orders.guest_access import (
+    verify_guest_access_token,
+)
+
 
 SETTLED_PAYMENT_STATUSES = {
     "paid",
@@ -83,7 +87,11 @@ def _issue(
         get_or_issue_order_document(
             order=order,
             document_type=document_type,
-            issued_by=request.user,
+            issued_by=(
+                request.user
+                if request.user.is_authenticated
+                else None
+            ),
         )
     )
 
@@ -91,6 +99,7 @@ def _issue(
 def _render(
     request,
     document,
+    extra_context=None,
 ):
 
     template = (
@@ -99,34 +108,74 @@ def _render(
     )
 
 
+    context = {
+        "document":
+            document,
+
+        "snapshot":
+            document.snapshot,
+
+        "order":
+            document.order,
+
+        "document_title":
+            document.get_document_type_display(),
+
+        "document_number":
+            document.document_number,
+
+        "email_url_name":
+            (
+                "admin_order_document_email"
+                if (
+                    request.user.is_authenticated
+                    and
+                    request.user.is_staff
+                )
+                else
+                "customer_order_document_email"
+            ),
+    }
+
+
+    if extra_context:
+        context.update(
+            extra_context
+        )
+
+
     return render(
         request,
         template,
-        {
-            "document":
-                document,
-
-            "snapshot":
-                document.snapshot,
-
-            "order":
-                document.order,
-
-            "document_title":
-                document.get_document_type_display(),
-
-            "document_number":
-                document.document_number,
-
-            "email_url_name":
-                (
-                    "admin_order_document_email"
-                    if request.user.is_staff
-                    else
-                    "customer_order_document_email"
-                ),
-        },
+        context,
     )
+
+
+def _get_guest_document_order(
+    order_number,
+    token,
+):
+
+    order = get_object_or_404(
+        _document_queryset(),
+        order_number=order_number,
+        user__isnull=True,
+        guest_checkout=True,
+    )
+
+
+    if not verify_guest_access_token(
+        order,
+        token,
+    ):
+
+        raise Http404(
+            "Order not found."
+        )
+
+
+    return order
+
 
 
 # ============================================================
@@ -183,6 +232,70 @@ def customer_receipt(
         request,
         document,
     )
+
+
+# ============================================================
+# GUEST DOCUMENTS
+# ============================================================
+
+def guest_invoice(
+    request,
+    order_number,
+    token,
+):
+
+    order = _get_guest_document_order(
+        order_number,
+        token,
+    )
+
+
+    document = _issue(
+        request=request,
+        order=order,
+        document_type="invoice",
+    )
+
+
+    return _render(
+        request,
+        document,
+        extra_context={
+            "is_guest_document": True,
+            "guest_access_token": token,
+        },
+    )
+
+
+
+def guest_receipt(
+    request,
+    order_number,
+    token,
+):
+
+    order = _get_guest_document_order(
+        order_number,
+        token,
+    )
+
+
+    document = _issue(
+        request=request,
+        order=order,
+        document_type="receipt",
+    )
+
+
+    return _render(
+        request,
+        document,
+        extra_context={
+            "is_guest_document": True,
+            "guest_access_token": token,
+        },
+    )
+
 
 
 # ============================================================
@@ -275,8 +388,7 @@ def _send_document_email(
 
     absolute_url = (
         request.build_absolute_uri(
-            document_view_url(
-                request,
+            customer_document_view_url(
                 document,
             )
         )
@@ -299,7 +411,8 @@ def _send_document_email(
         f"is available.\n\n"
         f"Document number: "
         f"{document.document_number}\n"
-        f"Order total: KES "
+        f"Order total: "
+        f"{order_snapshot.get('currency_symbol', 'KSh')} "
         f"{order_snapshot['total_amount']}\n\n"
         f"View document:\n"
         f"{absolute_url}\n\n"
@@ -353,6 +466,33 @@ def _send_document_email(
 
 
     return True
+
+
+def customer_document_view_url(
+    document,
+):
+
+    from django.urls import reverse
+
+
+    route = (
+        "customer_order_invoice"
+        if (
+            document.document_type
+            == "invoice"
+        )
+        else
+        "customer_order_receipt"
+    )
+
+
+    return reverse(
+        route,
+        args=[
+            document.order.order_number
+        ],
+    )
+
 
 
 def document_view_url(

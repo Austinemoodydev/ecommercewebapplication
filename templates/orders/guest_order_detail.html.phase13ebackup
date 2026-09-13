@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-xl-9">
+
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
+                <div>
+
+                    <h2 class="mb-1">
+                        Guest Order
+                    </h2>
+
+                    <div class="text-muted">
+                        {{ order.order_number }}
+                    </div>
+
+                </div>
+
+
+                <div class="text-end">
+
+                    <div>
+                        <span class="badge bg-secondary text-capitalize">
+                            {{ order.status }}
+                        </span>
+                    </div>
+
+                    <div class="mt-2">
+                        Payment:
+                        <strong class="text-capitalize">
+                            {{ order.payment_status }}
+                        </strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="alert alert-warning">
+
+                This page contains a private guest-order token.
+                Do not share this URL publicly.
+
+            </div>
+
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body">
+
+                    <h5 class="mb-3">
+                        Customer & Delivery
+                    </h5>
+
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <div class="text-muted small">
+                                Customer
+                            </div>
+
+                            <strong>
+                                {{ order.full_name }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <div class="text-muted small">
+                                Email
+                            </div>
+
+                            <strong>
+                                {{ order.email }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <div class="text-muted small">
+                                Phone
+                            </div>
+
+                            <strong>
+                                {{ order.phone }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <div class="text-muted small">
+                                Delivery Address
+                            </div>
+
+                            <strong>
+                                {{ order.house_number }},
+                                {{ order.estate }},
+                                {{ order.city }},
+                                {{ order.county }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body">
+
+                    <h5 class="mb-3">
+                        Items
+                    </h5>
+
+
+                    <div class="table-responsive">
+
+                        <table class="table align-middle">
+
+                            <thead>
+
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Qty</th>
+                                    <th>Price</th>
+                                    <th class="text-end">
+                                        Total
+                                    </th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                {% for item in items %}
+
+                                <tr>
+
+                                    <td>
+
+                                        {{ item.product_name }}
+
+                                        {% if item.variant_name %}
+
+                                            <div class="small text-muted">
+                                                {{ item.variant_name }}
+                                            </div>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                    <td>
+                                        {{ item.quantity }}
+                                    </td>
+
+                                    <td>
+                                        {{ order.currency_symbol_at_checkout }}
+                                        {{ item.price }}
+                                    </td>
+
+                                    <td class="text-end">
+
+                                        {{ order.currency_symbol_at_checkout }}
+                                        {{ item.subtotal }}
+
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body">
+
+                    <h5 class="mb-3">
+                        Order Documents & Tracking
+                    </h5>
+
+                    <div class="d-flex flex-wrap gap-2">
+
+                        <a
+                            href="{% url 'guest_order_invoice' order.order_number guest_access_token %}"
+                            class="btn btn-outline-dark"
+                        >
+                            View Invoice
+                        </a>
+
+
+                        {% if order.payment_status == "paid" or order.payment_status == "partially_refunded" or order.payment_status == "refunded" %}
+
+                        <a
+                            href="{% url 'guest_order_receipt' order.order_number guest_access_token %}"
+                            class="btn btn-outline-success"
+                        >
+                            View Receipt
+                        </a>
+
+                        {% endif %}
+
+
+                        {% if order.delivery %}
+
+                        <a
+                            href="{% url 'guest_delivery_tracking' order.order_number guest_access_token %}"
+                            class="btn btn-outline-primary"
+                        >
+                            Track Delivery
+                        </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between mb-2">
+
+                        <span>
+                            Merchandise
+                        </span>
+
+                        <span>
+                            {{ order.currency_symbol_at_checkout }}
+                            {{ order.subtotal }}
+                        </span>
+
+                    </div>
+
+
+                    {% if order.discount %}
+
+                    <div class="d-flex justify-content-between mb-2">
+
+                        <span>
+                            Discount
+                        </span>
+
+                        <span>
+                            -
+                            {{ order.currency_symbol_at_checkout }}
+                            {{ order.discount }}
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+
+                    {% if order.tax_amount %}
+
+                    <div class="d-flex justify-content-between mb-2">
+
+                        <span>
+                            Tax
+                            ({{ order.tax_rate_at_checkout }}%)
+                        </span>
+
+                        <span>
+                            {{ order.currency_symbol_at_checkout }}
+                            {{ order.tax_amount }}
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+
+                    <div class="d-flex justify-content-between mb-2">
+
+                        <span>
+                            Delivery
+                        </span>
+
+                        <span>
+
+                            {% if order.delivery_pricing_status == "quote_pending" %}
+
+                                Awaiting quote
+
+                            {% else %}
+
+                                {{ order.currency_symbol_at_checkout }}
+                                {{ order.shipping_cost }}
+
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+
+                    <hr>
+
+
+                    <div class="d-flex justify-content-between fs-5 fw-bold">
+
+                        <span>
+                            Total
+                        </span>
+
+                        <span>
+                            {{ order.currency_symbol_at_checkout }}
+                            {{ order.total_amount }}
+                        </span>
+
+                    </div>
+
+
+                    {% if order.payment_status == "pending" %}
+
+                        {% if order.delivery_pricing_status == "quote_pending" %}
+
+                        <div class="alert alert-warning mt-4 mb-0">
+
+                            Delivery price is awaiting confirmation.
+                            M-PESA payment will become available after
+                            the shop confirms the delivery charge.
+
+                        </div>
+
+                        {% else %}
+
+                        <a
+                            href="{% url 'guest_initiate_payment' order.order_number guest_access_token %}"
+                            class="btn btn-success w-100 mt-4"
+                        >
+                            Pay with M-PESA
+                        </a>
+
+                        {% endif %}
+
+                    {% elif order.payment_status == "paid" %}
+
+                    <div class="alert alert-success mt-4 mb-0">
+
+                        Payment received.
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

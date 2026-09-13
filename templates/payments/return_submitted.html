@@ -1,1 +1,22 @@
-{% extends "base.html" %}{% block content %}<div class="container py-5" style="max-width:600px"><h1>Request submitted</h1><p>Your {{ return_request.request_type }} request for order {{ return_request.order.order_number }} is awaiting review.</p></div>{% endblock %}
+{% extends "base.html" %}{% block content %}<div class="container py-5" style="max-width:600px"><h1>Request submitted</h1><p>Your {{ return_request.request_type }} request for order {{ return_request.order.order_number }} is awaiting review.</p>
+
+{% if is_guest_request %}
+
+<a
+    href="{% url 'guest_return_detail' return_request.order.order_number guest_access_token return_request.pk %}"
+    class="btn btn-primary"
+>
+    View Request Status
+</a>
+
+<a
+    href="{% url 'guest_order_detail' return_request.order.order_number guest_access_token %}"
+    class="btn btn-outline-secondary"
+>
+    Back to Order
+</a>
+
+{% endif %}
+
+</div>
+{% endblock %}

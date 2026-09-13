@@ -29,7 +29,11 @@ from notifications.models import (
 )
 
 from notifications.tasks import (
+    MAX_CHANNEL_DELIVERY_ATTEMPTS,
+    channel_retry_available,
     retry_notification,
+    retry_notification_channel,
+    retryable_failed_channels,
 )
 
 
@@ -203,7 +207,7 @@ def admin_notifications(
     status = (
         request.GET.get(
             "status",
-            ""
+            "",
         )
         .strip()
         .lower()
@@ -213,7 +217,16 @@ def admin_notifications(
     channel = (
         request.GET.get(
             "channel",
-            ""
+            "",
+        )
+        .strip()
+    )
+
+
+    category = (
+        request.GET.get(
+            "category",
+            "",
         )
         .strip()
     )
@@ -222,7 +235,7 @@ def admin_notifications(
     search = (
         request.GET.get(
             "q",
-            ""
+            "",
         )
         .strip()
     )
@@ -240,10 +253,28 @@ def admin_notifications(
         )
 
 
-    if channel:
+    if channel in {
+        "email",
+        "sms",
+        "email_and_sms",
+    }:
 
         queryset = queryset.filter(
             channel=channel
+        )
+
+
+    if category in {
+        "general",
+        "orders",
+        "payments",
+        "delivery",
+        "returns",
+        "marketing",
+    }:
+
+        queryset = queryset.filter(
+            category=category
         )
 
 
@@ -259,6 +290,12 @@ def admin_notifications(
 
             Q(
                 message__icontains=search
+            )
+
+            |
+
+            Q(
+                event_key__icontains=search
             )
 
             |
@@ -288,30 +325,150 @@ def admin_notifications(
     )
 
 
+    all_notifications = (
+        Notification.objects.all()
+    )
+
+
+    total = (
+        all_notifications.count()
+    )
+
+    sent = (
+        all_notifications
+        .filter(
+            status="sent"
+        )
+        .count()
+    )
+
+    pending = (
+        all_notifications
+        .filter(
+            status="pending"
+        )
+        .count()
+    )
+
+    failed = (
+        all_notifications
+        .filter(
+            status="failed"
+        )
+        .count()
+    )
+
+    partial = (
+        all_notifications
+        .filter(
+            status="partial"
+        )
+        .count()
+    )
+
+
+    email_sent = (
+        all_notifications
+        .filter(
+            email_status="sent"
+        )
+        .count()
+    )
+
+    email_failed = (
+        all_notifications
+        .filter(
+            email_status="failed"
+        )
+        .count()
+    )
+
+    email_attempted = (
+        email_sent
+        + email_failed
+    )
+
+
+    sms_sent = (
+        all_notifications
+        .filter(
+            sms_status="sent"
+        )
+        .count()
+    )
+
+    sms_failed = (
+        all_notifications
+        .filter(
+            sms_status="failed"
+        )
+        .count()
+    )
+
+    sms_attempted = (
+        sms_sent
+        + sms_failed
+    )
+
+
+    email_success_rate = (
+        round(
+            email_sent
+            * 100
+            / email_attempted,
+            1,
+        )
+        if email_attempted
+        else 0
+    )
+
+
+    sms_success_rate = (
+        round(
+            sms_sent
+            * 100
+            / sms_attempted,
+            1,
+        )
+        if sms_attempted
+        else 0
+    )
+
+
     stats = {
 
         "total":
-            Notification.objects.count(),
-
-        "pending":
-            Notification.objects.filter(
-                status="pending"
-            ).count(),
+            total,
 
         "sent":
-            Notification.objects.filter(
-                status="sent"
-            ).count(),
+            sent,
+
+        "pending":
+            pending,
 
         "failed":
-            Notification.objects.filter(
-                status="failed"
-            ).count(),
+            failed,
 
         "partial":
-            Notification.objects.filter(
-                status="partial"
-            ).count(),
+            partial,
+
+        "email_sent":
+            email_sent,
+
+        "email_failed":
+            email_failed,
+
+        "email_success_rate":
+            email_success_rate,
+
+        "sms_sent":
+            sms_sent,
+
+        "sms_failed":
+            sms_failed,
+
+        "sms_success_rate":
+            sms_success_rate,
     }
 
 
@@ -331,8 +488,89 @@ def admin_notifications(
             "selected_channel":
                 channel,
 
+            "selected_category":
+                category,
+
             "search":
                 search,
+
+            "max_channel_attempts":
+                MAX_CHANNEL_DELIVERY_ATTEMPTS,
+        },
+    )
+
+
+@staff_member_required
+def admin_notification_detail(
+    request,
+    notification_id,
+):
+
+    notification = get_object_or_404(
+        Notification.objects
+        .select_related(
+            "user"
+        ),
+        pk=notification_id,
+    )
+
+
+    order = None
+
+
+    if notification.order_id:
+
+        try:
+
+            from orders.models import Order
+
+            order = (
+                Order.objects
+                .filter(
+                    pk=notification.order_id
+                )
+                .first()
+            )
+
+        except Exception:
+
+            order = None
+
+
+    email_retry_available = (
+        channel_retry_available(
+            notification,
+            "email",
+        )
+    )
+
+
+    sms_retry_available = (
+        channel_retry_available(
+            notification,
+            "sms",
+        )
+    )
+
+
+    return render(
+        request,
+        "notifications/admin_detail.html",
+        {
+            "notification":
+                notification,
+
+            "order":
+                order,
+
+            "email_retry_available":
+                email_retry_available,
+
+            "sms_retry_available":
+                sms_retry_available,
+
+            "max_channel_attempts":
+                MAX_CHANNEL_DELIVERY_ATTEMPTS,
         },
     )
 
@@ -347,10 +585,6 @@ def admin_retry_notification(
     notification = get_object_or_404(
         Notification,
         pk=notification_id,
-        status__in=[
-            "failed",
-            "partial",
-        ],
     )
 
 
@@ -359,11 +593,33 @@ def admin_retry_notification(
         messages.error(
             request,
             "This notification has no linked "
-            "order and cannot be retried automatically.",
+            "order and cannot be retried.",
         )
 
         return redirect(
-            "admin_notifications"
+            "admin_notification_detail",
+            notification_id=notification.pk,
+        )
+
+
+    retryable = bool(
+        retryable_failed_channels(
+            notification
+        )
+    )
+
+
+    if not retryable:
+
+        messages.warning(
+            request,
+            "There are no failed channels available "
+            "for retry, or the retry limit has been reached.",
+        )
+
+        return redirect(
+            "admin_notification_detail",
+            notification_id=notification.pk,
         )
 
 
@@ -374,14 +630,232 @@ def admin_retry_notification(
 
     messages.success(
         request,
-        "Notification retry queued.",
+        "Failed notification channels queued for retry.",
     )
+
+
+    return redirect(
+        "admin_notification_detail",
+        notification_id=notification.pk,
+    )
+
+
+@staff_member_required
+@require_POST
+def admin_retry_notification_channel(
+    request,
+    notification_id,
+    channel,
+):
+
+    notification = get_object_or_404(
+        Notification,
+        pk=notification_id,
+    )
+
+
+    if channel not in {
+        "email",
+        "sms",
+    }:
+
+        messages.error(
+            request,
+            "Invalid notification channel.",
+        )
+
+        return redirect(
+            "admin_notification_detail",
+            notification_id=notification.pk,
+        )
+
+
+    if not notification.order_id:
+
+        messages.error(
+            request,
+            "This notification has no linked "
+            "order and cannot be retried.",
+        )
+
+        return redirect(
+            "admin_notification_detail",
+            notification_id=notification.pk,
+        )
+
+
+    if not channel_retry_available(
+        notification,
+        channel,
+    ):
+
+        messages.warning(
+            request,
+            (
+                f"{channel.title()} cannot be retried. "
+                f"It is either not failed or has reached "
+                f"the {MAX_CHANNEL_DELIVERY_ATTEMPTS}-attempt limit."
+            ),
+        )
+
+        return redirect(
+            "admin_notification_detail",
+            notification_id=notification.pk,
+        )
+
+
+    retry_notification_channel.delay(
+        notification.pk,
+        channel,
+    )
+
+
+    messages.success(
+        request,
+        (
+            f"{channel.title()} retry queued."
+        ),
+    )
+
+
+    return redirect(
+        "admin_notification_detail",
+        notification_id=notification.pk,
+    )
+
+
+@staff_member_required
+@require_POST
+def admin_bulk_retry_notifications(
+    request,
+):
+
+    raw_ids = (
+        request.POST.getlist(
+            "notification_ids"
+        )
+    )
+
+
+    valid_ids = []
+
+
+    for value in raw_ids:
+
+        try:
+
+            valid_ids.append(
+                int(value)
+            )
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+
+            continue
+
+
+    # Operational safety guard:
+    # one browser request cannot enqueue an unlimited batch.
+    valid_ids = (
+        list(
+            dict.fromkeys(
+                valid_ids
+            )
+        )[:50]
+    )
+
+
+    if not valid_ids:
+
+        messages.warning(
+            request,
+            "Select at least one notification.",
+        )
+
+        return redirect(
+            "admin_notifications"
+        )
+
+
+    notifications = (
+        Notification.objects
+        .filter(
+            pk__in=valid_ids,
+            status__in=[
+                "failed",
+                "partial",
+            ],
+        )
+    )
+
+
+    queued = 0
+    skipped = 0
+
+
+    for notification in notifications:
+
+        if not notification.order_id:
+
+            skipped += 1
+            continue
+
+
+        retryable = (
+            channel_retry_available(
+                notification,
+                "email",
+            )
+            or
+            channel_retry_available(
+                notification,
+                "sms",
+            )
+        )
+
+
+        if not retryable:
+
+            skipped += 1
+            continue
+
+
+        retry_notification.delay(
+            notification.pk
+        )
+
+        queued += 1
+
+
+    if queued:
+
+        messages.success(
+            request,
+            (
+                f"{queued} notification"
+                f"{'' if queued == 1 else 's'} "
+                f"queued for retry."
+            ),
+        )
+
+
+    if skipped:
+
+        messages.warning(
+            request,
+            (
+                f"{skipped} selected notification"
+                f"{'' if skipped == 1 else 's'} "
+                f"could not be retried."
+            ),
+        )
 
 
     return redirect(
         "admin_notifications"
     )
-
 
 
 # ============================================================

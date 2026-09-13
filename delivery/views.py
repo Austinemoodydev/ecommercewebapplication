@@ -47,6 +47,10 @@ from .services import (
 # DELIVERY LIST
 # ============================================================
 
+from orders.pricing import (
+    total_from_order_snapshot,
+)
+
 @staff_member_required
 def delivery_list(request):
 

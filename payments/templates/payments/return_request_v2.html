@@ -8,12 +8,25 @@
 
         <div class="col-lg-8">
 
+            {% if is_guest_request %}
+
+            <a
+                href="{% url 'guest_order_detail' order.order_number guest_access_token %}"
+                class="btn btn-outline-secondary btn-sm mb-4"
+            >
+                &larr; Back to Order
+            </a>
+
+            {% else %}
+
             <a
                 href="{% url 'order_detail' order.order_number %}"
                 class="btn btn-outline-secondary btn-sm mb-4"
             >
                 &larr; Back to Order
             </a>
+
+            {% endif %}
 
 
             <div class="card shadow-sm">

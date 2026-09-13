@@ -194,6 +194,27 @@
             </a>
 
 
+            <!-- ABANDONED CARTS -->
+
+            <a
+                href="{% url 'admin_abandoned_cart_list' %}"
+                class="
+                    sidebar-link
+                    {% if 'admin_abandoned_cart' in request.resolver_match.url_name %}
+                        active
+                    {% endif %}
+                "
+            >
+
+                <i class="bi bi-cart-x"></i>
+
+                <span>
+                    Abandoned Carts
+                </span>
+
+            </a>
+
+
             <!-- PRODUCTS -->
 
             <a
@@ -445,8 +466,13 @@
             <!-- SETTINGS -->
 
             <a
-                href="#"
-                class="sidebar-link"
+                href="{% url 'admin_store_settings' %}"
+                class="
+                    sidebar-link
+                    {% if request.resolver_match.url_name == 'admin_store_settings' %}
+                        active
+                    {% endif %}
+                "
             >
 
                 <i class="bi bi-gear"></i>

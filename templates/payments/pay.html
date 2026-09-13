@@ -16,7 +16,11 @@
 
                     <p class="text-muted mb-4">
                         Order <strong>{{ order.order_number }}</strong><br>
-                        Amount: <strong>KES {{ order.total_amount }}</strong>
+                        Amount:
+                        <strong>
+                            {{ order.currency_symbol_at_checkout }}
+                            {{ order.total_amount }}
+                        </strong>
                     </p>
 
                     <div class="mb-3 text-start">
@@ -42,7 +46,7 @@
                     </div>
 
                     <a
-                        href="{% url 'order_detail' order.order_number %}"
+                        href="{% if is_guest_payment %}{% url 'guest_order_detail' order.order_number guest_access_token %}{% else %}{% url 'order_detail' order.order_number %}{% endif %}"
                         class="btn btn-outline-primary w-100"
                     >
                         Back to Order
@@ -67,7 +71,7 @@
                     </div>
 
                     <a
-                        href="{% url 'order_detail' order.order_number %}"
+                        href="{% if is_guest_payment %}{% url 'guest_order_detail' order.order_number guest_access_token %}{% else %}{% url 'order_detail' order.order_number %}{% endif %}"
                         class="btn btn-outline-primary w-100"
                     >
                         Back to Order
@@ -157,7 +161,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const interval = setInterval(() => {
 
-            fetch("{% url 'check_payment_status' order.order_number %}")
+            fetch("{% if is_guest_payment %}{% url 'guest_check_payment_status' order.order_number guest_access_token %}{% else %}{% url 'check_payment_status' order.order_number %}{% endif %}")
                 .then(res => res.json())
                 .then(data => {
 

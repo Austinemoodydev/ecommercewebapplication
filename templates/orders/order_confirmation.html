@@ -43,8 +43,27 @@
 
                         <div class="d-flex justify-content-between mb-2">
                             <span>Subtotal</span>
-                            <span>KES {{ order.subtotal }}</span>
+                            <span>{{ order.currency_symbol_at_checkout }} {{ order.subtotal }}</span>
                         </div>
+
+                        {% if order.tax_amount %}
+
+                        <div class="d-flex justify-content-between mb-2">
+
+                            <span>
+                                Tax
+                                ({{ order.tax_rate_at_checkout }}%)
+                            </span>
+
+                            <span>
+                                {{ order.currency_symbol_at_checkout }}
+                                {{ order.tax_amount }}
+                            </span>
+
+                        </div>
+
+                        {% endif %}
+
 
                         <div class="d-flex justify-content-between mb-2">
 
@@ -54,7 +73,42 @@
 
                             <span>
 
-                                {% if order.delivery_pricing_status == "quote_pending" %}
+                                {% if is_guest_order %}
+
+                    <div class="alert alert-info text-start">
+
+                        <strong>
+                            Save this page.
+                        </strong>
+
+                        <div class="mt-1">
+
+                            Your guest order is protected by a
+                            private access token.
+
+                        </div>
+
+                    </div>
+
+                    <a
+                        href="{% url 'guest_order_detail' order.order_number guest_access_token %}"
+                        class="btn btn-outline-primary"
+                    >
+                        View Guest Order
+                    </a>
+
+                    {% if order.payment_status == "pending" and order.delivery_pricing_status != "quote_pending" %}
+
+                    <a
+                        href="{% url 'guest_initiate_payment' order.order_number guest_access_token %}"
+                        class="btn btn-success ms-2"
+                    >
+                        Pay with M-PESA
+                    </a>
+
+                    {% endif %}
+
+                    {% elif order.delivery_pricing_status == "quote_pending" %}
 
                                     <strong class="text-warning">
                                         Awaiting Quote
@@ -62,7 +116,7 @@
 
                                 {% else %}
 
-                                    KES {{ order.shipping_cost }}
+                                    {{ order.currency_symbol_at_checkout }} {{ order.shipping_cost }}
 
                                 {% endif %}
 
@@ -72,7 +126,7 @@
 
                         <div class="d-flex justify-content-between fw-bold fs-5">
                             <span>Total</span>
-                            <span>KES {{ order.total_amount }}</span>
+                            <span>{{ order.currency_symbol_at_checkout }} {{ order.total_amount }}</span>
                         </div>
 
                     </div>

@@ -2,7 +2,23 @@
 {% block content %}
 <div class="container py-5" style="max-width: 600px;">
     <h2>Request a refund</h2>
-    <p>Order {{ order.order_number }} · KES {{ order.total_amount }}</p>
+    <p>
+        Order {{ order.order_number }} ·
+        {{ order.currency_symbol_at_checkout }}
+        {{ order.total_amount }}
+    </p>
+
+    {% if is_guest_request %}
+
+    <a
+        href="{% url 'guest_order_detail' order.order_number guest_access_token %}"
+        class="btn btn-outline-secondary btn-sm mb-3"
+    >
+        &larr; Back to Order
+    </a>
+
+    {% endif %}
+
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}

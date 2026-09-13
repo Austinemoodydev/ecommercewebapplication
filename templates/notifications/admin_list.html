@@ -5,25 +5,16 @@
 
 <div class="container-fluid">
 
-    <div
-        class="
-            d-flex
-            justify-content-between
-            align-items-center
-            flex-wrap
-            gap-3
-            mb-4
-        "
-    >
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
 
         <div>
 
             <h1 class="h3 mb-1">
-                Notifications
+                Notification Operations
             </h1>
 
             <p class="text-muted mb-0">
-                Monitor customer notification delivery and failures.
+                Monitor delivery health, failures and controlled retries.
             </p>
 
         </div>
@@ -31,9 +22,11 @@
     </div>
 
 
+    <!-- OVERALL METRICS -->
+
     <div class="row g-3 mb-4">
 
-        <div class="col-md-3">
+        <div class="col-md-6 col-xl-2">
 
             <div class="dashboard-card h-100">
 
@@ -50,7 +43,7 @@
         </div>
 
 
-        <div class="col-md-3">
+        <div class="col-md-6 col-xl-2">
 
             <div class="dashboard-card h-100">
 
@@ -58,7 +51,7 @@
                     Sent
                 </div>
 
-                <div class="fs-3 fw-bold">
+                <div class="fs-3 fw-bold text-success">
                     {{ stats.sent }}
                 </div>
 
@@ -67,16 +60,16 @@
         </div>
 
 
-        <div class="col-md-3">
+        <div class="col-md-6 col-xl-2">
 
             <div class="dashboard-card h-100">
 
                 <div class="text-muted small">
-                    Pending
+                    Partial
                 </div>
 
-                <div class="fs-3 fw-bold">
-                    {{ stats.pending }}
+                <div class="fs-3 fw-bold text-warning">
+                    {{ stats.partial }}
                 </div>
 
             </div>
@@ -84,7 +77,7 @@
         </div>
 
 
-        <div class="col-md-3">
+        <div class="col-md-6 col-xl-2">
 
             <div class="dashboard-card h-100">
 
@@ -92,8 +85,50 @@
                     Failed
                 </div>
 
-                <div class="fs-3 fw-bold">
+                <div class="fs-3 fw-bold text-danger">
                     {{ stats.failed }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-2">
+
+            <div class="dashboard-card h-100">
+
+                <div class="text-muted small">
+                    Email Success
+                </div>
+
+                <div class="fs-4 fw-bold">
+                    {{ stats.email_success_rate }}%
+                </div>
+
+                <div class="small text-muted">
+                    {{ stats.email_failed }} failed
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-2">
+
+            <div class="dashboard-card h-100">
+
+                <div class="text-muted small">
+                    SMS Success
+                </div>
+
+                <div class="fs-4 fw-bold">
+                    {{ stats.sms_success_rate }}%
+                </div>
+
+                <div class="small text-muted">
+                    {{ stats.sms_failed }} failed
                 </div>
 
             </div>
@@ -103,14 +138,13 @@
     </div>
 
 
+    <!-- FILTERS -->
+
     <div class="dashboard-card mb-4">
 
-        <form
-            method="get"
-            class="row g-3"
-        >
+        <form method="get" class="row g-3">
 
-            <div class="col-lg-5">
+            <div class="col-lg-4">
 
                 <label class="form-label">
                     Search
@@ -120,51 +154,41 @@
                     class="form-control"
                     name="q"
                     value="{{ search }}"
-                    placeholder="Subject, message, customer..."
+                    placeholder="Subject, event key, customer..."
                 >
 
             </div>
 
 
-            <div class="col-lg-3">
+            <div class="col-lg-2">
 
                 <label class="form-label">
                     Status
                 </label>
 
-                <select
-                    class="form-select"
-                    name="status"
-                >
+                <select class="form-select" name="status">
 
                     <option value="">
-                        All statuses
+                        All
                     </option>
 
-                    <option
-                        value="pending"
-                        {% if selected_status == "pending" %}
-                            selected
-                        {% endif %}
-                    >
+                    <option value="pending"
+                        {% if selected_status == "pending" %}selected{% endif %}>
                         Pending
                     </option>
 
-                    <option
-                        value="sent"
-                        {% if selected_status == "sent" %}
-                            selected
-                        {% endif %}
-                    >
+                    <option value="sent"
+                        {% if selected_status == "sent" %}selected{% endif %}>
                         Sent
                     </option>
 
-                    <option
-                        value="failed"
-                        {% if selected_status == "failed" %}
-                            selected
-                        {% endif %}
-                    >
+                    <option value="partial"
+                        {% if selected_status == "partial" %}selected{% endif %}>
+                        Partial
+                    </option>
+
+                    <option value="failed"
+                        {% if selected_status == "failed" %}selected{% endif %}>
                         Failed
                     </option>
 
@@ -179,39 +203,24 @@
                     Channel
                 </label>
 
-                <select
-                    class="form-select"
-                    name="channel"
-                >
+                <select class="form-select" name="channel">
 
                     <option value="">
                         All
                     </option>
 
-                    <option
-                        value="email"
-                        {% if selected_channel == "email" %}
-                            selected
-                        {% endif %}
-                    >
+                    <option value="email"
+                        {% if selected_channel == "email" %}selected{% endif %}>
                         Email
                     </option>
 
-                    <option
-                        value="sms"
-                        {% if selected_channel == "sms" %}
-                            selected
-                        {% endif %}
-                    >
+                    <option value="sms"
+                        {% if selected_channel == "sms" %}selected{% endif %}>
                         SMS
                     </option>
 
-                    <option
-                        value="email_and_sms"
-                        {% if selected_channel == "email_and_sms" %}
-                            selected
-                        {% endif %}
-                    >
+                    <option value="email_and_sms"
+                        {% if selected_channel == "email_and_sms" %}selected{% endif %}>
                         Email + SMS
                     </option>
 
@@ -220,17 +229,58 @@
             </div>
 
 
-            <div
-                class="
-                    col-lg-2
-                    d-flex
-                    align-items-end
-                "
-            >
+            <div class="col-lg-2">
+
+                <label class="form-label">
+                    Category
+                </label>
+
+                <select class="form-select" name="category">
+
+                    <option value="">
+                        All
+                    </option>
+
+                    <option value="orders"
+                        {% if selected_category == "orders" %}selected{% endif %}>
+                        Orders
+                    </option>
+
+                    <option value="payments"
+                        {% if selected_category == "payments" %}selected{% endif %}>
+                        Payments
+                    </option>
+
+                    <option value="delivery"
+                        {% if selected_category == "delivery" %}selected{% endif %}>
+                        Delivery
+                    </option>
+
+                    <option value="returns"
+                        {% if selected_category == "returns" %}selected{% endif %}>
+                        Returns
+                    </option>
+
+                    <option value="general"
+                        {% if selected_category == "general" %}selected{% endif %}>
+                        General
+                    </option>
+
+                    <option value="marketing"
+                        {% if selected_category == "marketing" %}selected{% endif %}>
+                        Marketing
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="col-lg-2 d-flex align-items-end">
 
                 <button
-                    class="btn btn-primary w-100"
                     type="submit"
+                    class="btn btn-primary w-100"
                 >
                     Filter
                 </button>
@@ -242,265 +292,355 @@
     </div>
 
 
-    <div class="dashboard-card">
+    <!-- TABLE + BULK OPERATIONS -->
 
-        <div class="table-responsive">
+    <form
+        method="post"
+        action="{% url 'admin_bulk_retry_notifications' %}"
+    >
 
-            <table class="table align-middle">
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            Customer
-                        </th>
-
-                        <th>
-                            Notification
-                        </th>
-
-                        <th>
-                            Channel
-                        </th>
-
-                        <th>
-                            Overall
-                        </th>
-
-                        <th>
-                            Email
-                        </th>
-
-                        <th>
-                            SMS
-                        </th>
-
-                        <th>
-                            Attempts
-                        </th>
-
-                        <th>
-                            Created
-                        </th>
-
-                        <th class="text-end">
-                            Action
-                        </th>
-
-                    </tr>
-
-                </thead>
+        {% csrf_token %}
 
 
-                <tbody>
+        <div class="dashboard-card">
 
-                    {% for notification in page_obj %}
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+
+                <div class="small text-muted">
+
+                    Retry limit:
+                    <strong>
+                        {{ max_channel_attempts }}
+                    </strong>
+                    provider attempts per channel.
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="btn btn-sm btn-outline-danger"
+                >
+                    Retry Selected Failures
+                </button>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
 
                         <tr>
 
-                            <td>
+                            <th style="width:40px;">
+                                Select
+                            </th>
 
-                                <strong>
-                                    {{ notification.user.username }}
-                                </strong>
+                            <th>
+                                Customer
+                            </th>
 
-                                {% if notification.user.email %}
+                            <th>
+                                Notification
+                            </th>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th>
+                                Overall
+                            </th>
+
+                            <th>
+                                Email
+                            </th>
+
+                            <th>
+                                SMS
+                            </th>
+
+                            <th>
+                                Created
+                            </th>
+
+                            <th class="text-end">
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for notification in page_obj %}
+
+                            <tr>
+
+                                <td>
+
+                                    {% if notification.status == "failed" or notification.status == "partial" %}
+
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input"
+                                            name="notification_ids"
+                                            value="{{ notification.pk }}"
+                                        >
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    <strong>
+                                        {{ notification.user.username }}
+                                    </strong>
+
+                                    {% if notification.user.email %}
+
+                                        <div class="small text-muted">
+                                            {{ notification.user.email }}
+                                        </div>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    <a
+                                        href="{% url 'admin_notification_detail' notification.pk %}"
+                                        class="fw-semibold text-decoration-none"
+                                    >
+                                        {{ notification.subject }}
+                                    </a>
 
                                     <div class="small text-muted">
-                                        {{ notification.user.email }}
+                                        {{ notification.message|truncatechars:85 }}
                                     </div>
 
-                                {% endif %}
+                                    {% if notification.event_key %}
 
-                            </td>
+                                        <div class="small text-muted">
+                                            {{ notification.event_key }}
+                                        </div>
 
+                                    {% endif %}
 
-                            <td>
-
-                                <strong>
-                                    {{ notification.subject }}
-                                </strong>
-
-                                <div class="small text-muted">
-
-                                    {{ notification.message|truncatechars:90 }}
-
-                                </div>
+                                </td>
 
 
-                                {% if notification.last_error %}
+                                <td>
+                                    {{ notification.get_category_display }}
+                                </td>
 
-                                    <div
-                                        class="
-                                            small
-                                            text-danger
-                                            mt-1
-                                        "
+
+                                <td>
+
+                                    {% if notification.status == "sent" %}
+
+                                        <span class="badge bg-success">
+                                            Sent
+                                        </span>
+
+                                    {% elif notification.status == "failed" %}
+
+                                        <span class="badge bg-danger">
+                                            Failed
+                                        </span>
+
+                                    {% elif notification.status == "partial" %}
+
+                                        <span class="badge bg-warning text-dark">
+                                            Partial
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge bg-secondary">
+                                            Pending
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if notification.email_status == "sent" %}
+
+                                        <span class="badge bg-success">
+                                            Sent
+                                        </span>
+
+                                    {% elif notification.email_status == "failed" %}
+
+                                        <span class="badge bg-danger">
+                                            Failed
+                                        </span>
+
+                                    {% elif notification.email_status == "skipped" %}
+
+                                        <span class="badge bg-secondary">
+                                            Skipped
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge bg-light text-dark">
+                                            {{ notification.email_status }}
+                                        </span>
+
+                                    {% endif %}
+
+                                    <div class="small text-muted mt-1">
+                                        {{ notification.email_attempts }}/{{ max_channel_attempts }}
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if notification.sms_status == "sent" %}
+
+                                        <span class="badge bg-success">
+                                            Sent
+                                        </span>
+
+                                    {% elif notification.sms_status == "failed" %}
+
+                                        <span class="badge bg-danger">
+                                            Failed
+                                        </span>
+
+                                    {% elif notification.sms_status == "skipped" %}
+
+                                        <span class="badge bg-secondary">
+                                            Skipped
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge bg-light text-dark">
+                                            {{ notification.sms_status }}
+                                        </span>
+
+                                    {% endif %}
+
+                                    <div class="small text-muted mt-1">
+                                        {{ notification.sms_attempts }}/{{ max_channel_attempts }}
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+                                    {{ notification.created_at|date:"d M Y H:i" }}
+                                </td>
+
+
+                                <td class="text-end">
+
+                                    <a
+                                        href="{% url 'admin_notification_detail' notification.pk %}"
+                                        class="btn btn-sm btn-outline-primary"
                                     >
+                                        View
+                                    </a>
 
-                                        {{ notification.last_error|truncatechars:120 }}
+                                </td>
 
-                                    </div>
-
-                                {% endif %}
-
-                            </td>
+                            </tr>
 
 
-                            <td>
+                        {% empty %}
 
-                                {{ notification.channel }}
+                            <tr>
 
-                            </td>
+                                <td
+                                    colspan="9"
+                                    class="text-center text-muted py-5"
+                                >
+                                    No notifications found.
+                                </td>
 
+                            </tr>
 
-                            <td>
+                        {% endfor %}
 
-                                {% if notification.status == "sent" %}
+                    </tbody>
 
-                                    <span class="badge bg-success">
-                                        Sent
-                                    </span>
+                </table>
 
-                                {% elif notification.status == "failed" %}
-
-                                    <span class="badge bg-danger">
-                                        Failed
-                                    </span>
-
-                                {% else %}
-
-                                    <span
-                                        class="
-                                            badge
-                                            bg-warning
-                                            text-dark
-                                        "
-                                    >
-                                        Pending
-                                    </span>
-
-                                {% endif %}
-
-                            </td>
-
-
-                            <td>
-                                {% if notification.email_status == "sent" %}
-                                    <span class="badge bg-success">Sent</span>
-                                {% elif notification.email_status == "failed" %}
-                                    <span class="badge bg-danger">Failed</span>
-                                {% elif notification.email_status == "skipped" %}
-                                    <span class="badge bg-secondary">Skipped</span>
-                                {% else %}
-                                    <span class="badge bg-light text-dark">
-                                        {{ notification.email_status }}
-                                    </span>
-                                {% endif %}
-
-                                {% if notification.email_error %}
-                                    <div class="small text-danger mt-1">
-                                        {{ notification.email_error|truncatechars:70 }}
-                                    </div>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if notification.sms_status == "sent" %}
-                                    <span class="badge bg-success">Sent</span>
-                                {% elif notification.sms_status == "failed" %}
-                                    <span class="badge bg-danger">Failed</span>
-                                {% elif notification.sms_status == "skipped" %}
-                                    <span class="badge bg-secondary">Skipped</span>
-                                {% else %}
-                                    <span class="badge bg-light text-dark">
-                                        {{ notification.sms_status }}
-                                    </span>
-                                {% endif %}
-
-                                {% if notification.sms_error %}
-                                    <div class="small text-danger mt-1">
-                                        {{ notification.sms_error|truncatechars:70 }}
-                                    </div>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {{ notification.attempts }}
-                            </td>
-
-
-                            <td>
-
-                                {{ notification.created_at|date:"d M Y H:i" }}
-
-                            </td>
-
-
-                            <td class="text-end">
-
-                                {% if notification.status == "failed" or notification.status == "partial" %}
-
-                                    <form
-                                        method="post"
-                                        action="{% url 'admin_retry_notification' notification.pk %}"
-                                    >
-
-                                        {% csrf_token %}
-
-                                        <button
-                                            type="submit"
-                                            class="
-                                                btn
-                                                btn-sm
-                                                btn-outline-danger
-                                            "
-                                        >
-                                            Retry
-                                        </button>
-
-                                    </form>
-
-                                {% else %}
-
-                                    <span class="text-muted">
-                                        —
-                                    </span>
-
-                                {% endif %}
-
-                            </td>
-
-                        </tr>
-
-
-                    {% empty %}
-
-                        <tr>
-
-                            <td
-                                colspan="9"
-                                class="
-                                    text-center
-                                    text-muted
-                                    py-5
-                                "
-                            >
-                                No notifications found.
-                            </td>
-
-                        </tr>
-
-                    {% endfor %}
-
-                </tbody>
-
-            </table>
+            </div>
 
         </div>
 
-    </div>
+    </form>
+
+
+    {% if page_obj.has_other_pages %}
+
+        <nav class="mt-4">
+
+            <ul class="pagination">
+
+                {% if page_obj.has_previous %}
+
+                    <li class="page-item">
+
+                        <a
+                            class="page-link"
+                            href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}&channel={{ selected_channel }}&category={{ selected_category }}&q={{ search|urlencode }}"
+                        >
+                            Previous
+                        </a>
+
+                    </li>
+
+                {% endif %}
+
+
+                <li class="page-item active">
+
+                    <span class="page-link">
+                        {{ page_obj.number }}
+                    </span>
+
+                </li>
+
+
+                {% if page_obj.has_next %}
+
+                    <li class="page-item">
+
+                        <a
+                            class="page-link"
+                            href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}&channel={{ selected_channel }}&category={{ selected_category }}&q={{ search|urlencode }}"
+                        >
+                            Next
+                        </a>
+
+                    </li>
+
+                {% endif %}
+
+            </ul>
+
+        </nav>
+
+    {% endif %}
 
 </div>
 

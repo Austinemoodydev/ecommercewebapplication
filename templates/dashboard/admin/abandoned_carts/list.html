@@ -1,0 +1,542 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}
+Abandoned Carts
+{% endblock %}
+
+
+{% block admin_content %}
+
+<div class="container-fluid">
+
+    <div
+        class="d-flex flex-column flex-lg-row
+        justify-content-between
+        align-items-lg-center
+        gap-3 mb-4"
+    >
+
+        <div>
+
+            <h2 class="mb-1">
+                Abandoned Carts
+            </h2>
+
+            <p class="text-muted mb-0">
+
+                Carts that still contain products,
+                have not converted to an order,
+                and have passed the abandonment
+                threshold.
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- METRICS -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div
+                        class="text-muted small
+                        text-uppercase"
+                    >
+                        Abandoned Carts
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+                        {{ total_abandoned }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div
+                        class="text-muted small
+                        text-uppercase"
+                    >
+                        Cart Value
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+                        {{ store_settings.currency_symbol }}
+                        {{ total_value|floatformat:2 }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div
+                        class="text-muted small
+                        text-uppercase"
+                    >
+                        Customers / Guests
+                    </div>
+
+                    <div class="fs-4 fw-bold">
+                        {{ registered_count }}
+                        /
+                        {{ guest_count }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div
+                        class="text-muted small
+                        text-uppercase"
+                    >
+                        Reached Checkout
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+                        {{ checkout_started_count }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- FILTERS -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <form
+                method="get"
+                class="row g-3 align-items-end"
+            >
+
+                <div class="col-lg-5">
+
+                    <label
+                        class="form-label"
+                    >
+                        Search
+                    </label>
+
+                    <input
+                        type="search"
+                        name="q"
+                        value="{{ search }}"
+                        class="form-control"
+                        placeholder="Customer, email, product, SKU or session"
+                    >
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <label
+                        class="form-label"
+                    >
+                        Cart Type
+                    </label>
+
+                    <select
+                        name="type"
+                        class="form-select"
+                    >
+
+                        <option value="">
+                            All
+                        </option>
+
+                        <option
+                            value="customer"
+                            {% if selected_type == "customer" %}
+                                selected
+                            {% endif %}
+                        >
+                            Registered Customers
+                        </option>
+
+                        <option
+                            value="guest"
+                            {% if selected_type == "guest" %}
+                                selected
+                            {% endif %}
+                        >
+                            Guests
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <label
+                        class="form-label"
+                    >
+                        Checkout
+                    </label>
+
+                    <select
+                        name="checkout"
+                        class="form-select"
+                    >
+
+                        <option value="">
+                            All
+                        </option>
+
+                        <option
+                            value="started"
+                            {% if selected_checkout == "started" %}
+                                selected
+                            {% endif %}
+                        >
+                            Checkout Started
+                        </option>
+
+                        <option
+                            value="not_started"
+                            {% if selected_checkout == "not_started" %}
+                                selected
+                            {% endif %}
+                        >
+                            Checkout Not Started
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-lg-1">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary w-100"
+                    >
+                        Filter
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- TABLE -->
+
+    <div class="card shadow-sm">
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table
+                    class="table table-hover
+                    align-middle mb-0"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Cart
+                            </th>
+
+                            <th>
+                                Customer
+                            </th>
+
+                            <th>
+                                Items
+                            </th>
+
+                            <th>
+                                Value
+                            </th>
+
+                            <th>
+                                Checkout
+                            </th>
+
+                            <th>
+                                Last Activity
+                            </th>
+
+                            <th>
+                                Age
+                            </th>
+
+                            <th></th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for cart in carts %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+                                    #{{ cart.pk }}
+                                </strong>
+
+                                <div
+                                    class="small text-muted"
+                                >
+                                    {{ cart.admin_customer_type }}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                {% if cart.user %}
+
+                                    <div class="fw-semibold">
+                                        {{ cart.admin_identity }}
+                                    </div>
+
+                                    <div
+                                        class="small text-muted"
+                                    >
+                                        {{ cart.user.email|default:"No email" }}
+                                    </div>
+
+                                {% else %}
+
+                                    <span
+                                        class="badge text-bg-secondary"
+                                    >
+                                        Guest
+                                    </span>
+
+                                    <div
+                                        class="small text-muted mt-1"
+                                    >
+                                        Session:
+                                        {{ cart.session_key|default:"-"|truncatechars:18 }}
+                                    </div>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+                                {{ cart.admin_item_count }}
+                            </td>
+
+
+                            <td>
+
+                                {{ store_settings.currency_symbol }}
+                                {{ cart.admin_value|floatformat:2 }}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if cart.checkout_started_at %}
+
+                                    <span
+                                        class="badge text-bg-warning"
+                                    >
+                                        Started
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="badge text-bg-light"
+                                    >
+                                        Not started
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {{ cart.last_activity_at|date:"M d, Y H:i" }}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if cart.admin_age_days %}
+
+                                    {{ cart.admin_age_days }}
+                                    day{{ cart.admin_age_days|pluralize }}
+
+                                {% else %}
+
+                                    {{ cart.admin_age_hours }}
+                                    hour{{ cart.admin_age_hours|pluralize }}
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td class="text-end">
+
+                                <a
+                                    href="{% url 'admin_abandoned_cart_detail' cart.pk %}"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
+                                    View
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+
+                        {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="8"
+                                class="text-center
+                                py-5 text-muted"
+                            >
+                                No abandoned carts
+                                match these filters.
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {% if page_obj.paginator.num_pages > 1 %}
+
+    <nav class="mt-4">
+
+        <ul class="pagination">
+
+            {% if page_obj.has_previous %}
+
+            <li class="page-item">
+
+                <a
+                    class="page-link"
+                    href="?page={{ page_obj.previous_page_number }}&q={{ search|urlencode }}&type={{ selected_type|urlencode }}&checkout={{ selected_checkout|urlencode }}"
+                >
+                    Previous
+                </a>
+
+            </li>
+
+            {% endif %}
+
+
+            <li
+                class="page-item active"
+            >
+
+                <span class="page-link">
+
+                    {{ page_obj.number }}
+                    /
+                    {{ page_obj.paginator.num_pages }}
+
+                </span>
+
+            </li>
+
+
+            {% if page_obj.has_next %}
+
+            <li class="page-item">
+
+                <a
+                    class="page-link"
+                    href="?page={{ page_obj.next_page_number }}&q={{ search|urlencode }}&type={{ selected_type|urlencode }}&checkout={{ selected_checkout|urlencode }}"
+                >
+                    Next
+                </a>
+
+            </li>
+
+            {% endif %}
+
+        </ul>
+
+    </nav>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
+

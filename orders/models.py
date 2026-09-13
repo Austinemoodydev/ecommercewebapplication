@@ -38,6 +38,20 @@ class Order(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="orders",
+        null=True,
+        blank=True,
+    )
+
+    guest_checkout = models.BooleanField(
+        default=False,
+        db_index=True,
+    )
+
+    guest_access_token_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
     )
 
     order_number = models.CharField(max_length=30, unique=True)
@@ -80,6 +94,43 @@ class Order(models.Model):
 
     shipping_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+
+    # ---------------------------------------------------------
+    # HISTORICAL CHECKOUT FINANCIAL SNAPSHOT
+    # ---------------------------------------------------------
+
+    tax_enabled_at_checkout = models.BooleanField(
+        default=False,
+    )
+
+    tax_rate_at_checkout = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    tax_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    minimum_order_amount_at_checkout = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    currency_code_at_checkout = models.CharField(
+        max_length=10,
+        default="KES",
+    )
+
+    currency_symbol_at_checkout = models.CharField(
+        max_length=10,
+        default="KSh",
+    )
     coupon = models.ForeignKey(
         "orders.Coupon",
         on_delete=models.SET_NULL,
