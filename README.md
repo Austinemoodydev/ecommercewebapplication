@@ -1,163 +1,61 @@
+# Online Shop — Django E-Commerce Platform
 
+A full-featured, modular e-commerce platform built with **Django 6**, **MySQL**, **Redis**, **Celery**, and a server-rendered Bootstrap-based frontend.
 
-A full-featured e-commerce web application built with **Django 6**, **MySQL**, **Redis**, and **Celery**.
+The application is designed for real online retail operations, with particular support for the Kenyan market through **M-Pesa Daraja**, **Africa's Talking**, Kenyan Shilling pricing, delivery management, inventory control, customer management, refunds, returns, reporting, and role-based store administration.
 
-The project is designed as a modular online shopping platform with separate applications for user accounts, products, categories, cart management, wishlists, orders, payments, reviews, dashboards, and notifications.
-
-It also includes integrations for **M-Pesa Daraja**, **Africa's Talking**, and **SMTP email**, making the application suitable for a Kenya-focused e-commerce environment.
-
----
-
-## Overview
-
-The Online Store is built around a simple goal: provide a complete shopping experience from browsing products to placing an order and making a payment.
-
-The application is divided into multiple Django apps rather than putting everything into one large application. Each app has a specific responsibility, which makes the project easier to maintain and extend.
-
-The main application areas are:
-
-* Customer accounts and authentication
-* Product management
-* Product categories
-* Shopping cart
-* Wishlist
-* Checkout and orders
-* M-Pesa payments
-* Product reviews
-* Dashboard functionality
-* Notifications
-* Email communication
-* SMS communication
-* Background processing with Celery
-* Redis caching/task brokering
-* Request rate limiting
-* mysql database open config folder and import mysql file.
-
-The application also uses Django's timezone support with:
-
-```python
-TIME_ZONE = "Africa/Nairobi"
-USE_TZ = True
-```
-
-which is appropriate for an application operating in the Kenyan market.
+> **Current status:** The application is being completed and hardened on localhost before production deployment. Localhost is treated as the staging environment. Production credentials and infrastructure must be configured separately before launch.
 
 ---
 
-# Main Features
+# Table of Contents
 
-## Customer Accounts
-
-The project uses a custom user model rather than Django's default user model.
-
-```python
-AUTH_USER_MODEL = "accounts.CustomUser"
-```
-
-The `accounts` application is responsible for user-related functionality.
-
-This allows the project to extend Django's authentication system and keep customer-specific information separate from the rest of the store.
-
-The application uses Django's built-in password validation framework, including:
-
-* User attribute similarity validation
-* Minimum password length validation
-* Common password detection
-* Numeric password detection
-
-This provides a stronger authentication foundation than accepting arbitrary passwords.
-
----
-
-## Product Management
-
-Products are managed through the dedicated `products` application.
-
-The product system forms the core of the store because it provides the items customers browse and purchase.
-
-The project separates product management from categories, allowing products to be organized into a structured catalog.
-
-Typical product information includes the information required by the storefront and purchasing system, such as product details, pricing, availability, and associated media.
-
-Uploaded product or other user-generated media is handled through Django's media configuration:
-
-```python
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-```
-
----
-
-## Product Categories
-
-The `categories` application is responsible for organizing products into categories.
-
-Keeping categories in their own Django application makes it easier to expand the catalog without tightly coupling category logic to product logic.
-
-A category-based structure also makes it possible to build storefront navigation around groups of related products.
+* [Overview](#overview)
+* [Major Features](#major-features)
+* [Customer Experience](#customer-experience)
+* [Authentication and Accounts](#authentication-and-accounts)
+* [Store Staff and Permissions](#store-staff-and-permissions)
+* [Product Catalog](#product-catalog)
+* [Pricing](#pricing)
+* [Inventory Management](#inventory-management)
+* [Shopping Cart](#shopping-cart)
+* [Wishlist](#wishlist)
+* [Checkout](#checkout)
+* [Guest Checkout](#guest-checkout)
+* [Orders](#orders)
+* [M-Pesa Payments](#m-pesa-payments)
+* [Returns and Refunds](#returns-and-refunds)
+* [Delivery Management](#delivery-management)
+* [Invoices, Receipts and Credit Notes](#invoices-receipts-and-credit-notes)
+* [Reviews](#reviews)
+* [CRM](#crm)
+* [Notifications](#notifications)
+* [Abandoned Carts](#abandoned-carts)
+* [Analytics and Reports](#analytics-and-reports)
+* [Store Settings](#store-settings)
+* [SEO](#seo)
+* [Security](#security)
+* [Background Processing](#background-processing)
+* [Technology Stack](#technology-stack)
+* [Project Architecture](#project-architecture)
+* [Project Structure](#project-structure)
+* [Local Development Setup](#local-development-setup)
+* [Environment Variables](#environment-variables)
+* [Database Setup](#database-setup)
+* [Redis and Celery](#redis-and-celery)
+* [Testing](#testing)
+* [Development vs Production](#development-vs-production)
+* [Production Checklist](#production-checklist)
+* [Remaining Work](#remaining-work)
+* [Author](#author)
 
 ---
 
-## Shopping Cart
+# Overview
 
-The `cart` application manages the customer's shopping cart.
+Online Shop is not a basic product-listing website. It is a multi-module commerce application covering the main operational areas required to run an online retail business.
 
-The cart sits between browsing and checkout:
-
-```text
-Product
-   ↓
-Add to Cart
-   ↓
-Shopping Cart
-   ↓
-Checkout
-   ↓
-Order
-   ↓
-Payment
-```
-
-The cart system is responsible for keeping track of products selected by a customer before the final order is placed.
-
----
-
-## Wishlist
-
-The `wishlist` application provides customers with a separate place to keep products they are interested in.
-
-Unlike the shopping cart, a wishlist represents products that the customer may want to purchase later.
-
-This keeps the two concepts separate:
-
-```text
-Wishlist
-    = Products I am interested in
-
-Cart
-    = Products I intend to purchase
-```
-
----
-
-# Orders and Checkout
-
-The `orders` application handles the order side of the shopping process.
-
-Once a customer is ready to purchase, the selected products move from the shopping process into an order.
-
-The order system provides a place to maintain information such as:
-
-* Customer
-* Products
-* Quantities
-* Prices
-* Total amount
-* Order status
-* Payment information
-* Timestamps
-
-The general flow is:
+The system supports the complete flow from:
 
 ```text
 Customer
@@ -166,396 +64,1041 @@ Customer
 Browse Products
    │
    ▼
-Add Products to Cart
+Product Details
+   │
+   ├────────────► Wishlist
    │
    ▼
-Review Cart
+Shopping Cart
    │
    ▼
 Checkout
    │
    ▼
-Create Order
+Inventory Reservation
    │
    ▼
-Initiate Payment
+Order Creation
+   │
+   ▼
+M-Pesa Payment
    │
    ▼
 Payment Callback
    │
    ▼
-Update Payment / Order
+Payment Verification
+   │
+   ▼
+Inventory Consumption
+   │
+   ▼
+Order Processing
+   │
+   ▼
+Delivery
+   │
+   ▼
+Invoice / Receipt
+   │
+   ▼
+Customer Notification
 ```
 
-Keeping orders in their own application allows order-related business logic to remain independent from the product catalog and shopping cart.
+The project is separated into Django applications and service modules so that accounts, products, inventory, orders, payments, delivery, CRM, notifications and administration do not have to live inside one large application.
+
+---
+
+# Major Features
+
+The application currently includes:
+
+* Customer registration and authentication
+* Email verification
+* Password reset
+* Google customer authentication
+* Customer profiles and avatars
+* Saved customer addresses
+* Guest checkout
+* Guest order access
+* Separate customer, store-staff and system-admin authentication
+* Store staff management
+* Role-based access control
+* Product management
+* Product categories
+* Brands
+* Product images and galleries
+* Product variants
+* Product pricing and sale pricing
+* Cost-price tracking
+* Inventory management
+* Reserved inventory
+* Inventory movement history
+* Low-stock monitoring
+* Shopping cart
+* Wishlist
+* Coupons and promotions infrastructure
+* Checkout
+* Server-authoritative pricing
+* Configurable tax
+* Minimum-order rules
+* M-Pesa STK Push
+* M-Pesa callback processing
+* Payment transaction tracking
+* Orders and order statuses
+* Delivery management
+* Delivery providers
+* Delivery events and attempts
+* Parcel/tracking references
+* Customer order tracking
+* Returns
+* Refund requests
+* Partial and full refund status handling
+* Credit notes
+* Invoices
+* Receipts
+* Product reviews
+* Verified-purchase review restrictions
+* CRM/customer notes
+* Customer notifications
+* Email communication
+* SMS integration
+* Abandoned-cart tracking
+* Store analytics and reports
+* Store settings
+* SEO sitemap
+* robots.txt
+* Product structured data
+* Rate limiting
+* Upload security
+* Custom DEBUG=False error pages
+* Automated regression tests
+* Redis integration
+* Celery background processing
+
+---
+
+# Customer Experience
+
+Customers can browse the storefront without accessing store-management functionality.
+
+The customer-facing system provides:
+
+* Store homepage
+* Product catalog
+* Product search
+* Category browsing
+* Product filtering and sorting
+* Product detail pages
+* Sale/offer products
+* Featured products
+* Product images
+* Product ratings and reviews
+* Wishlist
+* Shopping cart
+* Checkout
+* Delivery selection
+* M-Pesa payment
+* Order confirmation
+* Order details
+* Order tracking
+* Invoices and receipts
+* Return/refund requests
+* Customer notifications
+* Profile management
+* Address management
+
+The storefront and administration interfaces are intentionally separated.
+
+---
+
+# Authentication and Accounts
+
+The application uses a custom Django user model:
+
+```python
+AUTH_USER_MODEL = "accounts.CustomUser"
+```
+
+Authentication functionality includes:
+
+* Customer registration
+* Unique email validation
+* Customer login
+* Logout
+* Password validation
+* Password reset
+* Email verification
+* Customer profile
+* Avatar upload
+* Saved addresses
+* Default delivery address
+* Google authentication
+* Login rate limiting
+
+## Authentication separation
+
+The application separates three authentication contexts.
+
+### Customer authentication
+
+Customer login:
+
+```text
+/accounts/login/
+```
+
+Customers can use normal account credentials and supported Google authentication.
+
+Successful customer authentication returns the user to the shopping experience rather than the management dashboard.
+
+### Store staff authentication
+
+Store-management users authenticate through:
+
+```text
+/staff/login/
+```
+
+This interface is intended only for authorized store employees.
+
+There is no public staff registration process.
+
+### System administration
+
+Django system administration remains separate:
+
+```text
+/admin/
+```
+
+System administration is restricted to Django superusers.
+
+A normal store employee should not gain system-administrator access simply because they have store-management permissions.
+
+---
+
+# Store Staff and Permissions
+
+The application includes role-based store administration.
+
+Current store roles include:
+
+| Role            | Purpose                                   |
+| --------------- | ----------------------------------------- |
+| Store Owner     | Highest store-management authority        |
+| Store Manager   | Broad operational management              |
+| Orders Staff    | Order and delivery operations             |
+| Inventory Staff | Product and inventory operations          |
+| Finance Staff   | Payments, refunds and financial reporting |
+| Support Staff   | Customer support, CRM and notifications   |
+
+Permissions are enforced server-side rather than relying only on hidden navigation links.
+
+Users can hold multiple authorized store roles where required.
+
+Store-management functionality includes staff creation, editing, role assignment and account activation/deactivation.
+
+---
+
+# Product Catalog
+
+Products are managed through the product and dashboard modules.
+
+Product information can include:
+
+* Product name
+* SKU
+* Category
+* Brand
+* Description
+* Regular selling price
+* Discount/sale price
+* Cost price
+* Low-stock threshold
+* Primary image
+* Product gallery
+* Featured status
+* Active/inactive status
+
+## Categories
+
+Products can be organized into categories for storefront navigation and filtering.
+
+## Brands
+
+Products can be associated with brands, including brand imagery where configured.
+
+## Product gallery
+
+Products can have a primary image and additional gallery images.
+
+## Product variants
+
+The data model includes product variants with support for fields such as:
+
+* Variant SKU
+* Variant selling price
+* Variant cost price
+* Stock
+* Reserved stock
+* Low-stock threshold
+
+Variant functionality provides a foundation for products that differ by attributes such as size, configuration or other options.
+
+---
+
+# Pricing
+
+Money is stored using decimal values rather than floating-point values.
+
+This is important for financial correctness.
+
+Retail prices support:
+
+* Regular price
+* Discount price
+* Variant price
+* Cost price
+* Order-item price snapshots
+* Tax
+* Delivery charges
+* Discounts
+* Refund calculations
+
+The current retail-price policy normalizes retail catalog prices to whole Kenyan Shillings while retaining decimal storage internally.
+
+For example:
+
+```text
+Internal value
+75000.00
+
+Customer display
+KES 75,000
+```
+
+Money presentation uses thousands separators:
+
+```text
+KES 2,500
+KES 45,500
+KES 75,000
+KES 1,250,000
+```
+
+Historical order and payment amounts remain financial records and should not be rewritten merely because catalog pricing changes later.
+
+---
+
+# Inventory Management
+
+Inventory is integrated with checkout and orders.
+
+The system distinguishes between:
+
+```text
+Physical Stock
+      │
+      ├── Reserved Stock
+      │
+      └── Available Stock
+```
+
+Available inventory can therefore be calculated from stock that has not already been reserved for another checkout/order.
+
+Inventory functionality includes:
+
+* Product stock
+* Variant stock
+* Reserved stock
+* Available stock
+* Low-stock thresholds
+* Inventory movements
+* Inventory reservation
+* Inventory release
+* Inventory consumption
+
+Critical inventory operations use database locking where appropriate to reduce the risk of overselling during concurrent checkout/payment activity.
+
+The general lifecycle is:
+
+```text
+Customer Checkout
+       │
+       ▼
+Reserve Inventory
+       │
+       ├──── Payment fails/cancels ───► Release Inventory
+       │
+       ▼
+Payment succeeds
+       │
+       ▼
+Consume Reserved Inventory
+```
+
+---
+
+# Shopping Cart
+
+The cart supports the customer's pre-checkout shopping session.
+
+Cart functionality includes:
+
+* Add to cart
+* Update quantity
+* Increase quantity
+* Decrease quantity
+* Remove item
+* Cart totals
+* Guest cart handling
+* Customer cart handling
+
+State-changing cart operations use POST requests rather than mutation through GET URLs.
+
+This improves both HTTP correctness and CSRF protection.
+
+---
+
+# Wishlist
+
+Customers can save products separately from the shopping cart.
+
+```text
+Wishlist
+   = products the customer may purchase later
+
+Cart
+   = products currently intended for checkout
+```
+
+Wishlist mutations also use protected state-changing requests.
+
+---
+
+# Checkout
+
+Checkout is server-authoritative.
+
+The browser is not trusted to determine the final amount that should be charged.
+
+The server recalculates:
+
+* Product prices
+* Quantities
+* Discounts
+* Coupons
+* Tax
+* Delivery charges
+* Final order total
+
+This helps prevent customers from manipulating browser-side prices.
+
+The general checkout flow is:
+
+```text
+Cart
+  │
+  ▼
+Validate Products
+  │
+  ▼
+Recalculate Prices
+  │
+  ▼
+Apply Coupon
+  │
+  ▼
+Calculate Tax
+  │
+  ▼
+Calculate Delivery
+  │
+  ▼
+Validate Minimum Order
+  │
+  ▼
+Reserve Inventory
+  │
+  ▼
+Create Order
+```
+
+---
+
+# Guest Checkout
+
+Customers are not required to create a permanent account before purchasing where guest checkout is enabled.
+
+Guest checkout supports:
+
+* Guest customer information
+* Guest delivery information
+* Guest order creation
+* Guest payment
+* Guest order confirmation
+* Guest order details
+* Guest tracking
+* Guest invoice access
+* Guest receipt access
+* Guest return/refund access
+
+Guest-access tokens are treated as capability credentials.
+
+Only a hash of the guest token is stored in the database rather than storing the raw capability token directly.
+
+Guest orders can later be associated with a customer account through the supported account/order-claim flow.
+
+---
+
+# Orders
+
+Orders maintain snapshots of important purchase information.
+
+Typical order information includes:
+
+* Order number
+* Customer or guest information
+* Order items
+* Quantity
+* Item price
+* Discounts
+* Tax
+* Delivery amount
+* Total amount
+* Payment status
+* Order status
+* Inventory state
+* Delivery information
+* Creation/update timestamps
+
+## Order statuses
+
+The application supports states including:
+
+```text
+Pending
+Confirmed
+Processing
+Shipped
+Delivered
+Cancelled
+```
+
+## Payment statuses
+
+Payment status is tracked separately from operational order status.
+
+Examples include:
+
+```text
+Pending
+Paid
+Failed
+Partially Refunded
+Refunded
+```
+
+## Inventory states
+
+Inventory reservation state is also tracked independently.
+
+Examples include:
+
+```text
+Reserved
+Released
+Consumed
+```
+
+Keeping these states separate prevents one field from trying to represent the entire lifecycle of an order.
 
 ---
 
 # M-Pesa Payments
 
-One of the key integrations in the project is **M-Pesa Daraja**.
+The application integrates with **Safaricom M-Pesa Daraja**.
 
-The project includes configuration for the credentials and information required to communicate with the M-Pesa API:
+Supported payment functionality includes:
 
-```text
-MPESA_CONSUMER_KEY
-MPESA_CONSUMER_SECRET
-MPESA_SHORTCODE
-MPESA_PASSKEY
-MPESA_CALLBACK_URL
-MPESA_CALLBACK_SECRET
-MPESA_ENV
-```
+* STK Push initiation
+* Checkout request tracking
+* Merchant request tracking
+* Payment status tracking
+* M-Pesa receipt storage
+* Customer phone storage
+* Callback processing
+* Payment amount verification
+* Duplicate callback handling
+* Failed-payment handling
+* Cancelled-payment handling
+* Inventory release
+* Successful-payment inventory consumption
 
-The payment environment is controlled through:
+Important environment variables include:
 
 ```env
+MPESA_CONSUMER_KEY=
+MPESA_CONSUMER_SECRET=
+MPESA_SHORTCODE=
+MPESA_PASSKEY=
+MPESA_CALLBACK_URL=
+MPESA_CALLBACK_SECRET=
 MPESA_ENV=sandbox
 ```
 
-for development/testing, or:
+Real credentials must never be committed to Git.
 
-```env
-MPESA_ENV=production
-```
+## Payment security
 
-when using the production environment.
+Payment handling includes safeguards such as:
 
-## Payment flow
+* Server-side order amount
+* Callback validation
+* Atomic database transactions
+* Row locking
+* Duplicate callback detection
+* Unknown callback rejection
+* Expected-amount verification
+* Idempotent payment processing
+* Inventory coordination
+* Late-payment review handling
 
-The payment architecture is designed around the following flow:
+The payment flow is approximately:
 
 ```text
-Customer
-    │
-    ▼
-Checkout
-    │
-    ▼
-Create Order
-    │
-    ▼
-Initiate M-Pesa Payment
-    │
-    ▼
-Customer Completes Payment
-    │
-    ▼
-M-Pesa Processes Transaction
-    │
-    ▼
-Callback Sent to Application
-    │
-    ▼
-Payment Verified
-    │
-    ▼
-Order Updated
+Order
+  │
+  ▼
+STK Push
+  │
+  ▼
+Customer authorizes payment
+  │
+  ▼
+Safaricom
+  │
+  ▼
+Callback
+  │
+  ▼
+Validate callback
+  │
+  ▼
+Lock payment/order
+  │
+  ▼
+Verify amount/reference
+  │
+  ├──── Failure ───► Release reservation
+  │
+  ▼
+Mark successful
+  │
+  ▼
+Consume inventory
+  │
+  ▼
+Confirm order
 ```
 
-The callback endpoint is particularly important because M-Pesa communicates the final transaction result back to the application.
+Local development should use M-Pesa sandbox credentials.
 
-The project also has a dedicated:
+Production credentials must not be introduced until an actual production environment is being prepared.
 
-```env
-MPESA_CALLBACK_SECRET
+---
+
+# Returns and Refunds
+
+The application contains customer and staff workflows for returns and refunds.
+
+Refund states include:
+
+```text
+Requested
+Approved
+Processed
+Rejected
 ```
 
-which can be used as part of callback validation.
+Return workflows include states for requested, approved, completed/rejected operations as appropriate.
 
-### Important security rule
+The system also supports return/refund history and item-level information.
 
-M-Pesa credentials should **never** be placed directly into source code or committed to Git.
+Refund processing is designed to preserve financial history rather than rewriting the original order.
 
-Use the `.env` file or another secure secrets-management mechanism.
+Partial refunds can move an order into:
 
-For example:
-
-```env
-MPESA_CONSUMER_KEY=your-consumer-key
-MPESA_CONSUMER_SECRET=your-consumer-secret
-MPESA_SHORTCODE=your-shortcode
-MPESA_PASSKEY=your-passkey
-MPESA_CALLBACK_URL=https://your-domain.com/payments/callback/
-MPESA_CALLBACK_SECRET=your-callback-secret
-MPESA_ENV=sandbox
+```text
+partially_refunded
 ```
 
-For production, the callback endpoint should be publicly accessible through HTTPS.
+while a complete refund can use:
+
+```text
+refunded
+```
+
+Provider-side reversal/refund operations should be verified before staff mark the corresponding application request as processed.
+
+---
+
+# Delivery Management
+
+Delivery is managed as its own operational area.
+
+The system supports:
+
+* Delivery records
+* Shop-managed delivery
+* External delivery providers
+* Delivery assignment
+* Delivery status
+* Delivery events
+* Delivery attempts
+* Parcel references
+* Courier information
+* Tracking numbers
+* Tracking URLs
+* Delivery destinations
+* Customer order tracking
+
+Delivery states can represent stages such as:
+
+```text
+Pending
+Assigned
+In Transit
+Ready for Collection
+Completed
+```
+
+depending on the delivery method and workflow.
+
+---
+
+# Invoices, Receipts and Credit Notes
+
+The application generates commerce documents from order/payment information.
+
+Supported documents include:
+
+* Invoice
+* Receipt
+* Credit note
+
+Documents use snapshots where appropriate so that historical documents do not unexpectedly change simply because the underlying catalog product is edited later.
+
+Document numbering/prefixes can be controlled through store settings.
+
+The application also supports printing/saving documents through the browser and relevant email workflows.
 
 ---
 
 # Reviews
 
-The `reviews` application handles product reviews.
+Customers can review products.
 
-Reviews provide customers with a way to share their experience with products and give future customers additional information before making a purchase.
+Review functionality includes:
 
-A review system is also useful to the store because it provides feedback about products and customer satisfaction.
+* Product ratings
+* Written reviews
+* Average product rating
+* Review count
+* Customer ownership checks
+* Verified-purchase restrictions
 
-The review functionality is kept separate from the product application so that review-specific logic does not unnecessarily complicate the product catalog.
+The verified-purchase policy prevents arbitrary users who have never purchased a product from being treated as verified buyers.
 
 ---
 
-# Dashboard
+# CRM
 
-The `dashboard` application provides the application's dashboard functionality.
+The project includes customer-management functionality.
 
-The dashboard is intended to give the appropriate users a centralized view of important store information.
+CRM features include customer information and customer notes that can assist staff with support and customer relationships.
 
-Depending on the user's permissions, dashboard information can include areas such as:
-
-* Products
-* Orders
-* Customers
-* Payments
-* Reviews
-* Store activity
-* Sales information
-
-Keeping dashboard functionality in its own application allows it to evolve independently from the customer-facing storefront.
+This gives authorized staff additional operational context without placing CRM logic directly inside the storefront.
 
 ---
 
 # Notifications
 
-The `notifications` application handles notifications within the platform.
+The application includes an internal notification system.
 
-Notifications are useful for keeping customers informed about important events.
-
-Examples include:
+Notifications can be used for events such as:
 
 * Order updates
 * Payment updates
-* Account-related events
-* System notifications
-* Other important store activity
+* Delivery events
+* Account events
+* Store/customer communication
 
-The notification system works alongside the project's email and SMS integrations, allowing communication functionality to remain separate from the individual applications generating the events.
+Customers also have notification preferences where supported.
 
 ---
 
 # Email
 
-The application is configured to send email through SMTP.
+Email is delivered through Django's SMTP backend.
 
-The current configuration uses Gmail's SMTP server:
-
-```python
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-```
-
-The email credentials are loaded from environment variables:
+Example development configuration:
 
 ```env
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
 ```
 
-The default sender is taken from:
+Email credentials must remain outside source control.
 
-```python
-DEFAULT_FROM_EMAIL = os.environ.get("EMAIL_HOST_USER")
-```
-
-For Gmail, an App Password should be used where required rather than storing a normal account password in the application.
+External email delivery should be tested separately when preparing the production environment.
 
 ---
 
-# Africa's Talking
+# SMS — Africa's Talking
 
-The project also contains configuration for **Africa's Talking**.
+The project includes **Africa's Talking** integration for SMS/communication.
 
-The credentials are loaded through environment variables:
+Environment variables include:
 
 ```env
-AFRICASTALKING_USERNAME=your-username
-AFRICASTALKING_API_KEY=your-api-key
+AFRICASTALKING_USERNAME=
+AFRICASTALKING_API_KEY=
 ```
 
-This integration provides the application with a way to communicate with customers through SMS and related Africa's Talking services.
-
-It can be useful for events such as:
-
-* Order notifications
-* Payment notifications
-* Customer updates
-* Account-related messages
-
-The exact messages and triggers are controlled by the application's notification/business logic.
+The integration can be used by notification/business workflows for events such as order and customer updates.
 
 ---
 
-# Background Tasks with Celery
+# Abandoned Carts
 
-Some operations are better handled outside the normal Django request/response cycle.
+The system tracks cart activity for abandoned-cart analysis.
 
-The project uses **Celery** for background processing.
+Cart metadata can include information such as:
 
-The Celery broker is configured through:
+* Last activity
+* Checkout started
+* Conversion time
+
+A cart can be considered abandoned when it:
+
+* Contains items
+* Has been inactive long enough
+* Has not converted into an order
+
+Authorized staff can inspect abandoned carts through store-management functionality.
+
+---
+
+# Analytics and Reports
+
+The administration system contains reporting and analytics functionality.
+
+Available reporting foundations include information around:
+
+* Orders
+* Revenue
+* Payments
+* Refunds
+* Customers
+* Products
+* Inventory
+* Abandoned carts
+* Cost
+* Profit
+* Margin
+* Store performance
+
+Financial calculations should always use server-side/database values rather than values supplied by the browser.
+
+---
+
+# Store Settings
+
+The application contains centralized store settings.
+
+Configurable business information includes areas such as:
+
+* Store name
+* Support/contact information
+* Business address
+* Currency
+* Tax configuration
+* Order availability
+* Minimum order amount
+* Document prefixes
+
+The project is primarily configured for:
+
+```text
+Currency: KES
+Market: Kenya
+Timezone: Africa/Nairobi
+```
+
+Django timezone configuration uses:
+
+```python
+TIME_ZONE = "Africa/Nairobi"
+USE_TZ = True
+```
+
+---
+
+# SEO
+
+The storefront includes SEO foundations such as:
+
+* `sitemap.xml`
+* `robots.txt`
+* Canonical/public URL support
+* Product structured data
+* Search-engine verification configuration
+
+Example production configuration:
+
+```env
+SITE_URL=https://your-store-domain.com
+GOOGLE_SITE_VERIFICATION=
+```
+
+Private customer, account and payment routes should not be treated as public search-engine content.
+
+---
+
+# Security
+
+Security is treated as part of application architecture rather than only a deployment concern.
+
+Implemented security measures include:
+
+## CSRF protection
+
+Django CSRF middleware is enabled.
+
+State-changing actions use POST requests where appropriate.
+
+## Authentication separation
+
+Customer, store-staff and Django system-administrator authentication are separated.
+
+## Role-based authorization
+
+Management endpoints are protected by server-side permission checks.
+
+## Login rate limiting
+
+Sensitive authentication operations are rate limited.
+
+## Server-authoritative pricing
+
+Checkout does not trust prices submitted by the browser.
+
+## Database locking
+
+Important inventory and payment operations use row locking/transactions where appropriate.
+
+## Payment idempotency
+
+Duplicate M-Pesa callbacks should not produce duplicate successful payment processing.
+
+## Guest capability tokens
+
+Guest order access uses capability tokens with hashed token storage.
+
+## Upload security
+
+Uploaded images are validated before being accepted.
+
+Supported image policy includes controlled formats such as:
+
+```text
+JPEG
+PNG
+WebP
+```
+
+Validation includes checks around:
+
+* File size
+* Declared content type
+* Actual image format
+* Image integrity
+* Dimensions
+* Pixel count
+
+Upload policies are applied to surfaces such as:
+
+* Customer avatars
+* Product images
+* Product galleries
+* Brand logos
+* Category images
+
+## Browser security
+
+The project configures security-related behavior including:
+
+```python
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+```
+
+Additional HTTPS/security settings apply when `DEBUG=False`.
+
+## Custom error handling
+
+Custom error pages exist for:
+
+```text
+400 Bad Request
+403 Forbidden
+404 Not Found
+500 Server Error
+```
+
+Error pages are designed not to expose application tracebacks or sensitive settings when DEBUG is disabled.
+
+Sensitive error responses are also configured to avoid unnecessary caching/indexing.
+
+---
+
+# Background Processing
+
+The project uses **Celery** for asynchronous/background work.
+
+Redis is used as the task broker.
+
+Example configuration:
 
 ```env
 CELERY_BROKER_URL=redis://localhost:6379/0
-```
-
-The result backend can be configured separately:
-
-```env
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
 
-This architecture allows time-consuming work to be moved into background workers.
-
-For example:
+Architecture:
 
 ```text
 Django
   │
-  ├── Customer Request
+  ├──── Normal HTTP request
   │
-  └── Background Task
-          │
-          ▼
-        Redis
-          │
-          ▼
-     Celery Worker
-          │
-          ▼
-    Task Processing
+  └──── Background task
+             │
+             ▼
+           Redis
+             │
+             ▼
+       Celery Worker
+             │
+             ▼
+       Task Processing
 ```
 
-This becomes particularly useful for operations such as sending notifications or communicating with external services.
-
----
-
-# Redis
-
-Redis is used by the project as the Celery broker and can also be used as a shared cache in production.
-
-The default development connection is:
-
-```text
-redis://localhost:6379/0
-```
-
-To check whether Redis is running:
-
-```bash
-redis-cli ping
-```
-
-A working Redis installation should return:
-
-```text
-PONG
-```
-
----
-
-# Rate Limiting
-
-The application uses `django-ratelimit` to protect selected parts of the application from excessive requests.
-
-The current development cache configuration is:
-
-```python
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-    }
-}
-
-RATELIMIT_USE_CACHE = "default"
-```
-
-`LocMemCache` is suitable for local development, particularly when the application is running as a single process.
-
-For production, a shared Redis cache is recommended when multiple Django workers are running.
-
-This is important because rate-limit information needs to be shared between workers.
-
----
-
-# Django Applications
-
-The project is split into the following Django applications:
-
-```text
-accounts
-core
-common
-products
-categories
-cart
-wishlist
-orders
-payments
-reviews
-dashboard
-notifications
-```
-
-Each application has a specific responsibility.
-
-### `accounts`
-
-Custom user model and account-related functionality.
-
-### `core`
-
-Core/shared functionality used across the project.
-
-The settings file currently includes:
-
-```python
-"core.context_processors.global_context"
-```
-
-which means the core application also provides global template context.
-
-### `common`
-
-Shared functionality used across different parts of the project.
-
-### `products`
-
-Product catalog and product-related functionality.
-
-### `categories`
-
-Product category management.
-
-### `cart`
-
-Shopping cart functionality.
-
-### `wishlist`
-
-Wishlist functionality.
-
-### `orders`
-
-Order creation and order management.
-
-### `payments`
-
-Payment-related functionality, including the M-Pesa integration.
-
-### `reviews`
-
-Product reviews and ratings.
-
-### `dashboard`
-
-Dashboard functionality.
-
-### `notifications`
-
-Notifications and customer communication functionality.
+Background processing is particularly useful for external communications and other work that should not unnecessarily delay a customer HTTP response.
 
 ---
 
@@ -563,65 +1106,185 @@ Notifications and customer communication functionality.
 
 ## Backend
 
-* **Python**
-* **Django 6**
-* **Django ORM**
-* **MySQL**
-* **Celery**
-* **Redis**
-* **django-ratelimit**
+* Python
+* Django 6
+* Django ORM
+* MySQL
 
-## Payment
+## Authentication
 
-* **M-Pesa Daraja API**
-
-## Communication
-
-* **Africa's Talking**
-* **SMTP / Gmail**
+* Django authentication
+* Custom user model
+* django-allauth
+* Google authentication
 
 ## Frontend
 
-The application uses Django's template system together with static assets.
+* Django Templates
+* HTML5
+* CSS3
+* JavaScript
+* Bootstrap
 
-The project contains:
+## Payments
+
+* Safaricom M-Pesa Daraja
+
+## Background processing
+
+* Celery
+* Redis
+
+## Communication
+
+* SMTP email
+* Africa's Talking
+
+## Security/supporting packages
+
+* django-ratelimit
+* Pillow/image validation
+* Django CSRF/security middleware
+
+---
+
+# Project Architecture
+
+The system follows a modular architecture.
 
 ```text
-templates/
-static/
-media/
+                         ONLINE SHOP
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+        ▼                     ▼                     ▼
+     CUSTOMER              COMMERCE              MANAGEMENT
+        │                     │                     │
+   accounts               products               dashboard
+   wishlist               categories              staff
+   reviews                cart                    analytics
+   profile                orders                  CRM
+                          payments                inventory
+                          delivery                refunds
+                              │
+                 ┌────────────┼────────────┐
+                 │            │            │
+                 ▼            ▼            ▼
+               MySQL        Redis      External APIs
+                              │            │
+                              ▼            ├── M-Pesa
+                            Celery          ├── SMTP
+                                            └── Africa's Talking
 ```
 
-for templates, frontend assets, and uploaded files.
+---
+
+# Django Applications
+
+The project contains dedicated applications for major responsibilities, including:
+
+```text
+accounts/
+cart/
+categories/
+core/
+crm/
+dashboard/
+delivery/
+inventory/
+notifications/
+orders/
+payments/
+products/
+reviews/
+wishlist/
+```
+
+## `accounts`
+
+Authentication, customer accounts, staff authentication, staff roles and access control.
+
+## `cart`
+
+Shopping-cart state and cart operations.
+
+## `categories`
+
+Product-category functionality.
+
+## `core`
+
+Shared store functionality, global configuration, security helpers, store settings and common context.
+
+## `crm`
+
+Customer relationship/customer-note functionality.
+
+## `dashboard`
+
+Store-management interface, administration workflows, reports and analytics.
+
+## `delivery`
+
+Delivery records, providers, events, attempts and tracking.
+
+## `inventory`
+
+Inventory-related functionality and stock operations.
+
+## `notifications`
+
+Internal/customer notification functionality and communication support.
+
+## `orders`
+
+Checkout, orders, order items, guest order access and commerce documents.
+
+## `payments`
+
+M-Pesa payments, callbacks, refunds and return-related financial workflows.
+
+## `products`
+
+Catalog, products, brands, variants, images and product selection logic.
+
+## `reviews`
+
+Product reviews and ratings.
+
+## `wishlist`
+
+Customer wishlist functionality.
 
 ---
 
 # Project Structure
 
-The project follows a standard Django structure with multiple applications:
+A simplified project structure is:
 
 ```text
-project-root/
+Onlineshop/
+│
+├── accounts/
+├── cart/
+├── categories/
+├── core/
+├── crm/
+├── dashboard/
+├── delivery/
+├── inventory/
+├── notifications/
+├── orders/
+├── payments/
+├── products/
+├── reviews/
+├── wishlist/
 │
 ├── config/
-│   ├── __init__.py
 │   ├── settings.py
 │   ├── urls.py
 │   ├── asgi.py
 │   └── wsgi.py
-│
-├── accounts/
-├── core/
-├── common/
-├── products/
-├── categories/
-├── cart/
-├── wishlist/
-├── orders/
-├── payments/
-├── reviews/
-├── dashboard/
-├── notifications/
 │
 ├── templates/
 ├── static/
@@ -629,55 +1292,43 @@ project-root/
 │
 ├── manage.py
 ├── requirements.txt
-├── .env
+├── .env.example
+├── DEVELOPMENT.md
 └── README.md
 ```
 
-The exact contents of each application may include additional files such as:
-
-```text
-models.py
-views.py
-urls.py
-forms.py
-admin.py
-apps.py
-tasks.py
-```
-
-depending on the functionality implemented in that application.
+Local `.env`, virtual environments, generated static files, caches, database dumps and temporary development/patch artifacts should not be committed to the public repository.
 
 ---
 
-# Requirements
+# Local Development Setup
 
-Before running the project locally, make sure the following are available:
+## Requirements
+
+Install/configure:
 
 * Python 3
 * pip
 * MySQL
 * Redis
 * Git
-* A Python virtual environment
+* Python virtual environment
 
-For the external services, you will need the appropriate credentials if you want to use their functionality:
+Optional external functionality requires credentials for:
 
-* M-Pesa Daraja credentials
-* Africa's Talking credentials
-* SMTP credentials
+* M-Pesa Daraja
+* Google OAuth
+* Africa's Talking
+* SMTP email
 
 ---
 
-# Getting Started
-
-## 1. Clone the project
+## 1. Clone the repository
 
 ```bash
 git clone <repository-url>
 cd <project-directory>
 ```
-
-Replace `<repository-url>` and `<project-directory>` with the actual repository information.
 
 ---
 
@@ -685,9 +1336,9 @@ Replace `<repository-url>` and `<project-directory>` with the actual repository 
 
 ### Windows
 
-```bash
+```powershell
 python -m venv venv
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 ```
 
 ### Linux/macOS
@@ -705,60 +1356,37 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-If `requirements.txt` does not exist yet, it can be generated from the active environment with:
-
-```bash
-pip freeze > requirements.txt
-```
-
 ---
 
 # Environment Variables
 
-The application uses `python-dotenv` to load environment variables from a `.env` file.
-
-The important detail is that `BASE_DIR` must be defined before loading the environment file:
-
-```python
-from pathlib import Path
-import os
-from dotenv import load_dotenv
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-load_dotenv(BASE_DIR / ".env", override=True)
-```
-
-The `.env` file should be located in the project root:
+Create a local:
 
 ```text
-project-root/
-├── .env
-├── manage.py
-├── config/
-└── ...
+.env
 ```
 
----
+in the project root.
 
-# Example `.env`
+Do not commit it.
 
-A local development environment can look similar to:
+Example:
 
 ```env
 # Django
-SECRET_KEY=your-secret-key
+SECRET_KEY=replace-with-local-secret
 DEBUG=True
 ALLOWED_HOSTS=127.0.0.1,localhost
+SITE_URL=http://localhost:8000
 
-# Database
+# MySQL
 DB_NAME=onlinestore
 DB_USER=root
 DB_PASSWORD=
 DB_HOST=localhost
 DB_PORT=3306
 
-# M-Pesa
+# M-Pesa — local/sandbox only
 MPESA_CONSUMER_KEY=
 MPESA_CONSUMER_SECRET=
 MPESA_SHORTCODE=
@@ -767,7 +1395,7 @@ MPESA_CALLBACK_URL=
 MPESA_CALLBACK_SECRET=
 MPESA_ENV=sandbox
 
-# Celery
+# Redis / Celery
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
 
@@ -775,31 +1403,26 @@ CELERY_RESULT_BACKEND=redis://localhost:6379/0
 AFRICASTALKING_USERNAME=
 AFRICASTALKING_API_KEY=
 
-# Email
+# SMTP
 EMAIL_HOST_USER=
 EMAIL_HOST_PASSWORD=
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 ```
 
-Do not copy real production credentials into a public README or commit them to Git.
+Variable names should match the actual local configuration used by `config/settings.py`.
+
+Never place real credentials in this README.
 
 ---
 
 # Database Setup
 
-The project uses MySQL.
+The project uses **MySQL**.
 
-The database currently configured by the project is:
-
-```text
-Database: onlinestore
-Host: localhost
-Port: 3306
-User: root
-```
-
-Create the database before running Django migrations.
-
-For example:
+Example local database:
 
 ```sql
 CREATE DATABASE onlinestore
@@ -807,248 +1430,241 @@ CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 ```
 
-The project uses `utf8mb4`, which provides proper support for a wide range of Unicode characters.
+Database settings are read from environment variables.
 
----
+Typical local configuration:
 
-# Recommended Database Configuration
-
-Database credentials should ideally come from environment variables instead of being hard-coded in `settings.py`.
-
-For example:
-
-```python
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get("DB_NAME", "onlinestore"),
-        "USER": os.environ.get("DB_USER", "root"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "3306"),
-        "OPTIONS": {
-            "charset": "utf8mb4",
-            "init_command": (
-                "SET sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'"
-            ),
-        },
-    }
-}
+```env
+DB_NAME=onlinestore
+DB_USER=root
+DB_PASSWORD=
+DB_HOST=localhost
+DB_PORT=3306
 ```
 
-This keeps the database configuration portable between development and production.
+Apply migrations:
 
----
-
-# Migrations
-
-After creating the database, apply the Django migrations:
-
-```bash
-python manage.py makemigrations
+```powershell
 python manage.py migrate
 ```
 
-To see the migration status:
+Check migration state:
 
-```bash
+```powershell
 python manage.py showmigrations
 ```
 
-For normal development, remember to create migrations whenever you change Django models:
+Check whether model changes are missing migrations:
 
-```bash
-python manage.py makemigrations
-python manage.py migrate
+```powershell
+python manage.py makemigrations --check --dry-run
 ```
 
 ---
 
-# Create an Administrator
+# Store Roles Setup
+
+After migrations, initialize the supported store-management roles using the project's management command:
+
+```powershell
+python manage.py setup_store_roles
+```
+
+Store staff should then be assigned only the roles required for their responsibilities.
+
+---
+
+# Create System Administrator
 
 Create a Django superuser:
 
-```bash
+```powershell
 python manage.py createsuperuser
 ```
 
-Follow the prompts and provide the requested username, email, and password.
-
-After starting the application, the Django administration area will normally be available at:
+The system administrator uses:
 
 ```text
 /admin/
 ```
 
+This account is different from ordinary store-management staff.
+
 ---
 
-# Running the Application
+# Run the Development Server
 
-Start the Django development server:
-
-```bash
+```powershell
 python manage.py runserver
 ```
 
-By default, Django will make the application available at:
+Default local URL:
 
 ```text
 http://127.0.0.1:8000/
 ```
 
+Localhost is currently treated as the project's staging/testing environment.
+
 ---
 
-# Running Redis
+# Redis and Celery
 
-Make sure Redis is running before starting Celery.
+Redis must be running for Redis-dependent background functionality.
 
-Verify it with:
+Test Redis:
 
 ```bash
 redis-cli ping
 ```
 
-Expected result:
+Expected:
 
 ```text
 PONG
 ```
 
----
+On Windows, a local Celery worker can be started with:
 
-# Running Celery
-
-With Redis running, start the Celery worker.
-
-On Windows:
-
-```bash
+```powershell
 celery -A config worker --loglevel=info --pool=solo
 ```
 
-On Linux/macOS:
+On Linux:
 
 ```bash
 celery -A config worker --loglevel=info
 ```
 
-The `--pool=solo` option is commonly useful when running Celery locally on Windows.
-
-The Celery application configuration may vary depending on the project's Celery setup.
-
 ---
 
 # Static Files
 
-Static files are configured using:
-
-```python
-STATIC_URL = "static/"
-```
-
-The project uses a dedicated static directory:
+Source static assets are stored under:
 
 ```text
 static/
 ```
 
-This is where application frontend assets such as CSS, JavaScript, images, and other static resources can be stored.
+Production collection uses:
 
-In a production environment, collect the static files with:
-
-```bash
+```powershell
 python manage.py collectstatic
 ```
+
+Collected `staticfiles/` output should not normally be committed to Git.
 
 ---
 
 # Media Files
 
-Uploaded files are stored under:
+Uploaded media uses Django's configured media storage.
 
-```text
-media/
-```
-
-with the following Django configuration:
+Typical local configuration:
 
 ```python
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 ```
 
-During development, Django can be configured to serve these files through the project's URL configuration.
-
-For production, uploaded media should normally be handled by the production web server or a dedicated object-storage service.
+Production media storage must be configured as part of deployment planning.
 
 ---
 
-# Authentication
+# Testing
 
-The project uses:
+The project has an extensive automated regression suite covering the major commerce and administration workflows.
 
-```python
-AUTH_USER_MODEL = "accounts.CustomUser"
+Run all tests with:
+
+```powershell
+python manage.py test -v 1
 ```
 
-This means Django's standard user model has been replaced by the application's custom user model.
+Check Django configuration:
 
-This setting should not be changed casually after the project has accumulated production data and migrations.
-
-The custom user model should remain consistent throughout the application's lifecycle.
-
----
-
-# Security
-
-Security is an important part of the project because the application handles customer accounts, orders, and payments.
-
-The project already includes several Django security settings that are enabled when `DEBUG=False`.
-
-These include:
-
-```python
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+```powershell
+python manage.py check
 ```
 
-These settings help enforce secure communication and protect cookies when the application is running over HTTPS.
+Check for missing migrations:
+
+```powershell
+python manage.py makemigrations --check --dry-run
+```
+
+Important automated test areas include:
+
+* Authentication
+* Authentication separation
+* Staff management
+* Store roles and permissions
+* Products
+* Upload security
+* Cart
+* Wishlist
+* Checkout
+* Guest checkout
+* Inventory
+* Orders
+* Delivery
+* M-Pesa payments
+* Callback behavior
+* Returns
+* Refunds
+* Partial refunds
+* Invoices
+* Receipts
+* Credit notes
+* CRM
+* Abandoned carts
+* Reports
+* Analytics
+* Store settings
+* DEBUG=False error handling
+* State-changing request protection
+* Money formatting
+
+A green automated suite is required before a development phase is considered complete.
 
 ---
 
 # Development vs Production
 
-Development and production should be treated as separate environments.
+## Local development / staging
 
-## Development
+Current development uses localhost.
 
-A typical local setup uses:
+Typical architecture:
 
 ```text
-Django
-   │
-   ├── MySQL
-   │
-   ├── Redis
-   │
-   └── Celery
+Django Development Server
+          │
+    ┌─────┼─────┐
+    │     │     │
+    ▼     ▼     ▼
+ MySQL  Redis  Sandbox APIs
+          │
+          ▼
+        Celery
 ```
 
-M-Pesa should normally use:
+Development should use:
 
 ```env
+DEBUG=True
 MPESA_ENV=sandbox
 ```
 
-during development and testing.
+Production credentials should not be used simply to make localhost testing easier.
 
-## Production
+---
 
-A production environment should use:
+# Production
+
+Production does not mean changing one setting and running the development server publicly.
+
+A production architecture should use infrastructure similar to:
 
 ```text
 Internet
@@ -1057,854 +1673,441 @@ Internet
 HTTPS
    │
    ▼
-Web Server / Reverse Proxy
+Reverse Proxy / Web Server
    │
    ▼
-Django
+Production Django Server
    │
-   ├── MySQL
-   ├── Redis
-   └── Celery
+   ├────────► MySQL
+   │
+   ├────────► Redis
+   │             │
+   │             ▼
+   │           Celery
+   │
+   ├────────► M-Pesa
+   ├────────► SMTP
+   └────────► SMS Provider
 ```
 
-Production should use:
+Production requires its own:
 
-```env
-DEBUG=False
-```
-
-and valid production credentials.
+* Domain
+* HTTPS certificate
+* Secrets
+* Database credentials
+* M-Pesa production credentials
+* Callback URL
+* Redis configuration
+* Celery workers
+* Email configuration
+* SMS configuration
+* Static/media strategy
+* Logging
+* Monitoring
+* Backup strategy
 
 ---
 
-# Production Security Checklist
+# Production Checklist
 
-Before deploying the application:
+## Already completed locally
 
+The application has local implementations/foundations for:
+
+* [x] Customer authentication
+* [x] Custom user model
+* [x] Email verification
+* [x] Password reset
+* [x] Customer/staff/admin authentication separation
+* [x] Store staff roles
+* [x] Role-based access control
+* [x] Product management
+* [x] Categories
+* [x] Brands
+* [x] Product gallery
+* [x] Product variants/data model
+* [x] Inventory tracking
+* [x] Inventory reservation
+* [x] Inventory locking
+* [x] Cart
+* [x] Wishlist
+* [x] Server-side checkout pricing
+* [x] Coupons
+* [x] Tax configuration
+* [x] Minimum-order configuration
+* [x] Guest checkout
+* [x] Orders
+* [x] M-Pesa sandbox integration
+* [x] Payment callback processing
+* [x] Payment idempotency safeguards
+* [x] Delivery management
+* [x] Order tracking
+* [x] Returns
+* [x] Refund requests
+* [x] Partial-refund status handling
+* [x] Invoices
+* [x] Receipts
+* [x] Credit notes
+* [x] Reviews
+* [x] Verified-purchase review restrictions
+* [x] CRM foundations
+* [x] Notifications
+* [x] Abandoned-cart tracking
+* [x] Analytics/reporting
+* [x] Store settings
+* [x] Upload security
+* [x] POST-only protection for important state changes
+* [x] Login rate limiting
+* [x] Custom DEBUG=False error pages
+* [x] SEO sitemap/robots foundations
+* [x] Automated regression testing
+
+## Must be configured/verified before going live
+
+* [ ] Provision production server/infrastructure
+* [ ] Configure production domain
+* [ ] Configure HTTPS
 * [ ] Set `DEBUG=False`
-* [ ] Use a strong production `SECRET_KEY`
-* [ ] Configure `ALLOWED_HOSTS`
-* [ ] Use HTTPS
-* [ ] Configure production database credentials
-* [ ] Keep `.env` out of Git
-* [ ] Use production M-Pesa credentials
-* [ ] Use an HTTPS M-Pesa callback URL
-* [ ] Protect and validate payment callbacks
-* [ ] Use a shared Redis cache for multiple workers
-* [ ] Configure Celery workers
-* [ ] Configure email credentials securely
-* [ ] Configure Africa's Talking credentials securely
+* [ ] Generate/use a production `SECRET_KEY`
+* [ ] Configure production `ALLOWED_HOSTS`
+* [ ] Configure CSRF trusted origins where required
+* [ ] Configure production MySQL
+* [ ] Configure production Redis
+* [ ] Configure production Celery workers
+* [ ] Configure production M-Pesa credentials
+* [ ] Configure public HTTPS M-Pesa callback URL
+* [ ] Verify M-Pesa callback security in deployed environment
+* [ ] Configure Google OAuth production redirect URIs
+* [ ] Verify Google OAuth end-to-end
+* [ ] Configure production SMTP
+* [ ] Configure production Africa's Talking credentials
+* [ ] Configure static-file serving
+* [ ] Configure production media storage
+* [ ] Configure reverse-proxy/access logging
+* [ ] Prevent sensitive capability tokens from being unnecessarily logged
+* [ ] Configure application logging
+* [ ] Configure monitoring
+* [ ] Establish database backups
+* [ ] Perform an actual backup restore test
 * [ ] Run `python manage.py check --deploy`
-* [ ] Run database migrations
+* [ ] Run migrations
 * [ ] Run `collectstatic`
-* [ ] Configure media storage
-* [ ] Test authentication
-* [ ] Test checkout and orders
-* [ ] Test payment callbacks
-* [ ] Test notifications
-* [ ] Set up database backups
-* [ ] Set up application logging
+* [ ] Run complete automated test suite
+* [ ] Perform browser/mobile QA
+* [ ] Test customer registration
+* [ ] Test customer login/logout
+* [ ] Test staff permissions role by role
+* [ ] Test system-administrator separation
+* [ ] Test complete checkout
+* [ ] Test real production payment flow before public launch
+* [ ] Test successful/failed/cancelled payment handling
+* [ ] Test delivery workflow
+* [ ] Test returns/refunds
+* [ ] Test email/SMS delivery
+* [ ] Test error pages with `DEBUG=False`
+* [ ] Verify `.env` and secrets are not tracked by Git
+* [ ] Verify SQL/database dumps are not tracked
+* [ ] Document rollback/recovery procedure
 
 ---
 
-# Important Payment Considerations
+# Secret Management
 
-Payment handling should be treated as one of the most sensitive parts of the application.
-
-A payment callback should not simply be trusted because it reaches the callback URL.
-
-The payment logic should ensure that:
-
-* The callback corresponds to an existing order.
-* The transaction reference is valid.
-* The amount matches the expected order amount.
-* The payment status is handled correctly.
-* Duplicate callbacks do not create duplicate payment records or orders.
-* Failed transactions do not accidentally mark orders as paid.
-* Production callback endpoints are protected with HTTPS and appropriate validation.
-
-The application should also maintain a clear distinction between:
-
-```text
-Order Created
-      ↓
-Payment Pending
-      ↓
-Payment Successful
-      ↓
-Order Paid
-```
-
-and failed/cancelled payment states.
-
----
-
-# Useful Management Commands
-
-## Start development server
-
-```bash
-python manage.py runserver
-```
-
-## Check the project
-
-```bash
-python manage.py check
-```
-
-## Run deployment checks
-
-```bash
-python manage.py check --deploy
-```
-
-## Create migrations
-
-```bash
-python manage.py makemigrations
-```
-
-## Apply migrations
-
-```bash
-python manage.py migrate
-```
-
-## View migration status
-
-```bash
-python manage.py showmigrations
-```
-
-## Create administrator
-
-```bash
-python manage.py createsuperuser
-```
-
-## Open Django shell
-
-```bash
-python manage.py shell
-```
-
-## Run tests
-
-```bash
-python manage.py test
-```
-
-## Collect static files
-
-```bash
-python manage.py collectstatic
-```
-
----
-
-# Testing
-
-## Operational notes
-
-## Google indexing setup
-
-Set these values in the production environment before launch:
-
-```env
-SITE_URL=https://your-store-domain.com
-GOOGLE_SITE_VERIFICATION=the-token-provided-by-Google-Search-Console
-```
-
-Register `https://your-store-domain.com/` as a Domain or URL-prefix property in Google Search Console, complete verification, and submit `https://your-store-domain.com/sitemap.xml`. The application serves `robots.txt`, references the sitemap, excludes private customer/payment routes, and emits canonical URLs for public pages.
-
-Refunds are processed manually through the payment provider. Staff must verify the request, complete the provider reversal, record its reference, and then mark the request as `Processed` in Django admin. See `DEVELOPMENT.md` for the complete procedure.
-
-Product variants are available for catalog and stock administration. The current shopping cart still uses product-level items; variant selection in the storefront and variant-level checkout reservations is a planned follow-up and should be completed before selling products that have multiple purchasable variants.
-
-The application should be tested at both the individual app level and as a complete shopping workflow.
-
-Important areas to test include:
-
-### Accounts
-
-* Registration
-* Login
-* Logout
-* Password validation
-* Authentication permissions
-
-### Products
-
-* Product listing
-* Product details
-* Category filtering
-* Product availability
-
-### Cart
-
-* Adding products
-* Removing products
-* Updating quantities
-* Calculating totals
-
-### Wishlist
-
-* Adding products
-* Removing products
-* Viewing wishlist
-
-### Orders
-
-* Creating orders
-* Correct totals
-* Order ownership
-* Order status changes
-
-### Payments
-
-* Payment initiation
-* Successful payments
-* Failed payments
-* Cancelled payments
-* Invalid callbacks
-* Duplicate callbacks
-
-### Reviews
-
-* Creating reviews
-* Editing reviews where supported
-* Deleting reviews where supported
-* Preventing unauthorized review changes
-
-### Notifications
-
-* Creating notifications
-* Marking notifications as read
-* Sending email/SMS where configured
-
-Run the test suite with:
-
-```bash
-python manage.py test
-```
-
----
-
-# Environment Variables and Secrets
-
-The following values should be treated as sensitive:
+Sensitive information includes:
 
 ```text
 SECRET_KEY
-
+DB_PASSWORD
 MPESA_CONSUMER_KEY
 MPESA_CONSUMER_SECRET
 MPESA_PASSKEY
 MPESA_CALLBACK_SECRET
-
+GOOGLE_CLIENT_SECRET
 AFRICASTALKING_API_KEY
-
 EMAIL_HOST_PASSWORD
-
-Database passwords
 ```
 
-Do not commit these values to GitHub or another public repository.
+Never commit these values.
 
-The `.env` file should be ignored:
+Useful Git check:
 
-```gitignore
-.env
-.env.*
+```powershell
+git ls-files |
+    Select-String -Pattern '\.env$|\.sql$|db\.sqlite3$'
 ```
 
-For production deployments, a proper secrets manager is preferable to storing credentials directly on the server in plain text.
+A release repository should not expose secrets or development database dumps.
 
 ---
 
-# Recommended `.gitignore`
+# `.gitignore`
 
-A typical `.gitignore` for the project is:
+At minimum, the repository should ignore:
 
 ```gitignore
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
 
 # Virtual environments
 venv/
 .venv/
 env/
 
-# Environment variables
+# Environment/secrets
 .env
 .env.*
 
-# Django
-*.log
+# Local databases/dumps
 db.sqlite3
+*.sql
 
-# Collected static files
+# Django generated files
 staticfiles/
 
-# Uploaded media
-media/
+# Logs
+*.log
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 
-# Operating system files
+# Operating system
 .DS_Store
 Thumbs.db
 ```
 
-If MySQL is the only production/development database, `db.sqlite3` may not be relevant to the project, but leaving it ignored prevents an accidental local SQLite database from being committed.
+Project-specific temporary patch scripts and backup artifacts should also remain outside the final repository.
 
 ---
 
 # Development Workflow
 
-A normal development session looks something like this:
-
-### Terminal 1 — MySQL
-
-Start MySQL and make sure the `onlinestore` database is available.
-
-### Terminal 2 — Redis
-
-Start Redis.
-
-Verify:
-
-```bash
-redis-cli ping
-```
-
-### Terminal 3 — Celery
-
-Activate the virtual environment and start Celery:
-
-```bash
-celery -A config worker --loglevel=info --pool=solo
-```
-
-### Terminal 4 — Django
-
-Activate the virtual environment and start Django:
-
-```bash
-python manage.py runserver
-```
-
-The complete local environment then looks like:
+A safe development workflow is:
 
 ```text
-                  Django
-                    │
-          ┌─────────┼─────────┐
-          │         │         │
-          ▼         ▼         ▼
-        MySQL     Redis     External APIs
-                    │
-                    ▼
-                  Celery
+Inspect
+   ↓
+Make smallest change
+   ↓
+python manage.py check
+   ↓
+Migration dry-run
+   ↓
+Targeted tests
+   ↓
+Related application tests
+   ↓
+Full regression suite
+   ↓
+Git review
+   ↓
+Commit
 ```
+
+Commands:
+
+```powershell
+python manage.py check
+
+python manage.py makemigrations --check --dry-run
+
+python manage.py test <app-or-test> -v 2
+
+python manage.py test -v 1
+
+git status --short
+```
+
+Do not weaken payment, authorization, inventory or security behavior merely to make an outdated test pass.
+
+If application behavior intentionally changes, update the stale test only after confirming the new behavior is correct.
 
 ---
 
-# Application Flow
+# Important Financial Rules
 
-The main customer journey can be represented as:
+Financial data should remain precise internally.
+
+Do not use binary floating-point values for authoritative money calculations.
+
+Do not rewrite historical order/payment records simply because:
+
+* A product price changes
+* Display formatting changes
+* A product is renamed
+* A sale ends
+
+Order documents and payment history are business records.
+
+The application therefore separates current catalog state from historical order/payment information where appropriate.
+
+---
+
+# Important Inventory Rules
+
+Inventory must not be reduced merely because a customer opened a product page.
+
+Stock transitions should correspond to real commerce events.
+
+The application uses concepts such as:
 
 ```text
-                    Customer
-                       │
-                       ▼
-                Browse Products
-                       │
-                       ▼
-                  Categories
-                       │
-                       ▼
-                Product Details
-                  │         │
-                  │         └──────────► Wishlist
-                  │
-                  ▼
-                Add to Cart
-                       │
-                       ▼
-                  View Cart
-                       │
-                       ▼
-                   Checkout
-                       │
-                       ▼
-                  Create Order
-                       │
-                       ▼
-                M-Pesa Payment
-                       │
-                       ▼
-              Payment Callback
-                       │
-                       ▼
-                Update Payment
-                       │
-                       ▼
-                Update Order
-                       │
-                       ▼
-              Customer Notification
+AVAILABLE
+   ↓
+RESERVED
+   │
+   ├──── Failed/cancelled ───► RELEASED
+   │
+   └──── Paid ───────────────► CONSUMED
 ```
 
-This separation allows each part of the application to handle its own responsibilities while still working together as one store.
+Concurrency-sensitive operations should continue to use database transactions/locking.
 
 ---
 
-# Project Architecture
+# Important Payment Rules
 
-The project follows a modular architecture.
+Never trust:
 
-Instead of building the entire store inside one Django application, functionality is separated into individual apps:
+* Browser-submitted totals
+* Browser-submitted product prices
+* A callback merely because it reached the server
+* Duplicate callbacks as separate payments
 
-```text
-                        Online Store
-                             │
-          ┌──────────────────┼──────────────────┐
-          │                  │                  │
-       Accounts            Catalog           Commerce
-          │                  │                  │
-          ▼                  ▼                  ▼
-      accounts        products/categories     cart
-                                                │
-                                                ▼
-                                            wishlist
-                                                │
-                                                ▼
-                                              orders
-                                                │
-                                                ▼
-                                             payments
-                                                │
-                                                ▼
-                                             reviews
-```
+Always verify payment state against authoritative server/database information.
 
-Supporting functionality sits alongside the main commerce flow:
-
-```text
-core
-common
-dashboard
-notifications
-```
-
-This structure makes it easier to locate code and work on individual areas without unnecessarily affecting the rest of the system.
+Payment and inventory code is considered high-risk application code and should receive targeted tests after any modification.
 
 ---
 
-# Why the Project Uses Celery and Redis
-
-Not every operation needs to happen while a customer is waiting for an HTTP response.
-
-For example, sending an external notification can take longer than a normal database operation.
-
-With Celery, the application can hand a task to a background worker:
-
-```text
-Django Request
-     │
-     ▼
-Create Task
-     │
-     ▼
-Redis
-     │
-     ▼
-Celery Worker
-     │
-     ▼
-Perform Task
-```
-
-This keeps the main application responsive and gives the project a foundation for scheduled and asynchronous processing.
-
----
-
-# Time Zone
-
-The application uses the Nairobi timezone:
-
-```python
-TIME_ZONE = "Africa/Nairobi"
-```
-
-with timezone-aware datetimes:
-
-```python
-USE_TZ = True
-```
-
-This is important for an application where orders, payments, notifications, and other events need meaningful timestamps.
-
----
-
-# Troubleshooting
-
-## `BASE_DIR is not defined`
-
-If Pylance reports:
-
-```text
-"BASE_DIR" is not defined
-```
-
-make sure the path is declared before it is used.
-
-Correct:
-
-```python
-from pathlib import Path
-from dotenv import load_dotenv
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-load_dotenv(BASE_DIR / ".env", override=True)
-```
-
-Incorrect:
-
-```python
-load_dotenv(BASE_DIR / ".env", override=True)
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-```
-
----
-
-## MySQL connection problems
-
-Check:
-
-* MySQL is running.
-* The `onlinestore` database exists.
-* The username is correct.
-* The password is correct.
-* MySQL is listening on port `3306`.
-* The MySQL user has permission to access the database.
-
----
-
-## Redis connection problems
-
-Check Redis:
-
-```bash
-redis-cli ping
-```
-
-If Redis is running, the result should be:
-
-```text
-PONG
-```
-
-Also check:
-
-```env
-CELERY_BROKER_URL=redis://localhost:6379/0
-```
-
----
-
-## Celery worker does not start
-
-Check that:
-
-1. The virtual environment is activated.
-2. Celery is installed.
-3. Redis is running.
-4. The Django project can start without errors.
-5. The `config` package contains the Celery configuration expected by the project.
-
-Then try:
-
-```bash
-celery -A config worker --loglevel=info --pool=solo
-```
-
----
-
-## `.env` values are not loading
-
-Make sure the `.env` file is in the project root:
-
-```text
-project-root/
-├── .env
-├── manage.py
-└── config/
-```
-
-Also make sure `BASE_DIR` is defined before `load_dotenv()`:
-
-```python
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env", override=True)
-```
-
----
-
-## Static files are not loading
-
-Check:
-
-```python
-STATIC_URL = "static/"
-```
-
-and make sure the `static/` directory exists.
-
-For production, run:
-
-```bash
-python manage.py collectstatic
-```
-
-Also check that your templates correctly load static files.
-
----
-
-## Migration problems
-
-First inspect the migration state:
-
-```bash
-python manage.py showmigrations
-```
-
-Then:
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-Do not delete migration files from a production project simply to resolve a migration error. Investigate the actual migration dependency or database-state problem first.
-
----
-
-# Production Deployment
-
-The application is configured with several production security settings, but deployment still requires proper server infrastructure.
-
-A typical production architecture would look like:
-
-```text
-                         Internet
-                            │
-                            ▼
-                       HTTPS Domain
-                            │
-                            ▼
-                    Reverse Proxy
-                            │
-                            ▼
-                    Django / WSGI
-                       │       │
-              ┌────────┘       └────────┐
-              ▼                         ▼
-            MySQL                     Redis
-                                        │
-                                        ▼
-                                      Celery
-                                        │
-                                        ▼
-                               Background Tasks
-```
-
-Static and media files should normally be handled separately from Django application requests.
-
----
-
-# Production Checklist
-
-Before going live:
-
-* [ ] Set `DEBUG=False`
-* [ ] Set a strong `SECRET_KEY`
-* [ ] Configure production `ALLOWED_HOSTS`
-* [ ] Enable HTTPS
-* [ ] Configure the production database
-* [ ] Configure Redis
-* [ ] Configure Celery workers
-* [ ] Configure production M-Pesa credentials
-* [ ] Configure the production M-Pesa callback URL
-* [ ] Verify payment callback validation
-* [ ] Configure SMTP
-* [ ] Configure Africa's Talking
-* [ ] Replace local-memory caching with shared production caching
-* [ ] Run database migrations
-* [ ] Run `collectstatic`
-* [ ] Configure media storage
-* [ ] Run `python manage.py check --deploy`
-* [ ] Run automated tests
-* [ ] Test registration and login
-* [ ] Test product browsing
-* [ ] Test cart and wishlist
-* [ ] Test checkout
-* [ ] Test successful and failed payments
-* [ ] Test notifications
-* [ ] Configure database backups
-* [ ] Configure application logging
-* [ ] Monitor Celery workers
-* [ ] Monitor Redis
-* [ ] Monitor the production database
-
----
-
-# Current Configuration Summary
-
-The project currently brings together the following components:
-
-| Component         | Purpose                 |
-| ----------------- | ----------------------- |
-| Django 6          | Main web framework      |
-| MySQL             | Primary database        |
-| Custom User Model | Customer authentication |
-| Products          | Product catalog         |
-| Categories        | Product organization    |
-| Cart              | Shopping cart           |
-| Wishlist          | Saved products          |
-| Orders            | Order management        |
-| Payments          | Payment processing      |
-| M-Pesa Daraja     | M-Pesa payments         |
-| Reviews           | Product reviews         |
-| Dashboard         | Store dashboard         |
-| Notifications     | Customer notifications  |
-| Redis             | Message broker/cache    |
-| Celery            | Background tasks        |
-| django-ratelimit  | Request protection      |
-| Africa's Talking  | SMS/communication       |
-| SMTP/Gmail        | Email delivery          |
-
----
-
-# Future Development
-
-Because the application is already separated into multiple Django apps, additional functionality can be added without turning the project into one large codebase.
-
-Possible future additions include:
-
-* Advanced product search
-* Product filtering and sorting
-* Product variants
-* Inventory tracking
-* Discount and coupon management
-* Promotions
-* Delivery and shipping management
-* Order tracking
-* Refund management
-* Multiple payment providers
-* Sales analytics
-* Customer analytics
+# Remaining Work
+
+The application is feature-rich, but several items remain before it should be described as fully production-ready.
+
+Current remaining work includes:
+
+* Final codebase cleanup
+* Removal of obsolete development/patch artifacts
+* Further dead-code/duplicate-code review
+* Final JavaScript/browser QA
+* Mobile/responsive QA
+* Accessibility review
+* Final dashboard permission/privacy review
+* Last-active Store Owner protection
+* Review-moderation polish
+* Promotions/coupon-management UI polish
+* Google OAuth end-to-end verification
+* External notification-provider outage/retry testing
+* Database backup and restore verification
+* Production infrastructure
+* Production logging and monitoring
+* Deployment documentation
+* Final secrets/repository audit
+* Final go-live regression gate
+
+Possible future product expansion includes:
+
+* Additional payment providers
 * REST API
 * Mobile application
-* Automated scheduled tasks
-* Cloud media storage
-* Automated deployment
-* Error monitoring
-* More extensive automated testing
+* Advanced external integrations
+* Cloud object storage
+* Automated deployment pipeline
+* Advanced observability/error monitoring
+* Additional marketing automation
+* Additional courier integrations
+* Additional accounting/ERP integrations
 
-These are areas for continued development rather than requirements for the current application.
+These are enhancements rather than substitutes for completing the current production-hardening work.
 
 ---
 
-# Contributing
+# Final Go-Live Gate
 
-If this project is being developed by multiple people, keep changes organized by feature.
+The application should only be declared ready for public production when the final audit confirms:
 
-A typical workflow is:
+```text
+Critical security issues          0
+High security issues              0
+Critical functional bugs         0
 
-```bash
-git checkout -b feature/feature-name
+Authentication                   VERIFIED
+Admin permissions                VERIFIED
+Order flow                       VERIFIED
+Payment flow                     VERIFIED
+Database operations              VERIFIED
+Upload security                  VERIFIED
+Error handling                   VERIFIED
+Secrets separation               VERIFIED
+Backup + restore                 VERIFIED
+Production configuration         PREPARED
+Deployment procedure             DOCUMENTED
 ```
 
-Make the changes, then check the project:
-
-```bash
-python manage.py check
-python manage.py test
-```
-
-If models were changed:
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-Then commit the changes:
-
-```bash
-git add .
-git commit -m "Add feature"
-git push origin feature/feature-name
-```
-
-Before opening a pull request, make sure no `.env` files, API keys, passwords, or other secrets are included.
+Passing automated tests on localhost is necessary, but it is not by itself proof that external production infrastructure has been configured correctly.
 
 ---
 
 # License
 
-Add the project's actual license here.
+Choose the license appropriate for the way the application will be distributed.
 
-For a private/proprietary application, this section can state that the source code is proprietary and may not be redistributed without permission.
+If the system is being sold as proprietary commercial software, do not add an open-source license unless you actually intend to grant those rights.
 
-If the project is open source, replace this section with the appropriate license, such as MIT, Apache 2.0, or GPL.
+A proprietary notice can be used instead where appropriate.
 
 ---
 
 # Author
 
-**Online Store**
+**Moody Austine**
 
-Built with Django and designed as a modular e-commerce platform.
+Django / Information Systems Developer
+
+GitHub: `Austinemoodydev`
 
 ---
 
 # Final Notes
 
-This project is structured as a complete Django e-commerce application rather than a single-purpose demo.
+Online Shop has evolved from a basic Django storefront into a broader commerce-management platform.
 
-The separation between accounts, products, categories, cart, wishlist, orders, payments, reviews, dashboard, and notifications provides a clean foundation for continued development.
-
-The external integrations are also separated from the core shopping experience:
+Its current architecture covers:
 
 ```text
-                    Online Store
-                         │
-       ┌─────────────────┼─────────────────┐
-       │                 │                 │
-     Store             Payments        Communication
-       │                 │                 │
-       ▼                 ▼                 ▼
- Django Apps          M-Pesa        Email / SMS
-       │
-       ▼
-    MySQL
-       │
-       ▼
-   Redis / Celery
+CUSTOMER EXPERIENCE
+        +
+PRODUCT CATALOG
+        +
+CART & CHECKOUT
+        +
+INVENTORY
+        +
+ORDERS
+        +
+M-PESA PAYMENTS
+        +
+DELIVERY
+        +
+RETURNS & REFUNDS
+        +
+DOCUMENTS
+        +
+CRM
+        +
+STAFF MANAGEMENT
+        +
+ROLE-BASED ACCESS
+        +
+ANALYTICS
+        +
+NOTIFICATIONS
+        +
+SECURITY
 ```
 
-For local development, the main services are Django, MySQL, and Redis, with Celery running as a background worker.
+The current development priority is not to keep adding random features. The priority is to finish codebase cleanup, verify backup/recovery, complete external-service and browser testing, prepare production configuration, and pass the final go-live gate.
 
-For production, the application should run with `DEBUG=False`, HTTPS, a properly configured database, shared caching, secure credentials, protected payment callbacks, background workers, backups, and appropriate monitoring.
-
-The `.env` file should always remain private, and production credentials should never be committed to the repository.
+Production secrets must remain separate from source code, and localhost must continue using development/sandbox configuration until a real production environment is deliberately provisioned.
