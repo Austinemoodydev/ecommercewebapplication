@@ -1,0 +1,22 @@
+{% extends "dashboard/admin/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_heading %}{{ title }}{% endblock %}
+{% block admin_content %}
+<div class="dashboard-heading"><h1>{{ title }}</h1><p>Use short copy, a clear destination, and separate desktop and mobile artwork for the best result.</p></div>
+<form method="post" enctype="multipart/form-data" class="dashboard-card" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="row g-3">
+    {% for field in form %}
+      <div class="{% if field.name == 'description' or field.name == 'image_alt' or field.name == 'destination_url' %}col-12{% else %}col-md-6{% endif %}">
+        {% if field.field.widget.input_type == 'checkbox' %}<div class="form-check mt-4">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+        {% else %}<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  <div class="alert alert-info mt-4 mb-0"><strong>Destination rule:</strong> choose a category, a product, or a custom URL—not more than one.</div>
+  <div class="mt-4 d-flex gap-2"><button class="btn btn-primary" type="submit">Save banner</button><a class="btn btn-outline-secondary" href="{% url 'homepage_slide_list' %}">Cancel</a></div>
+</form>
+{% endblock %}

@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.views.decorators.http import require_POST
 from .staff_access import can_access_store_management
 from django.contrib.auth import get_user_model
@@ -17,6 +18,7 @@ from django.contrib import messages
 
 from .forms import RegisterForm, AddressForm, ProfileForm
 from .models import Address
+from .staff_mfa import begin_staff_mfa
 
 from orders.models import Order
 
@@ -515,7 +517,26 @@ class StoreStaffLoginView(LoginView):
 
             return self.form_invalid(form)
 
-        return super().form_valid(form)
+        if not settings.MFA_STAFF_ENFORCEMENT:
+            return super().form_valid(form)
+
+        # Do not authenticate the session yet. The second factor must be
+        # verified before management access is granted.
+        begin_staff_mfa(
+            self.request,
+            user,
+            getattr(user, "backend", settings.AUTHENTICATION_BACKENDS[0]),
+            self.request.POST.get("next", ""),
+        )
+
+        from allauth.mfa.models import Authenticator
+        if Authenticator.objects.filter(
+            user=user,
+            type=Authenticator.Type.TOTP,
+        ).exists():
+            return redirect("staff_mfa_challenge")
+
+        return redirect("staff_mfa_setup")
 
     def get_success_url(self):
 

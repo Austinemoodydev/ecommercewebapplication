@@ -1,0 +1,38 @@
+{% extends "dashboard/admin/base.html" %}
+{% block title %}{{ campaign.name }}{% endblock %}
+{% block page_heading %}Campaign Details{% endblock %}
+{% block admin_content %}
+<div class="dashboard-heading">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div><h1>{{ campaign.name }}</h1><p>{{ campaign.get_holiday_type_display }} · {{ campaign.starts_at|date:"j M Y, g:i A" }} to {{ campaign.ends_at|date:"j M Y, g:i A" }}</p></div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if perms.core.change_marketingcampaign %}<a class="btn btn-outline-primary" href="{% url 'campaign_edit' campaign.pk %}">Edit</a>{% endif %}
+      {% if perms.core.publish_marketingcampaign and not campaign.approved_at %}<form method="post" action="{% url 'campaign_approve' campaign.pk %}">{% csrf_token %}<button class="btn btn-success" type="submit">Approve Campaign</button></form>{% endif %}
+      {% if perms.core.publish_marketingcampaign and campaign.is_enabled %}<form method="post" action="{% url 'campaign_disable' campaign.pk %}">{% csrf_token %}<button class="btn btn-outline-danger" type="submit">Disable Everywhere</button></form>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="campaign-banner rounded mb-4" style="--campaign-primary: {{ campaign.primary_colour }}; --campaign-secondary: {{ campaign.secondary_colour }}; --campaign-text: {{ campaign.text_colour }};"><div class="campaign-banner__content"><strong>{{ campaign.headline }}</strong><span>{{ campaign.message }}</span>{% if campaign.coupon %}<span class="campaign-banner__coupon">Use code {{ campaign.coupon.code }}</span>{% endif %}</div></div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="dashboard-card h-100"><h2 class="h5">Publication details</h2>
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Approval</dt><dd class="col-sm-8">{% if campaign.approved_at %}Approved by {{ campaign.approved_by }} on {{ campaign.approved_at|date:"j M Y, g:i A" }}{% else %}<span class="text-warning">Not approved</span>{% endif %}</dd>
+        <dt class="col-sm-4">Holiday verification</dt><dd class="col-sm-8">{% if campaign.is_verified_holiday %}<a href="{{ campaign.official_source_url }}" target="_blank" rel="noopener">Verified official source</a>{% else %}Not marked as an official holiday{% endif %}</dd>
+        <dt class="col-sm-4">Audience estimate</dt><dd class="col-sm-8">{{ recipient_count }} registered customers</dd>
+        <dt class="col-sm-4">Delivery notice</dt><dd class="col-sm-8">{{ campaign.delivery_notice|default:"—" }}</dd>
+        <dt class="col-sm-4">Store hours</dt><dd class="col-sm-8">{{ campaign.store_hours_notice|default:"—" }}</dd>
+        <dt class="col-sm-4">Chatbot message</dt><dd class="col-sm-8">{{ campaign.chatbot_message|default:campaign.message }}</dd>
+      </dl>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="dashboard-card mb-4"><h2 class="h5">Send a test</h2><form method="post" action="{% url 'campaign_test_message' campaign.pk %}">{% csrf_token %}<div class="mb-2"><label class="form-label">Email</label>{{ test_form.email }}</div><div class="mb-3"><label class="form-label">Phone</label>{{ test_form.phone }}</div><button class="btn btn-outline-primary" type="submit">Send Test</button></form></div>
+    <div class="dashboard-card"><h2 class="h5">Bulk communication</h2><p class="small text-muted">Only customers who opted into marketing email or SMS will receive those channels. In-app messages are created for the selected audience.</p><p>Estimated recipients: <strong>{{ recipient_count }}</strong></p>{% if campaign.dispatched_at %}<div class="alert alert-success">Dispatched {{ campaign.dispatched_at|date:"j M Y, g:i A" }}</div>{% elif perms.core.send_marketingcampaign %}<form method="post" action="{% url 'campaign_send' campaign.pk %}">{% csrf_token %}<label class="form-label">Type SEND to confirm</label><input class="form-control mb-2" name="confirm" autocomplete="off"><button class="btn btn-danger" type="submit">Queue Bulk Send</button></form>{% endif %}</div>
+  </div>
+</div>
+
+<div class="dashboard-card mt-4"><h2 class="h5">Audit history</h2><div class="table-responsive"><table class="table"><thead><tr><th>Time</th><th>Action</th><th>Staff</th><th>Details</th></tr></thead><tbody>{% for event in campaign.audit_events.all %}<tr><td>{{ event.created_at|date:"j M Y, g:i A" }}</td><td>{{ event.action }}</td><td>{{ event.actor|default:"System" }}</td><td>{{ event.details|default:"—" }}</td></tr>{% empty %}<tr><td colspan="4">No audit events.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

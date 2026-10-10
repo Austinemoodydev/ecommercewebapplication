@@ -16,7 +16,7 @@ def cart_view(request):
         "cart/cart.html",
         {
             "cart": cart,
-            "items": cart.items.select_related("product").all(),
+            "items": cart.items.select_related("product", "variant").all(),
             "total": cart.total_price,
         }
     )
@@ -45,8 +45,19 @@ def add_to_cart(request, product_id):
 
     variant_id = request.POST.get("variant")
     variant = None
+    has_active_variants = product.variants.filter(is_active=True).exists()
+    if has_active_variants and not variant_id:
+        return JsonResponse(
+            {"success": False, "error": "Please choose an available product option."},
+            status=400,
+        )
     if variant_id:
         variant = get_object_or_404(ProductVariant, id=variant_id, product=product, is_active=True)
+        if variant.available_stock < 1:
+            return JsonResponse(
+                {"success": False, "error": "That option is currently out of stock."},
+                status=400,
+            )
     cart = CartService.add(request, product, variant)
 
     item = cart.items.filter(product=product, variant=variant).first()
@@ -89,11 +100,14 @@ def mini_cart(request):
     items = [
         {
             "id": item.id,
-            "name": item.product.name,
+            "name": (
+                f"{item.product.name} — {item.variant.display_name}"
+                if item.variant else item.product.name
+            ),
             "quantity": item.quantity,
             "subtotal": str(item.subtotal),
         }
-        for item in cart.items.select_related("product").all()
+        for item in cart.items.select_related("product", "variant").all()
     ]
 
     return JsonResponse({

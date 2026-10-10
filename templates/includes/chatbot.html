@@ -1,0 +1,43 @@
+{% load static %}
+{% if chatbot_enabled %}
+<section class="ai-chat" data-chat-endpoint="{% if chatbot_mode == 'staff' %}{% url 'staff_chat' %}{% else %}{% url 'customer_chat' %}{% endif %}" data-voice-endpoint="{% if chatbot_mode == 'staff' %}{% url 'staff_transcribe' %}{% else %}{% url 'customer_transcribe' %}{% endif %}" aria-label="{% if chatbot_mode == 'staff' %}Store management assistant{% else %}Shopping assistant{% endif %}">
+    <button type="button" class="ai-chat__launcher" aria-expanded="false" aria-controls="aiChatPanel">
+        <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+        <span>{% if chatbot_mode == 'staff' %}Management assistant{% else %}Ask about products{% endif %}</span>
+    </button>
+    <div class="ai-chat__panel" id="aiChatPanel" hidden>
+        <header class="ai-chat__header">
+            <div>
+                <strong>{% if chatbot_mode == 'staff' %}Management assistant{% else %}Shopping assistant{% endif %}</strong>
+                <small>AI may make mistakes. Confirm important details.</small>
+            </div>
+            <button type="button" class="ai-chat__close" aria-label="Close assistant"><i class="bi bi-x-lg"></i></button>
+        </header>
+        <div class="ai-chat__messages" role="log" aria-live="polite">
+            <div class="ai-chat__message ai-chat__message--assistant">
+                {% if chatbot_mode == 'staff' %}Ask for a sales summary, business insights, stock risks, order priorities, payment health, or dashboard navigation. I provide read-only guidance and cannot make changes.{% else %}Hello! I can help you find products and navigate the store. Do not share passwords, OTPs or payment PINs.{% endif %}
+            </div>
+        </div>
+        <form class="ai-chat__form">
+            {% csrf_token %}
+            <label class="visually-hidden" for="aiChatInput">Your question</label>
+            <textarea id="aiChatInput" class="form-control" rows="2" maxlength="600" placeholder="Type your question…" required></textarea>
+            <div class="ai-chat__actions">
+                <small><span class="ai-chat__count">0</span>/600</small>
+                <div class="ai-chat__action-buttons">
+                    <button type="button" class="ai-chat__speak" aria-label="Read assistant replies aloud" aria-pressed="false" title="Read replies aloud">
+                        <i class="bi bi-volume-mute-fill" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="ai-chat__mic" aria-label="Speak your question" aria-pressed="false" title="Speak your question">
+                        <i class="bi bi-mic-fill" aria-hidden="true"></i>
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm">Send</button>
+                </div>
+            </div>
+            <p class="ai-chat__voice-status" role="status" aria-live="polite"></p>
+        </form>
+    </div>
+</section>
+<link rel="stylesheet" href="{% static 'css/chatbot.css' %}?v=2">
+<script src="{% static 'js/chatbot.js' %}?v=2" defer></script>
+{% endif %}

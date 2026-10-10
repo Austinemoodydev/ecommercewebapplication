@@ -36,6 +36,27 @@ urlpatterns = [
         name="delivery_zone_toggle",
     ),
 
+    path(
+        "pickup-points/",
+        views.pickup_point_list,
+        name="delivery_pickup_point_list",
+    ),
+    path(
+        "pickup-points/add/",
+        views.pickup_point_create,
+        name="delivery_pickup_point_create",
+    ),
+    path(
+        "pickup-points/<int:pk>/edit/",
+        views.pickup_point_edit,
+        name="delivery_pickup_point_edit",
+    ),
+    path(
+        "pickup-points/<int:pk>/toggle/",
+        views.pickup_point_toggle,
+        name="delivery_pickup_point_toggle",
+    ),
+
 
     path(
         "",

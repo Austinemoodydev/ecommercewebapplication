@@ -1,0 +1,30 @@
+{% extends "dashboard/admin/base.html" %}
+{% block title %}Holiday Campaigns{% endblock %}
+{% block page_heading %}Holiday Campaigns{% endblock %}
+{% block admin_content %}
+<div class="dashboard-heading">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div><h1>Holidays & Campaigns</h1><p>Schedule verified announcements, festive styling and customer communication from one place.</p></div>
+    {% if perms.core.add_marketingcampaign %}<a class="btn btn-primary" href="{% url 'campaign_create' %}"><i class="bi bi-plus-lg"></i> New Campaign</a>{% endif %}
+  </div>
+</div>
+<div class="dashboard-card">
+  <div class="table-responsive">
+    <table class="table dashboard-table align-middle">
+      <thead><tr><th>Campaign</th><th>Schedule</th><th>Channels</th><th>Approval</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+      <tbody>
+      {% for campaign in campaigns %}
+        <tr>
+          <td><strong>{{ campaign.name }}</strong><small class="d-block text-muted">{{ campaign.get_holiday_type_display }}</small></td>
+          <td>{{ campaign.starts_at|date:"j M Y, g:i A" }}<small class="d-block text-muted">to {{ campaign.ends_at|date:"j M Y, g:i A" }}</small></td>
+          <td>{% if campaign.show_on_website %}<span class="badge text-bg-light">Web</span>{% endif %} {% if campaign.send_in_app %}<span class="badge text-bg-light">In-app</span>{% endif %} {% if campaign.send_email %}<span class="badge text-bg-light">Email</span>{% endif %} {% if campaign.send_sms %}<span class="badge text-bg-light">SMS</span>{% endif %}</td>
+          <td>{% if campaign.approved_at %}<span class="badge text-bg-success">Approved</span>{% else %}<span class="badge text-bg-warning">Draft</span>{% endif %}</td>
+          <td>{% if campaign.is_active_now %}<span class="badge text-bg-success">Active now</span>{% elif not campaign.is_enabled %}<span class="badge text-bg-secondary">Disabled</span>{% else %}<span class="badge text-bg-light">Scheduled</span>{% endif %}</td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'campaign_detail' campaign.pk %}">View</a></td>
+        </tr>
+      {% empty %}<tr><td colspan="6" class="text-center py-5">No campaigns configured yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

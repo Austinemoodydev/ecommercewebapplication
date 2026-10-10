@@ -1,0 +1,28 @@
+{% extends "dashboard/admin/base.html" %}
+{% block title %}Application errors{% endblock %}
+{% block page_heading %}Application errors{% endblock %}
+{% block admin_content %}
+<div class="dashboard-heading">
+  <h1>Application errors</h1>
+  <p>Recent unexpected failures reported to customers. Use the reference code to match a customer report.</p>
+</div>
+<div class="dashboard-card">
+  <div class="table-responsive">
+    <table class="table dashboard-table align-middle">
+      <thead><tr><th>Reference</th><th>Problem</th><th>Page</th><th>User</th><th>Time</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for report in reports %}
+        <tr>
+          <td><code>{{ report.reference }}</code></td>
+          <td><strong>{{ report.exception_type }}</strong><div class="small text-muted text-break">{{ report.message|truncatechars:180 }}</div></td>
+          <td><code>{{ report.method }} {{ report.path }}</code></td>
+          <td>{% if report.user %}{{ report.user }}{% else %}Guest{% endif %}</td>
+          <td>{{ report.created_at|date:"d M Y H:i" }}</td>
+          <td>{% if report.resolved %}<span class="badge text-bg-success">Resolved</span>{% else %}<span class="badge text-bg-warning">Open</span>{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No unexpected errors have been recorded.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

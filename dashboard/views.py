@@ -15,20 +15,73 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
 from categories.models import Category
+from core.models import ErrorReport
 from orders.inventory import release_order_inventory
 from orders.models import Order, OrderItem
-from products.models import Brand, Product, ProductImage, ProductVariant
+from products.models import (
+    Brand,
+    Product,
+    ProductImage,
+    ProductOption,
+    ProductOptionValue,
+    ProductVariant,
+)
 from wishlist.models import Wishlist
 
 from .forms import (
     AdminOrderShippingForm,
     AdminProductForm,
     AdminProductGalleryForm,
+    AdminProductOptionForm,
     AdminProductVariantForm,
 )
 
 
+@staff_member_required
+def admin_product_options(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == "POST":
+        form = AdminProductOptionForm(request.POST)
+        if form.is_valid():
+            option, created = ProductOption.objects.get_or_create(
+                product=product,
+                name=form.cleaned_data["name"].strip(),
+                defaults={"position": product.options.count()},
+            )
+            for position, value in enumerate(form.cleaned_data["values"]):
+                ProductOptionValue.objects.get_or_create(
+                    option=option,
+                    value=value,
+                    defaults={"position": position},
+                )
+            messages.success(request, f"{option.name} values saved.")
+            return redirect("admin_product_options", pk=product.pk)
+    else:
+        form = AdminProductOptionForm()
+    return render(request, "dashboard/admin/products/options.html", {
+        "product": product,
+        "form": form,
+        "options": product.options.prefetch_related("values"),
+    })
+
+
+@staff_member_required
+def admin_product_option_delete(request, pk, option_id):
+    option = get_object_or_404(ProductOption, pk=option_id, product_id=pk)
+    if request.method == "POST":
+        name = option.name
+        option.delete()
+        messages.success(request, f"{name} option removed.")
+    return redirect("admin_product_options", pk=pk)
+
+
 from payments.models import MpesaTransaction, RefundRequest, ReturnRequest
+
+
+@staff_member_required
+def admin_error_reports(request):
+    reports = ErrorReport.objects.select_related("user")[:100]
+    return render(request, "dashboard/admin/error_reports.html", {"reports": reports})
 
 @login_required
 def dashboard(request):
@@ -496,8 +549,9 @@ def admin_product_create(request):
             messages.success(
                 request,
                 (
-                    f"{product.name} was "
-                    f"created successfully."
+                    f"Product added successfully: {product.name} "
+                    f"({product.sku}). You can now configure options, "
+                    "variants and gallery images."
                 ),
             )
 
@@ -505,6 +559,11 @@ def admin_product_create(request):
                 "admin_product_detail",
                 pk=product.pk,
             )
+
+        messages.error(
+            request,
+            "Product was not added. Please correct the highlighted fields below.",
+        )
 
     else:
 
@@ -1496,7 +1555,9 @@ def admin_product_variant_create(
     if request.method == "POST":
 
         form = AdminProductVariantForm(
-            request.POST
+            request.POST,
+            request.FILES,
+            product=product,
         )
 
         if form.is_valid():
@@ -1508,6 +1569,7 @@ def admin_product_variant_create(
             variant.product = product
 
             variant.save()
+            form.save_m2m()
 
             messages.success(
                 request,
@@ -1524,7 +1586,7 @@ def admin_product_variant_create(
 
     else:
 
-        form = AdminProductVariantForm()
+        form = AdminProductVariantForm(product=product)
 
     return render(
         request,
@@ -1567,7 +1629,9 @@ def admin_product_variant_edit(
 
         form = AdminProductVariantForm(
             request.POST,
+            request.FILES,
             instance=variant,
+            product=product,
         )
 
         if form.is_valid():
@@ -1590,7 +1654,8 @@ def admin_product_variant_edit(
     else:
 
         form = AdminProductVariantForm(
-            instance=variant
+            instance=variant,
+            product=product,
         )
 
     return render(

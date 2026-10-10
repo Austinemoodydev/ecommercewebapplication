@@ -3,7 +3,13 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group
 
-from .store_roles import STORE_ROLE_NAMES
+from .store_roles import (
+    FINANCE_STAFF,
+    SECURITY_ADMIN,
+    STORE_MANAGER,
+    STORE_OWNER,
+    STORE_ROLE_NAMES,
+)
 
 
 User = get_user_model()
@@ -47,16 +53,16 @@ class StoreStaffCreateForm(UserCreationForm):
 
 
     def __init__(self, *args, **kwargs):
-
+        self.actor = kwargs.pop("actor", None)
         super().__init__(*args, **kwargs)
-
-        self.fields["role_group"].queryset = (
-            Group.objects
-            .filter(
-                name__in=STORE_ROLE_NAMES
-            )
-            .order_by("name")
-        )
+        allowed_roles = set(STORE_ROLE_NAMES) - {STORE_OWNER}
+        if not (self.actor and self.actor.has_perm("accounts.manage_managers")):
+            allowed_roles -= {STORE_MANAGER, SECURITY_ADMIN}
+        if not (self.actor and self.actor.has_perm("accounts.assign_sensitive_staff_roles")):
+            allowed_roles -= {FINANCE_STAFF}
+        self.fields["role_group"].queryset = Group.objects.filter(
+            name__in=allowed_roles
+        ).order_by("name")
 
         for field in self.fields.values():
 
@@ -154,18 +160,23 @@ class StoreStaffUpdateForm(forms.ModelForm):
         **kwargs,
     ):
 
+        self.actor = kwargs.pop("actor", None)
         super().__init__(
             *args,
             **kwargs,
         )
 
-        self.fields["role_group"].queryset = (
-            Group.objects
-            .filter(
-                name__in=STORE_ROLE_NAMES
-            )
-            .order_by("name")
-        )
+        allowed_roles = set(STORE_ROLE_NAMES) - {STORE_OWNER}
+        if not (self.actor and self.actor.has_perm("accounts.manage_managers")):
+            allowed_roles -= {STORE_MANAGER, SECURITY_ADMIN}
+        if not (self.actor and self.actor.has_perm("accounts.assign_sensitive_staff_roles")):
+            allowed_roles -= {FINANCE_STAFF}
+        current_role_names = set(self.instance.groups.filter(
+            name__in=STORE_ROLE_NAMES
+        ).values_list("name", flat=True)) if self.instance.pk else set()
+        self.fields["role_group"].queryset = Group.objects.filter(
+            name__in=(allowed_roles | current_role_names)
+        ).order_by("name")
 
         if self.instance.pk:
 

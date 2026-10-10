@@ -1,0 +1,54 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}Pickup Points{% endblock %}
+{% block page_heading %}Pickup Points{% endblock %}
+
+{% block admin_content %}
+<div class="dashboard-heading">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <h1>Courier and Bus Pickup Points</h1>
+      <p>Manage the collection locations customers can choose at checkout.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'delivery_zone_list' %}">Delivery Zones</a>
+      <a class="btn btn-primary" href="{% url 'delivery_pickup_point_create' %}"><i class="bi bi-plus-lg"></i> Add Pickup Point</a>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-card mb-4">
+  <form method="get">
+    <div class="input-group">
+      <input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search town, county, provider, or station">
+      <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+  </form>
+</div>
+
+<div class="dashboard-card">
+  <div class="table-responsive">
+    <table class="table dashboard-table align-middle">
+      <thead><tr><th>Pickup point</th><th>Location</th><th>Provider</th><th>Fee</th><th>Hours</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for point in pickup_points %}
+          <tr>
+            <td><strong>{{ point.name }}</strong><small class="d-block text-muted">{{ point.address }}</small></td>
+            <td>{{ point.zone.county }}{% if point.zone.town %}<small class="d-block text-muted">{{ point.zone.town }}</small>{% endif %}</td>
+            <td>{{ point.provider.name }}</td>
+            <td>KES {{ point.effective_fee|money }}{% if point.fee == None %}<small class="d-block text-muted">Zone rate</small>{% endif %}</td>
+            <td>{{ point.opening_hours|default:"—" }}</td>
+            <td>{% if point.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Disabled</span>{% endif %}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'delivery_pickup_point_edit' point.pk %}">Edit</a>
+              <form class="d-inline" method="post" action="{% url 'delivery_pickup_point_toggle' point.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary" type="submit">{% if point.is_active %}Disable{% else %}Enable{% endif %}</button></form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-center py-5">No pickup points configured yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -4,10 +4,12 @@ __pycache__/
 db.sqlite3
 media/
 .env
-.env
 config/dbfile/*.sql
 *.sql
 staticfiles/
+*.log
+*.backup
+*backup
 .hardening_backups/
 
 # Local security patch backups

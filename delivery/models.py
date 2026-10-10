@@ -267,6 +267,80 @@ class DeliveryZone(models.Model):
         )
 
 
+class PickupPoint(models.Model):
+    zone = models.ForeignKey(
+        DeliveryZone,
+        on_delete=models.CASCADE,
+        related_name="pickup_points",
+        limit_choices_to={"method": "station_pickup"},
+    )
+    provider = models.ForeignKey(
+        DeliveryProvider,
+        on_delete=models.PROTECT,
+        related_name="pickup_points",
+    )
+    name = models.CharField(max_length=180)
+    address = models.CharField(
+        max_length=255,
+        help_text="A clear landmark or physical location customers can recognize.",
+    )
+    phone = models.CharField(max_length=30, blank=True)
+    opening_hours = models.CharField(max_length=150, blank=True)
+    fee = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Leave blank to use the delivery zone fee.",
+    )
+    estimated_time = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Leave blank to use the delivery zone estimate.",
+    )
+    instructions = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["zone__county", "zone__town", "provider__name", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["zone", "provider", "name"],
+                name="unique_pickup_point_per_provider_and_zone",
+            )
+        ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        super().clean()
+        self.name = (self.name or "").strip()
+        self.address = (self.address or "").strip()
+        if self.zone_id and self.zone.method != "station_pickup":
+            raise ValidationError(
+                {"zone": "Pickup points can only belong to station-pickup zones."}
+            )
+        if self.fee is not None and self.fee < 0:
+            raise ValidationError({"fee": "The pickup fee cannot be negative."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @property
+    def effective_fee(self):
+        return self.fee if self.fee is not None else self.zone.fee
+
+    @property
+    def effective_estimated_time(self):
+        return self.estimated_time or self.zone.estimated_time
+
+    def __str__(self):
+        return f"{self.name} ({self.zone.town or self.zone.county})"
+
+
 class Delivery(models.Model):
 
     MANAGEMENT_CHOICES = [

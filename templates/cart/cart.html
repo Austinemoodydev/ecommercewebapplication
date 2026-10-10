@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load static %}
 
 {% block title %}Shopping Cart{% endblock %}
 
@@ -8,7 +7,7 @@
 
 <h2 class="mb-4">Shopping Cart</h2>
 
-<table class="table align-middle" id="cart-table">
+<div class="table-responsive"><table class="table align-middle" id="cart-table">
 <thead>
 <tr>
 <th>Product</th>
@@ -21,7 +20,7 @@
 <tbody>
 {% for item in items %}
 <tr id="cart-row-{{ item.id }}">
-<td>{{ item.product.name }}{% if item.variant %} - {{ item.variant.name }}{% endif %}</td>
+<td>{{ item.product.name }}{% if item.variant %} — {{ item.variant.display_name }}{% endif %}</td>
 <td>KES {% if item.variant %}{{ item.variant.current_price|money }}{% else %}{{ item.product.current_price|money }}{% endif %}</td>
 <td>
 <button class="btn btn-sm btn-outline-secondary qty-btn" data-action="decrease" data-item="{{ item.id }}">-</button>
@@ -41,22 +40,18 @@ KES <span id="subtotal-{{ item.id }}">{{ item.subtotal|money }}</span>
 </tr>
 {% endfor %}
 </tbody>
-</table>
+</table></div>
 
 <h3 class="text-end">
 Total: KES <span id="cart-total">{{ total|money }}</span>
 </h3>
 
 <div class="text-end mt-3">
-    <a href="{% url 'checkout' %}" class="btn btn-success btn-lg">
+    <a href="{% url 'checkout' %}" class="btn btn-success btn-lg {% if not items %}disabled{% endif %}" {% if not items %}aria-disabled="true" tabindex="-1"{% endif %}>
         Proceed to Checkout
     </a>
 </div>
 
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'js/cart.js' %}"></script>
 {% endblock %}
 

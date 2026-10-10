@@ -6,6 +6,7 @@ from .models import (
     DeliveryEvent,
     DeliveryProvider,
     DeliveryZone,
+    PickupPoint,
 )
 
 
@@ -133,3 +134,10 @@ class DeliveryZoneAdmin(admin.ModelAdmin):
         "provider__name",
         "pickup_point",
     )
+
+
+@admin.register(PickupPoint)
+class PickupPointAdmin(admin.ModelAdmin):
+    list_display = ("name", "zone", "provider", "fee", "is_active")
+    list_filter = ("zone__county", "provider", "is_active")
+    search_fields = ("name", "address", "zone__town", "zone__county")

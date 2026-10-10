@@ -39,7 +39,7 @@
 
     <div class="col-xl-8">
 
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
 
             {% csrf_token %}
 
@@ -80,12 +80,47 @@
 
 
                     <div class="col-md-6">
+                        <label class="form-label">Colour name</label>
+                        {{ form.colour }}
+                        <div class="form-text">For example: Navy Blue, Red or Black.</div>
+                        {% for error in form.colour.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+
+
+                    <div class="col-md-6">
+                        <label class="form-label">Colour swatch</label>
+                        {{ form.colour_code }}
+                        <div class="form-text">Used for the colour selector on the storefront.</div>
+                        {% for error in form.colour_code.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+
+
+                    <div class="col-12">
+                        <label class="form-label">Variant image</label>
+                        {{ form.image }}
+                        <div class="form-text">This image replaces the main product image when customers select this option.</div>
+                        {% for error in form.image.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+
+
+                    {% if form.option_values.field.queryset.exists %}
+                    <div class="col-12">
+                        <label class="form-label">Structured option values</label>
+                        <div class="border rounded p-3">{{ form.option_values }}</div>
+                        <div class="form-text">Select one value from every applicable option. Configure options from the product page first.</div>
+                        {% for error in form.option_values.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+
+
+                    <div class="col-md-6">
 
                         <label class="form-label">
-                            SKU *
+                            SKU (optional)
                         </label>
 
                         {{ form.sku }}
+                        <div class="form-text">{{ form.sku.help_text }}</div>
 
                         {% for error in form.sku.errors %}
                             <div class="text-danger small">
@@ -115,6 +150,20 @@
                             </div>
                         {% endfor %}
 
+                    </div>
+
+
+                    <div class="col-md-6">
+                        <label class="form-label">Cost price</label>
+                        {{ form.cost_price }}
+                        {% for error in form.cost_price.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+
+
+                    <div class="col-md-6">
+                        <label class="form-label">Low-stock threshold</label>
+                        {{ form.low_stock_threshold }}
+                        {% for error in form.low_stock_threshold.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
 
 
@@ -151,17 +200,6 @@
                             to change stock quantity.
 
                         </div>
-
-                    </div>
-
-
-                        {% endif %}
-
-                        {% for error in form.stock.errors %}
-                            <div class="text-danger small">
-                                {{ error }}
-                            </div>
-                        {% endfor %}
 
                     </div>
 

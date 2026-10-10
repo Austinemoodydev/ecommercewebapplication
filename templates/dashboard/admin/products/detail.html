@@ -370,13 +370,14 @@ Product
 
                 </div>
 
-                <a
-                    href="{% url 'admin_product_variant_create' product.pk %}"
-                    class="btn btn-sm btn-primary"
-                >
-                    <i class="bi bi-plus-lg"></i>
-                    Add Variant
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'admin_product_options' product.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-sliders"></i> Configure options
+                    </a>
+                    <a href="{% url 'admin_product_variant_create' product.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-lg"></i> Add Variant
+                    </a>
+                </div>
 
             </div>
 
@@ -408,7 +409,7 @@ Product
 
                                 <td>
                                     <strong>
-                                        {{ variant.name }}
+                                        {{ variant.display_name }}
                                     </strong>
                                 </td>
 

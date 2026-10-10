@@ -13,6 +13,7 @@ from delivery.customer_views import (
 
 
 urlpatterns = [
+    path("admin/errors/", views.admin_error_reports, name="admin_error_reports"),
     path(
         "admin/reports/",
         reports_views.sales_reports,
@@ -255,6 +256,18 @@ urlpatterns = [
     # =========================================================
     # PRODUCT VARIANTS
     # =========================================================
+
+    path(
+        "admin/products/<int:pk>/options/",
+        views.admin_product_options,
+        name="admin_product_options",
+    ),
+
+    path(
+        "admin/products/<int:pk>/options/<int:option_id>/delete/",
+        views.admin_product_option_delete,
+        name="admin_product_option_delete",
+    ),
 
     path(
         "admin/products/<int:pk>/variants/add/",

@@ -1,5 +1,38 @@
-{% extends 'base.html' %}{% load static %}{% block title %}Online Shop{% endblock %}{% block meta_description %}Shop quality products online with secure M-PESA payments and reliable delivery across Kenya.{% endblock %}{% block content %}
-<section class="mb-5"><div id="carouselExample" class="carousel slide overflow-hidden rounded-4 shadow-sm" data-bs-ride="carousel"><div class="carousel-inner"><div class="carousel-item active"><img src="{% static 'images/banner/bestbanner1.jpg' %}" class="d-block w-100" alt="Online Shop offers"></div><div class="carousel-item"><img src="{% static 'images/banner/bestbanner2.jpeg' %}" class="d-block w-100" alt="Shop the latest products"></div><div class="carousel-item"><img src="{% static 'images/banner/bestbanner3.jpeg' %}" class="d-block w-100" alt="New arrivals"></div></div><button class="carousel-control-prev" type="button" data-bs-target="#carouselExample" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button><button class="carousel-control-next" type="button" data-bs-target="#carouselExample" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button></div></section>
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Home{% endblock %}
+{% block meta_description %}Shop quality products online with secure M-PESA payments and reliable delivery across Kenya.{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/home-carousel.css' %}?v=3">{% endblock %}
+{% block content %}
+{% if homepage_slides %}
+<section class="home-hero mb-5" aria-label="Featured store promotions">
+  <div id="homeHeroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="6500" data-bs-pause="hover" data-bs-touch="true">
+    <div class="carousel-indicators">
+      {% for slide in homepage_slides %}<button type="button" data-bs-target="#homeHeroCarousel" data-bs-slide-to="{{ forloop.counter0 }}" {% if forloop.first %}class="active" aria-current="true"{% endif %} aria-label="Show promotion {{ forloop.counter }}: {{ slide.heading }}"></button>{% endfor %}
+    </div>
+    <div class="carousel-inner">
+      {% for slide in homepage_slides %}
+      <article class="carousel-item{% if forloop.first %} active{% endif %}" aria-roledescription="slide" aria-label="{{ forloop.counter }} of {{ homepage_slides|length }}">
+        <picture><source media="(max-width: 767.98px)" srcset="{{ slide.mobile_url }}"><img src="{{ slide.desktop_url }}" class="home-hero-image" alt="{{ slide.image_alt }}" width="1920" height="768" {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}></picture>
+        <div class="home-hero-shade" aria-hidden="true"></div>
+        <div class="home-hero-content">
+          {% if slide.eyebrow %}<span class="home-hero-eyebrow">{{ slide.eyebrow }}</span>{% endif %}
+          {% if forloop.first %}<h1>{{ slide.heading }}</h1>{% else %}<h2>{{ slide.heading }}</h2>{% endif %}
+          {% if slide.description %}<p>{{ slide.description }}</p>{% endif %}
+          <a class="btn btn-primary home-hero-cta" href="{{ slide.resolved_url }}">{{ slide.button_label }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% if homepage_slides|length > 1 %}
+    <button class="carousel-control-prev" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Previous promotion</span></button>
+    <button class="carousel-control-next" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Next promotion</span></button>
+    <button class="home-hero-playback" type="button" aria-label="Pause rotating promotions" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i></button>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
 <section class="mb-5"><div class="d-flex justify-content-between align-items-center mb-4"><div><span class="eyebrow text-primary">Collections</span><h2 class="h3 fw-bold mb-0">Shop by category</h2></div><a href="{% url 'category_list' %}" class="btn btn-outline-primary">View all</a></div><div class="row g-4">{% for category in home_categories %}<div class="col-6 col-lg-3"><a class="category-card d-block" href="{% url 'category_detail' category.slug %}">{% if category.image %}<img src="{{ category.image.url }}" class="category-image" alt="{{ category.name }}">{% else %}<div class="category-placeholder"><i class="bi bi-grid"></i></div>{% endif %}<div class="category-body"><h2>{{ category.name }}</h2><span class="category-meta">Explore <i class="bi bi-arrow-right"></i></span></div></a></div>{% empty %}<div class="col-12"><div class="empty-state">Categories will appear here soon.</div></div>{% endfor %}</div></section>
 <section><div class="d-flex justify-content-between align-items-center mb-4"><div><span class="eyebrow text-primary">Picked for you</span><h2 class="h3 fw-bold mb-0">Featured products</h2></div><a href="{% url 'shop' %}" class="btn btn-outline-primary">Shop all</a></div><div class="row g-4">{% for product in featured_products %}<div class="col-6 col-md-4 col-xl-3"><article class="product-card"><a href="{% url 'product_detail' product.slug %}"><img class="product-image" src="{{ product.image.url }}" alt="{{ product.name }}"><div class="card-body"><span class="product-category">{{ product.category.name }}</span><span class="product-name">{{ product.name }}</span>{% if product.discount_price %}<span class="price">KES {{ product.discount_price|money }}</span><span class="price-old">KES {{ product.price|money }}</span>{% else %}<span class="price">KES {{ product.price|money }}</span>{% endif %}</div></a></article></div>{% empty %}<div class="col-12"><div class="empty-state">Featured products will appear here soon.</div></div>{% endfor %}</div></section>
 {% endblock %}
+{% block extra_js %}<script src="{% static 'js/home-carousel.js' %}" defer></script>{% endblock %}

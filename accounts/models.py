@@ -93,4 +93,49 @@ class Address(models.Model):
 
     def __str__(self):
         return self.full_name
-    #Later, we'll preload Nairobi estates and support GPS/location detection.
+
+
+class StaffSecurityEvent(models.Model):
+    ACTION_CREATED = "created"
+    ACTION_UPDATED = "updated"
+    ACTION_ROLE_CHANGED = "role_changed"
+    ACTION_SUSPENDED = "suspended"
+    ACTION_REACTIVATED = "reactivated"
+    ACTION_MFA_ENABLED = "mfa_enabled"
+    ACTION_MFA_RESET = "mfa_reset"
+
+    ACTION_CHOICES = [
+        (ACTION_CREATED, "Account created"),
+        (ACTION_UPDATED, "Profile updated"),
+        (ACTION_ROLE_CHANGED, "Role changed"),
+        (ACTION_SUSPENDED, "Account suspended"),
+        (ACTION_REACTIVATED, "Account reactivated"),
+        (ACTION_MFA_ENABLED, "MFA enabled"),
+        (ACTION_MFA_RESET, "MFA reset"),
+    ]
+
+    actor = models.ForeignKey(
+        CustomUser, on_delete=models.SET_NULL, null=True,
+        related_name="staff_security_actions",
+    )
+    target = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE,
+        related_name="staff_security_history",
+    )
+    action = models.CharField(max_length=32, choices=ACTION_CHOICES)
+    details = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        permissions = [
+            ("manage_staff", "Can manage department staff"),
+            ("manage_managers", "Can manage store managers"),
+            ("assign_sensitive_staff_roles", "Can assign sensitive staff roles"),
+            ("reset_staff_mfa", "Can reset staff MFA"),
+            ("view_staff_security_history", "Can view staff security history"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_action_display()}: {self.target}"

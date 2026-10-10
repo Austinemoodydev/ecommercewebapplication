@@ -9,7 +9,7 @@ Staff Management
 {% endblock %}
 
 
-{% block content %}
+{% block admin_content %}
 
 <div class="container-fluid py-3">
 
@@ -28,8 +28,7 @@ Staff Management
 
             <p class="text-muted mb-0">
 
-                Create staff accounts,
-                assign roles and control access.
+                Assign scoped roles and securely delegate day-to-day staff administration.
 
             </p>
 
@@ -75,6 +74,10 @@ Staff Management
 
                                 <th>
                                     Status
+                                </th>
+
+                                <th>
+                                    MFA
                                 </th>
 
                                 <th>
@@ -169,9 +172,20 @@ Staff Management
                                             <span
                                                 class="badge bg-secondary"
                                             >
-                                                Disabled
+                                                Suspended
                                             </span>
 
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if staff.mfa_enabled %}
+                                            <span class="badge bg-success">Authenticator enabled</span>
+                                        {% else %}
+                                            <span class="badge text-bg-warning">Setup required</span>
                                         {% endif %}
 
                                     </td>
@@ -196,6 +210,7 @@ Staff Management
 
                                     <td class="text-end">
 
+                                        {% if staff.may_be_managed %}
                                         <a
                                             href="{% url 'staff_manage_edit' staff.pk %}"
                                             class="btn
@@ -239,6 +254,22 @@ Staff Management
                                             {% endif %}
 
                                         </form>
+                                        {% if staff.mfa_enabled and perms.accounts.reset_staff_mfa %}
+                                        <form
+                                            method="post"
+                                            action="{% url 'staff_manage_reset_mfa' staff.pk %}"
+                                            class="d-inline"
+                                            onsubmit="return confirm('Reset MFA and sign this staff member out of every device?');"
+                                        >
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-warning btn-sm">
+                                                Reset MFA
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        {% else %}
+                                            <span class="small text-muted">Protected account</span>
+                                        {% endif %}
 
                                     </td>
 
@@ -282,6 +313,27 @@ Staff Management
 
         </div>
 
+    </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-body">
+            <h3 class="h5 mb-3">Role access guide</h3>
+            <div class="row g-3">
+                {% for role, description in role_descriptions.items %}
+                    <div class="col-lg-6">
+                        <div class="border rounded p-3 h-100">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <strong>{{ role }}</strong>
+                                {% if role in sensitive_roles %}
+                                    <span class="badge text-bg-warning">Sensitive</span>
+                                {% endif %}
+                            </div>
+                            <p class="small text-muted mb-0">{{ description }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 
 </div>

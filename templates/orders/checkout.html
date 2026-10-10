@@ -14,6 +14,13 @@
 
                     <h4 class="mb-4">Delivery Information</h4>
 
+                    {% if active_campaign.delivery_notice %}
+                    <div class="alert alert-warning">
+                        <strong>Holiday delivery notice</strong>
+                        <div>{{ active_campaign.delivery_notice }}</div>
+                    </div>
+                    {% endif %}
+
 
                     {% if not request.user.is_authenticated %}
 
@@ -99,6 +106,22 @@
 
                         {% csrf_token %}
 
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label class="form-label" for="checkout-method">How would you like to receive your order?</label>
+                            <select id="checkout-method" class="form-select" required>
+                                <option value="">Choose a delivery method</option>
+                                <option value="local_door">Door delivery</option>
+                                <option value="long_distance">Long-distance door delivery</option>
+                                <option value="station_pickup">Courier / bus station pickup</option>
+                                <option value="store_pickup">Collect from store</option>
+                                <option value="personal_rider">Rider delivery</option>
+                            </select>
+                        </div>
+
                         <div class="row">
 
                             <div class="col-md-6 mb-3">
@@ -126,6 +149,7 @@
                                 value="{% if request.user.is_authenticated %}{{ request.user.email }}{% endif %}"
                                 {% if not request.user.is_authenticated %}required{% endif %}
                             >
+                            {% for error in form.estate.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
 
                             {% if form.email.errors %}
 
@@ -150,28 +174,36 @@
                                     County
                                 </label>
 
-                                <input
-                                    type="text"
+                                <select
                                     name="county"
                                     id="checkout-county"
                                     class="form-control"
-                                    value="{{ form.county.value|default:'' }}"
-                                    placeholder="e.g. Nairobi"
                                     required
                                 >
+                                    <option value="">Choose county</option>
+                                    {% regroup delivery_zones by county as county_groups %}
+                                    {% for county_group in county_groups %}
+                                        <option value="{{ county_group.grouper }}" {% if form.county.value == county_group.grouper %}selected{% endif %}>{{ county_group.grouper }}</option>
+                                    {% endfor %}
+                                </select>
 
                             </div>
 
 
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">City</label>
-                                <input type="text" name="city" id="checkout-city" class="form-control" value="Nairobi">
+                                <label class="form-label">Town / Area</label>
+                                <select name="city" id="checkout-city" class="form-select" required>
+                                    <option value="">Choose town or area</option>
+                                    {% for zone in delivery_zones %}
+                                        {% if zone.town %}<option value="{{ zone.town }}" data-county="{{ zone.county }}" {% if form.city.value == zone.town %}selected{% endif %}>{{ zone.town }}</option>{% endif %}
+                                    {% endfor %}
+                                </select>
                             </div>
 
                         </div>
 
                         
-                        <div class="mb-3">
+                        <div class="mb-3 d-none" id="door-address-area">
 
                             <label class="form-label">
                                 Estate / Area
@@ -183,7 +215,6 @@
                                 class="form-control"
                                 value="{{ form.estate.value|default:'' }}"
                                 placeholder="e.g. Kilimani, Westlands, Rongo Town"
-                                required
                             >
 
                         </div>
@@ -216,8 +247,10 @@
                                         data-free-threshold="{% if zone.free_delivery_threshold %}{{ zone.free_delivery_threshold }}{% endif %}"
                                         data-pricing="{{ zone.pricing_mode }}"
                                         data-method="{{ zone.get_method_display }}"
+                                        data-method-code="{{ zone.method }}"
                                         data-provider="{% if zone.provider %}{{ zone.provider.name }}{% endif %}"
                                         data-pickup="{{ zone.pickup_point }}"
+                                        {% if form.delivery_zone.value|stringformat:"s" == zone.pk|stringformat:"s" %}selected{% endif %}
                                     >
 
                                         {{ zone.county }}
@@ -278,10 +311,31 @@
 
                         </div>
 
+                        <div class="mb-3 d-none" id="pickup-point-area">
+                            <label class="form-label" for="pickup-point">Pickup station</label>
+                            <select name="pickup_point" id="pickup-point" class="form-select">
+                                <option value="">Choose a courier or bus station</option>
+                                {% for point in pickup_points %}
+                                    <option
+                                        value="{{ point.pk }}"
+                                        data-zone="{{ point.zone_id }}"
+                                        data-fee="{{ point.effective_fee }}"
+                                        data-provider="{{ point.provider.name }}"
+                                        data-address="{{ point.address }}"
+                                        data-estimate="{{ point.effective_estimated_time }}"
+                                        {% if form.pickup_point.value|stringformat:"s" == point.pk|stringformat:"s" %}selected{% endif %}
+                                    >{{ point.name }} — {{ point.provider.name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% for error in form.pickup_point.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            <div id="pickup-point-info" class="form-text"></div>
+                        </div>
 
-                        <div class="mb-3">
+
+                        <div class="mb-3" id="location-detection-area">
                             <button type="button" id="detect-location-btn" class="btn btn-outline-primary btn-sm">
-                                ?? Detect My Location
+                                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                                Detect My Location
                             </button>
                             <span id="location-status" class="ms-2 text-muted small"></span>
                         </div>
@@ -289,9 +343,10 @@
                         <input type="hidden" name="latitude" id="checkout-latitude">
                         <input type="hidden" name="longitude" id="checkout-longitude">
 
-                        <div class="mb-3">
+                        <div class="mb-3" id="house-number-area">
                             <label class="form-label">House / Building Number</label>
-                            <input type="text" name="house_number" class="form-control" required>
+                            <input type="text" name="house_number" id="checkout-house-number" class="form-control" value="{{ form.house_number.value|default:'' }}">
+                            {% for error in form.house_number.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
                         </div>
 
                         <div class="mb-3">
@@ -460,8 +515,17 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     const zoneSelect = document.getElementById("delivery-zone");
+    const methodSelect = document.getElementById("checkout-method");
     const countyInput = document.getElementById("checkout-county");
     const cityInput = document.getElementById("checkout-city");
+    const pickupPointSelect = document.getElementById("pickup-point");
+    const pickupPointArea = document.getElementById("pickup-point-area");
+    const pickupPointInfo = document.getElementById("pickup-point-info");
+    const doorAddressArea = document.getElementById("door-address-area");
+    const houseNumberArea = document.getElementById("house-number-area");
+    const locationDetectionArea = document.getElementById("location-detection-area");
+    const estateInput = document.querySelector('[name="estate"]');
+    const houseNumberInput = document.getElementById("checkout-house-number");
     const deliveryInfo = document.getElementById("delivery-option-info");
     const deliveryFeeWrap = document.getElementById("delivery-fee-wrap");
     const feeEl = document.getElementById("delivery-fee");
@@ -485,9 +549,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let currentFee = 0;
 
-    const checkoutSubtotal = parseFloat(
-        "{{ subtotal|default:'0' }}"
-    ) || 0;
+    const checkoutSubtotal = subtotal;
     let currentDiscount = 0;
 
     function recalcTotal() {
@@ -529,9 +591,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function getCookie(name) {
-        const value = ; \;
-        const parts = value.split(; \=);
-        if (parts.length === 2) return parts.pop().split(";").shift();
+        const prefix = name + "=";
+        const cookie = document.cookie
+            .split(";")
+            .map(function (part) { return part.trim(); })
+            .find(function (part) { return part.startsWith(prefix); });
+        return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : "";
     }
 
     
@@ -557,6 +622,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ).trim().toLowerCase()
             : ""
         );
+        const selectedMethod = methodSelect ? methodSelect.value : "";
 
 
         Array.from(
@@ -577,6 +643,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     option.dataset.town
                     || ""
                 ).trim().toLowerCase();
+                const method = option.dataset.methodCode || "";
 
 
                 const countyMatch = (
@@ -594,6 +661,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 option.hidden = !(
                     countyMatch
                     && townMatch
+                    && (!selectedMethod || method === selectedMethod)
                 );
             }
         );
@@ -621,8 +689,18 @@ document.addEventListener("DOMContentLoaded", function () {
     if (countyInput) {
 
         countyInput.addEventListener(
-            "input",
-            filterDeliveryZones
+            "change",
+            function () {
+                const county = countyInput.value;
+                Array.from(cityInput.options).forEach(function (option) {
+                    if (!option.value) return;
+                    option.hidden = option.dataset.county !== county;
+                });
+                if (cityInput.selectedOptions[0] && cityInput.selectedOptions[0].hidden) {
+                    cityInput.value = "";
+                }
+                filterDeliveryZones();
+            }
         );
     }
 
@@ -630,9 +708,31 @@ document.addEventListener("DOMContentLoaded", function () {
     if (cityInput) {
 
         cityInput.addEventListener(
-            "input",
+            "change",
             filterDeliveryZones
         );
+    }
+
+    function updateMethodFields() {
+        const method = methodSelect ? methodSelect.value : "";
+        const isPickup = method === "station_pickup";
+        const needsAddress = ["local_door", "long_distance", "personal_rider"].includes(method);
+
+        pickupPointArea.classList.toggle("d-none", !isPickup);
+        doorAddressArea.classList.toggle("d-none", !needsAddress);
+        houseNumberArea.classList.toggle("d-none", !needsAddress);
+        locationDetectionArea.classList.toggle("d-none", !needsAddress);
+        pickupPointSelect.required = isPickup;
+        estateInput.required = needsAddress;
+        houseNumberInput.required = needsAddress;
+
+        if (!isPickup) pickupPointSelect.value = "";
+        filterDeliveryZones();
+        updateDeliveryOption();
+    }
+
+    if (methodSelect) {
+        methodSelect.addEventListener("change", updateMethodFields);
     }
 
 
@@ -698,6 +798,17 @@ document.addEventListener("DOMContentLoaded", function () {
             selected.dataset.pickup
             || ""
         );
+
+        const isStationPickup = selected.dataset.methodCode === "station_pickup";
+        Array.from(pickupPointSelect.options).forEach(function (option) {
+            if (!option.value) return;
+            option.hidden = option.dataset.zone !== selected.value;
+        });
+        if (!isStationPickup) {
+            pickupPointSelect.value = "";
+        } else if (pickupPointSelect.selectedOptions[0] && pickupPointSelect.selectedOptions[0].hidden) {
+            pickupPointSelect.value = "";
+        }
 
 
         /*
@@ -819,8 +930,44 @@ document.addEventListener("DOMContentLoaded", function () {
         recalcTotal();
     }
 
+    function updatePickupPoint() {
+        const point = pickupPointSelect.options[pickupPointSelect.selectedIndex];
+        if (!point || !point.value) {
+            pickupPointInfo.textContent = "";
+            updateDeliveryOption();
+            return;
+        }
+
+        const selectedZone = zoneSelect.options[zoneSelect.selectedIndex];
+        const threshold = parseFloat(selectedZone.dataset.freeThreshold || "0");
+        const pointFee = parseFloat(point.dataset.fee || "0");
+        if (selectedZone.dataset.pricing !== "fixed") {
+            currentFee = 0;
+            feeEl.textContent = "Pending quote";
+        } else if (threshold > 0 && checkoutSubtotal >= threshold) {
+            currentFee = 0;
+            feeEl.textContent = "0";
+        } else {
+            currentFee = Number.isFinite(pointFee) ? pointFee : 0;
+            feeEl.textContent = formatKesAmount(currentFee);
+        }
+        pickupPointInfo.textContent = [
+            point.dataset.provider,
+            point.dataset.address,
+            point.dataset.estimate
+        ].filter(Boolean).join(" · ");
+        recalcTotal();
+    }
+
+    pickupPointSelect.addEventListener("change", updatePickupPoint);
+
 
     if (zoneSelect) {
+
+        const initialZone = zoneSelect.options[zoneSelect.selectedIndex];
+        if (initialZone && initialZone.value && methodSelect) {
+            methodSelect.value = initialZone.dataset.methodCode || "";
+        }
 
         zoneSelect.addEventListener(
             "change",
@@ -830,6 +977,9 @@ document.addEventListener("DOMContentLoaded", function () {
         filterDeliveryZones();
         updateDeliveryOption();
     }
+
+    updateMethodFields();
+    updatePickupPoint();
 
 
     const applyCouponBtn

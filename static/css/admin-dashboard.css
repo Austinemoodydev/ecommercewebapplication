@@ -1,13 +1,13 @@
 :root {
     --sidebar-width: 260px;
-    --sidebar-bg: #111827;
-    --sidebar-hover: #1f2937;
-    --page-bg: #f5f7fb;
-    --card-bg: #ffffff;
-    --border-color: #e5e7eb;
-    --text-primary: #111827;
-    --text-secondary: #6b7280;
-    --primary: #2563eb;
+    --sidebar-bg: var(--color-sidebar-background, #0f172a);
+    --sidebar-hover: var(--color-sidebar-hover, #1e293b);
+    --page-bg: var(--color-background, #f8fafc);
+    --card-bg: var(--color-surface, #ffffff);
+    --border-color: var(--color-border, #e2e8f0);
+    --text-primary: var(--color-text, #0f172a);
+    --text-secondary: var(--color-muted, #64748b);
+    --primary: var(--color-primary, #2563eb);
 }
 
 
@@ -19,7 +19,7 @@ body {
     margin: 0;
     background: var(--page-bg);
     color: var(--text-primary);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--font-ui);
 }
 
 
@@ -179,7 +179,7 @@ body {
 
     background: transparent;
 
-    font-size: 28px;
+    font-size: 24px;
 
     margin-right: 15px;
 }
@@ -271,7 +271,7 @@ body {
 
 
 .stat-card h3 {
-    font-size: 23px;
+    font-size: 20px;
 
     margin: 0;
 
@@ -501,8 +501,7 @@ body {
 
 }
 
-/* === PROFESSIONAL RESPONSIVE ADMIN V2 === */
-/* === PROFESSIONAL RESPONSIVE ADMIN V2 === */
+/* Responsive admin layout */
 
 
 /* =========================================================
@@ -522,13 +521,9 @@ body {
 
 
 .admin-main {
-    width: calc(
-        100% - var(--sidebar-width)
-    );
+    width: calc(100% - var(--sidebar-width));
 
-    max-width: calc(
-        100% - var(--sidebar-width)
-    );
+    max-width: calc(100% - var(--sidebar-width));
 
     transition:
         margin-left 0.25s ease,
@@ -708,10 +703,8 @@ body {
 
 
     .admin-sidebar {
-        width: min(
-            300px,
-            86vw
-        );
+        width: min(300px,
+                86vw);
 
         transform: translateX(-105%);
 
@@ -725,8 +718,7 @@ body {
         transform: translateX(0);
 
         box-shadow:
-            14px 0 40px
-            rgba(0, 0, 0, 0.28);
+            14px 0 40px rgba(0, 0, 0, 0.28);
     }
 
 
@@ -789,8 +781,7 @@ body {
     }
 
 
-    body.sidebar-open
-    .sidebar-overlay {
+    body.sidebar-open .sidebar-overlay {
         visibility: visible;
 
         opacity: 1;
@@ -803,8 +794,7 @@ body {
         height: 68px;
 
         padding:
-            0
-            18px;
+            0 18px;
     }
 
 
@@ -840,16 +830,13 @@ body {
 
     .admin-topbar {
         padding:
-            0
-            14px;
+            0 14px;
     }
 
 
     .admin-content {
         padding:
-            16px
-            14px
-            24px;
+            16px 14px 24px;
     }
 
 
@@ -966,25 +953,20 @@ body {
 @media (max-width: 479.98px) {
 
     .admin-sidebar {
-        width: min(
-            290px,
-            90vw
-        );
+        width: min(290px,
+                90vw);
     }
 
 
     .admin-content {
         padding:
-            14px
-            10px
-            22px;
+            14px 10px 22px;
     }
 
 
     .admin-topbar {
         padding:
-            0
-            10px;
+            0 10px;
     }
 
 

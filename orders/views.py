@@ -19,7 +19,7 @@ from django.http import JsonResponse
 from .models import Coupon, DeliveryArea, Order, OrderItem
 from .utils import generate_order_number
 from products.models import Product
-from delivery.models import Delivery, DeliveryZone
+from delivery.models import Delivery, DeliveryZone, PickupPoint
 
 
 from core.models import StoreSettings
@@ -143,6 +143,12 @@ def checkout(request):
             "method",
         )
     )
+    pickup_points = (
+        PickupPoint.objects
+        .filter(is_active=True, zone__is_active=True)
+        .select_related("zone", "provider")
+        .order_by("zone__county", "zone__town", "provider__name", "name")
+    )
 
     form = CheckoutForm(request.POST or None)
 
@@ -262,6 +268,18 @@ def checkout(request):
                         is_active=True,
                     )
                 )
+                pickup_point = None
+                if form.cleaned_data.get("pickup_point"):
+                    pickup_point = (
+                        PickupPoint.objects
+                        .select_for_update()
+                        .select_related("zone", "provider")
+                        .get(
+                            pk=form.cleaned_data["pickup_point"].pk,
+                            zone=delivery_zone,
+                            is_active=True,
+                        )
+                    )
 
                 if (
                     delivery_zone.pricing_mode
@@ -282,7 +300,9 @@ def checkout(request):
                     else:
 
                         shipping_cost = (
-                            delivery_zone.fee
+                            pickup_point.effective_fee
+                            if pickup_point
+                            else delivery_zone.fee
                         )
 
                     delivery_pricing_status = (
@@ -384,6 +404,7 @@ def checkout(request):
                     house_number=form.cleaned_data["house_number"],
 
                     delivery_zone=delivery_zone,
+                    pickup_point=pickup_point,
                     delivery_pricing_status=(
                         delivery_pricing_status
                     ),
@@ -454,6 +475,9 @@ def checkout(request):
                     "personal_rider",
                     "shop_fleet",
                 }
+                selected_provider = (
+                    pickup_point.provider if pickup_point else delivery_zone.provider
+                )
 
                 if (
                     delivery_zone.method
@@ -463,9 +487,9 @@ def checkout(request):
                     management_type = "internal"
 
                 elif (
-                    delivery_zone.provider
+                    selected_provider
                     and
-                    delivery_zone.provider.provider_type
+                    selected_provider.provider_type
                     in internal_provider_types
                 ):
 
@@ -475,20 +499,20 @@ def checkout(request):
 
                     management_type = "external"
 
-                destination_parts = [
-                    form.cleaned_data[
-                        "house_number"
-                    ],
-                    form.cleaned_data[
-                        "estate"
-                    ],
-                    form.cleaned_data[
-                        "city"
-                    ],
-                    form.cleaned_data[
-                        "county"
-                    ],
-                ]
+                if pickup_point:
+                    destination_parts = [
+                        pickup_point.name,
+                        pickup_point.address,
+                        form.cleaned_data["city"],
+                        form.cleaned_data["county"],
+                    ]
+                else:
+                    destination_parts = [
+                        form.cleaned_data["house_number"],
+                        form.cleaned_data["estate"],
+                        form.cleaned_data["city"],
+                        form.cleaned_data["county"],
+                    ]
 
                 destination = ", ".join(
                     part.strip()
@@ -508,23 +532,23 @@ def checkout(request):
                     ),
 
                     provider=(
-                        delivery_zone.provider
+                        selected_provider
                     ),
 
                     status="pending",
 
                     destination=destination,
 
-                    pickup_point=(
-                        delivery_zone.pickup_point
-                    ),
+                    pickup_point=(pickup_point.name if pickup_point else delivery_zone.pickup_point),
 
                     customer_delivery_fee=(
                         shipping_cost
                     ),
 
                     notes=(
-                        delivery_zone.instructions
+                        pickup_point.instructions
+                        if pickup_point and pickup_point.instructions
+                        else delivery_zone.instructions
                     ),
                 )
 
@@ -548,6 +572,7 @@ def checkout(request):
                             "addresses": addresses,
                             "default_address": default_address,
                             "delivery_zones": delivery_zones,
+                            "pickup_points": pickup_points,
                             "form": form,
                             "stock_error": stock_error,
                             "store_settings": store_settings,
@@ -608,7 +633,7 @@ def checkout(request):
                         product=item.product,
                         variant=item.variant,
                         product_name=item.product.name,
-                        variant_name=item.variant.name if item.variant else "",
+                        variant_name=item.variant.display_name if item.variant else "",
                         price=item.variant.current_price if item.variant else item.product.current_price,
 
                         unit_cost_at_sale=(
@@ -654,6 +679,7 @@ def checkout(request):
             "addresses": addresses,
             "default_address": default_address,
             "delivery_zones": delivery_zones,
+            "pickup_points": pickup_points,
             "form": form,
             "stock_error": stock_error,
             "store_settings": store_settings,

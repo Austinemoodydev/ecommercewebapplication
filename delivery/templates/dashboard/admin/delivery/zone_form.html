@@ -82,13 +82,17 @@ Delivery Zone
             </div>
 
 
-            <div class="col-12">
+            <div class="col-12 d-none">
 
                 <label class="form-label">
                     Pickup Point / Parcel Office
                 </label>
 
                 {{ form.pickup_point }}
+
+                <div class="form-text">
+                    Legacy field retained for existing orders. Add new stations from the Pickup Points page after saving this zone.
+                </div>
 
             </div>
 
@@ -182,6 +186,10 @@ Delivery Zone
             >
                 Save Delivery Zone
             </button>
+
+            {% if zone and zone.method == "station_pickup" %}
+            <a href="{% url 'delivery_pickup_point_create' %}" class="btn btn-outline-primary">Add Pickup Point</a>
+            {% endif %}
 
             <a
                 href="{% url 'delivery_zone_list' %}"

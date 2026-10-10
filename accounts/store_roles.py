@@ -1,5 +1,6 @@
 STORE_OWNER = "Store Owner"
 STORE_MANAGER = "Store Manager"
+SECURITY_ADMIN = "Security Administrator"
 ORDER_STAFF = "Orders Staff"
 INVENTORY_STAFF = "Inventory Staff"
 FINANCE_STAFF = "Finance Staff"
@@ -9,6 +10,7 @@ SUPPORT_STAFF = "Support Staff"
 STORE_ROLE_NAMES = [
     STORE_OWNER,
     STORE_MANAGER,
+    SECURITY_ADMIN,
     ORDER_STAFF,
     INVENTORY_STAFF,
     FINANCE_STAFF,
@@ -19,6 +21,11 @@ STORE_ROLE_NAMES = [
 ROLE_PERMISSION_MAP = {
 
     STORE_OWNER: [
+        ("accounts", "manage_staff"),
+        ("accounts", "manage_managers"),
+        ("accounts", "assign_sensitive_staff_roles"),
+        ("accounts", "reset_staff_mfa"),
+        ("accounts", "view_staff_security_history"),
         ("orders", "view_order"),
         ("orders", "add_order"),
         ("orders", "change_order"),
@@ -93,10 +100,20 @@ ROLE_PERMISSION_MAP = {
 
         ("core", "view_storesettings"),
         ("core", "change_storesettings"),
+        ("core", "view_marketingcampaign"),
+        ("core", "add_marketingcampaign"),
+        ("core", "change_marketingcampaign"),
+        ("core", "publish_marketingcampaign"),
+        ("core", "send_marketingcampaign"),
+        ("core", "view_homepageslide"),
+        ("core", "add_homepageslide"),
+        ("core", "change_homepageslide"),
+        ("core", "delete_homepageslide"),
     ],
 
 
     STORE_MANAGER: [
+        ("accounts", "manage_staff"),
         ("orders", "view_order"),
         ("orders", "change_order"),
         ("orders", "view_orderitem"),
@@ -148,6 +165,15 @@ ROLE_PERMISSION_MAP = {
 
         ("notifications", "view_notification"),
         ("notifications", "change_notification"),
+
+        ("core", "view_marketingcampaign"),
+        ("core", "add_marketingcampaign"),
+        ("core", "change_marketingcampaign"),
+        ("core", "publish_marketingcampaign"),
+        ("core", "send_marketingcampaign"),
+        ("core", "view_homepageslide"),
+        ("core", "add_homepageslide"),
+        ("core", "change_homepageslide"),
     ],
 
 
@@ -210,4 +236,25 @@ ROLE_PERMISSION_MAP = {
         ("notifications", "view_notification"),
         ("notifications", "change_notification"),
     ],
+
+    SECURITY_ADMIN: [
+        ("accounts", "manage_staff"),
+        ("accounts", "manage_managers"),
+        ("accounts", "assign_sensitive_staff_roles"),
+        ("accounts", "reset_staff_mfa"),
+        ("accounts", "view_staff_security_history"),
+    ],
 }
+
+
+ROLE_DESCRIPTIONS = {
+    STORE_OWNER: "Full control, including ownership, security, finance and staff administration.",
+    SECURITY_ADMIN: "Manages staff security and managers, but cannot change or remove an owner.",
+    STORE_MANAGER: "Runs daily store operations and may manage department staff only.",
+    ORDER_STAFF: "Views and processes orders, shipping and delivery updates.",
+    INVENTORY_STAFF: "Manages products, variants, categories and stock movements.",
+    FINANCE_STAFF: "Views payments and handles returns and refunds. Sensitive access.",
+    SUPPORT_STAFF: "Assists customers, reviews notifications and adds customer notes.",
+}
+
+SENSITIVE_ROLES = {STORE_OWNER, SECURITY_ADMIN, STORE_MANAGER, FINANCE_STAFF}

@@ -78,6 +78,13 @@ class Order(models.Model):
         blank=True,
         related_name="orders",
     )
+    pickup_point = models.ForeignKey(
+        "delivery.PickupPoint",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
 
     delivery_pricing_status = models.CharField(
         max_length=30,

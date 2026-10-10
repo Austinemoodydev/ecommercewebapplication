@@ -1,10 +1,12 @@
 from django.contrib import messages
+from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import resolve
 
 from .store_roles import (
     STORE_OWNER,
     STORE_MANAGER,
+    SECURITY_ADMIN,
     ORDER_STAFF,
     INVENTORY_STAFF,
     FINANCE_STAFF,
@@ -15,11 +17,39 @@ from .store_roles import (
 ALL_MANAGEMENT_ROLES = {
     STORE_OWNER,
     STORE_MANAGER,
+    SECURITY_ADMIN,
     ORDER_STAFF,
     INVENTORY_STAFF,
     FINANCE_STAFF,
     SUPPORT_STAFF,
 }
+
+
+def can_manage_staff(user):
+    return bool(
+        user.is_authenticated
+        and user.is_active
+        and user.is_staff
+        and (user.is_superuser or user.has_perm("accounts.manage_staff"))
+    )
+
+
+def can_manage_staff_member(actor, target):
+    """Apply hierarchy rules in addition to Django model permissions."""
+    if not can_manage_staff(actor) or target.is_superuser:
+        return False
+    if actor.pk == target.pk:
+        return False
+
+    target_roles = user_store_roles(target)
+    if STORE_OWNER in target_roles:
+        return False
+    if target_roles & {STORE_MANAGER, SECURITY_ADMIN}:
+        return bool(
+            actor.is_superuser
+            or actor.has_perm("accounts.manage_managers")
+        )
+    return True
 
 
 def user_store_roles(user):
@@ -66,12 +96,28 @@ ROLE_URL_ACCESS = {
 
     STORE_OWNER: "*",
 
+    SECURITY_ADMIN: {
+        "admin_dashboard",
+    },
+
     STORE_MANAGER: {
         "admin_dashboard",
         "admin_analytics",
         "admin_sales_export",
         "admin_sales_reports",
         "admin_sales_reports_csv",
+        "campaign_list",
+        "campaign_create",
+        "campaign_detail",
+        "campaign_edit",
+        "campaign_approve",
+        "campaign_disable",
+        "campaign_send",
+        "campaign_test_message",
+        "homepage_slide_list",
+        "homepage_slide_create",
+        "homepage_slide_edit",
+        "homepage_slide_toggle",
 
         "admin_order_list",
         "admin_order_detail",
@@ -277,6 +323,16 @@ class StoreStaffPermissionMiddleware:
         if not user.is_staff:
             return self.get_response(request)
 
+        # Local import avoids an authentication-module import cycle.
+        from .staff_mfa import staff_mfa_is_verified
+
+        if settings.MFA_STAFF_ENFORCEMENT and not staff_mfa_is_verified(request):
+            messages.warning(
+                request,
+                "Complete secure staff sign-in before opening the management portal.",
+            )
+            return redirect("staff_login")
+
         if user.is_superuser:
             return self.get_response(request)
 
@@ -289,11 +345,10 @@ class StoreStaffPermissionMiddleware:
         roles = user_store_roles(user)
 
         if path.startswith("/staff/manage/"):
-
-            if STORE_OWNER not in roles:
+            if not can_manage_staff(user):
                 messages.error(
                     request,
-                    "Only the Store Owner can manage staff accounts.",
+                    "You do not have permission to manage staff accounts.",
                 )
 
                 return redirect(

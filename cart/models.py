@@ -97,4 +97,4 @@ class CartItem(models.Model):
         return price * self.quantity
 
     def __str__(self):
-        return f"{self.product.name}{f' - {self.variant.name}' if self.variant else ''}"
+        return f"{self.product.name}{f' - {self.variant.display_name}' if self.variant else ''}"

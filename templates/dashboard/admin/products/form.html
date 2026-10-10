@@ -67,11 +67,28 @@
     {% csrf_token %}
 
 
-    {% if form.non_field_errors %}
+    {% if form.errors %}
 
-        <div class="alert alert-danger">
+        <div class="alert alert-danger" role="alert" aria-live="assertive">
 
-            {{ form.non_field_errors }}
+            <h2 class="h6 alert-heading mb-2">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Product could not be saved
+            </h2>
+
+            <p class="mb-2">Correct the following fields and submit again:</p>
+
+            <ul class="mb-0 ps-3">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+
 
         </div>
 
@@ -229,6 +246,24 @@
 
                     </div>
 
+                    <div class="col-md-6">
+
+                        <label class="form-label" for="{{ form.cost_price.id_for_label }}">
+                            Cost Price (KES)
+                        </label>
+
+                        {{ form.cost_price }}
+
+                        <div class="form-text">
+                            Optional. Used for internal margin reporting and never shown to customers.
+                        </div>
+
+                        {% for error in form.cost_price.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+
+                    </div>
+
                 </div>
 
             </div>
@@ -248,10 +283,11 @@
                     <div class="col-md-6">
 
                         <label class="form-label">
-                            SKU *
+                            SKU (optional)
                         </label>
 
                         {{ form.sku }}
+                        <div class="form-text">{{ form.sku.help_text }}</div>
 
                         {% for error in form.sku.errors %}
 
@@ -299,6 +335,22 @@
 
                     </div>
 
+                    <div class="col-md-6">
+
+                        <label class="form-label" for="{{ form.low_stock_threshold.id_for_label }}">
+                            Low-stock Alert Level
+                        </label>
+
+                        {{ form.low_stock_threshold }}
+
+                        <div class="form-text">{{ form.low_stock_threshold.help_text }}</div>
+
+                        {% for error in form.low_stock_threshold.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+
+                    </div>
+
                 </div>
 
             </div>
@@ -343,6 +395,8 @@
 
 
                 {{ form.image }}
+
+                <div class="form-text">{{ form.image.help_text }}</div>
 
 
                 {% for error in form.image.errors %}
@@ -405,6 +459,10 @@
                 {{ submit_text }}
 
             </button>
+
+            <p class="small text-muted text-center mt-2 mb-0">
+                You will be taken to the product page after it is saved.
+            </p>
 
         </div>
 

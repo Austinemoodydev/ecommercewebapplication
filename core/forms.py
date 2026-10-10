@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django import forms
 
-from .models import StoreSettings
+from .models import HomepageSlide, MarketingCampaign, StoreSettings
 
 
 class StoreSettingsForm(
@@ -322,4 +322,80 @@ for field_name, field in (
             "class",
             "form-control",
         )
+
+
+class MarketingCampaignForm(forms.ModelForm):
+    class Meta:
+        model = MarketingCampaign
+        fields = [
+            "name", "holiday_type", "headline", "message", "chatbot_message",
+            "delivery_notice", "store_hours_notice", "starts_at", "ends_at",
+            "priority", "is_enabled", "is_verified_holiday", "official_source_url",
+            "banner_image", "primary_colour", "secondary_colour", "text_colour",
+            "coupon", "products", "categories", "audience", "show_on_website",
+            "send_in_app", "send_email", "send_sms",
+        ]
+        widgets = {
+            "message": forms.Textarea(attrs={"rows": 4}),
+            "chatbot_message": forms.Textarea(attrs={"rows": 3}),
+            "starts_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "ends_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "primary_colour": forms.TextInput(attrs={"type": "color"}),
+            "secondary_colour": forms.TextInput(attrs={"type": "color"}),
+            "text_colour": forms.TextInput(attrs={"type": "color"}),
+            "products": forms.SelectMultiple(attrs={"size": 8}),
+            "categories": forms.SelectMultiple(attrs={"size": 6}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["starts_at"].input_formats = ["%Y-%m-%dT%H:%M"]
+        self.fields["ends_at"].input_formats = ["%Y-%m-%dT%H:%M"]
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-check-input")
+            elif isinstance(field.widget, forms.Select):
+                field.widget.attrs.setdefault("class", "form-select")
+            else:
+                field.widget.attrs.setdefault("class", "form-control")
+
+
+class CampaignTestMessageForm(forms.Form):
+    email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={"class": "form-control"}))
+    phone = forms.CharField(required=False, max_length=30, widget=forms.TextInput(attrs={"class": "form-control"}))
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("email") and not cleaned.get("phone"):
+            raise forms.ValidationError("Enter an email address or phone number for the test.")
+        return cleaned
+
+
+class HomepageSlideForm(forms.ModelForm):
+    class Meta:
+        model = HomepageSlide
+        fields = [
+            "internal_name", "eyebrow", "heading", "description", "button_label",
+            "image_alt", "desktop_image", "mobile_image", "category", "product",
+            "destination_url", "starts_at", "ends_at", "display_order", "is_enabled",
+        ]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+            "starts_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "ends_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("starts_at", "ends_at"):
+            self.fields[name].input_formats = ["%Y-%m-%dT%H:%M"]
+        if self.instance.pk and (self.instance.desktop_image or self.instance.desktop_static_path):
+            self.fields["desktop_image"].required = False
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-check-input")
+            elif isinstance(field.widget, forms.Select):
+                field.widget.attrs.setdefault("class", "form-select")
+            else:
+                field.widget.attrs.setdefault("class", "form-control")
 

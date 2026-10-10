@@ -2,19 +2,18 @@ class ProductFilter:
 
     @staticmethod
     def apply(products, request):
-
-        category = request.GET.get("category")
-        brand = request.GET.get("brand")
+        categories = [value for value in request.GET.getlist("category") if value]
+        brands = [value for value in request.GET.getlist("brand") if value]
         sort = request.GET.get("sort")
 
-        if category:
+        if categories:
             products = products.filter(
-                category__slug=category
+                category__slug__in=categories
             )
 
-        if brand:
+        if brands:
             products = products.filter(
-                brand__slug=brand
+                brand__slug__in=brands
             )
 
         if sort == "price_low":
@@ -29,4 +28,4 @@ class ProductFilter:
         else:
             products = products.order_by("-created_at")
 
-        return products
+        return products.distinct()

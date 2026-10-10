@@ -1,0 +1,45 @@
+.campaign-banner {
+  align-items: center;
+  background: linear-gradient(120deg, var(--campaign-primary), var(--campaign-secondary));
+  color: var(--campaign-text);
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  min-height: 3.25rem;
+  overflow: hidden;
+  padding: .75rem 1rem;
+  position: relative;
+  text-align: center;
+}
+
+.campaign-banner__image {
+  border-radius: .5rem;
+  height: 2.5rem;
+  object-fit: cover;
+  width: 4rem;
+}
+
+.campaign-banner__content {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem .8rem;
+  justify-content: center;
+}
+
+.campaign-banner__content span { max-width: 52rem; }
+.campaign-banner__content small { flex-basis: 100%; opacity: .9; }
+.campaign-banner__coupon {
+  background: rgba(255, 255, 255, .18);
+  border: 1px dashed currentColor;
+  border-radius: .4rem;
+  font-weight: 700;
+  padding: .15rem .5rem;
+}
+
+@media (max-width: 576px) {
+  .campaign-banner { align-items: flex-start; }
+  .campaign-banner__image { display: none; }
+  .campaign-banner__content { display: block; }
+  .campaign-banner__content > * { display: block; margin-bottom: .25rem; }
+}

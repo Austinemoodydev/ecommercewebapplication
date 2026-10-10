@@ -146,6 +146,7 @@ def available_delivery_options(
         .select_related(
             "provider"
         )
+        .prefetch_related("pickup_points__provider")
     )
 
     if county:

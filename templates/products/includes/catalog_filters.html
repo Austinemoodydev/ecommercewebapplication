@@ -1,0 +1,45 @@
+<div class="catalog-filter-group" data-filter-group>
+  <div class="catalog-filter-heading">
+    <h3>Categories</h3>
+    {% if selected_category_slugs %}<span>{{ selected_category_slugs|length }} selected</span>{% endif %}
+  </div>
+  <label class="visually-hidden" for="{{ filter_prefix }}-category-search">Search categories</label>
+  <div class="catalog-filter-search">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input id="{{ filter_prefix }}-category-search" type="search" placeholder="Search categories" data-filter-search autocomplete="off">
+  </div>
+  <div class="catalog-filter-options is-collapsed" data-filter-options data-visible-count="8">
+    {% for category in categories %}
+      <label class="catalog-filter-option" data-filter-option data-filter-label="{{ category.name|lower }}">
+        <input type="checkbox" name="category" value="{{ category.slug }}" {% if category.slug in selected_category_slugs %}checked{% endif %}>
+        <span class="catalog-filter-option__name">{{ category.name }}</span>
+        <span class="catalog-filter-option__count">{{ category.product_count }}</span>
+      </label>
+    {% endfor %}
+    <p class="catalog-filter-empty" data-filter-empty hidden>No matching categories.</p>
+  </div>
+  {% if categories|length > 8 %}<button class="catalog-filter-more" type="button" data-filter-more data-more-label="View all categories" data-less-label="Show fewer">View all categories</button>{% endif %}
+</div>
+
+<div class="catalog-filter-group" data-filter-group>
+  <div class="catalog-filter-heading">
+    <h3>Brands</h3>
+    {% if selected_brand_slugs %}<span>{{ selected_brand_slugs|length }} selected</span>{% endif %}
+  </div>
+  <label class="visually-hidden" for="{{ filter_prefix }}-brand-search">Search brands</label>
+  <div class="catalog-filter-search">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input id="{{ filter_prefix }}-brand-search" type="search" placeholder="Search brands" data-filter-search autocomplete="off">
+  </div>
+  <div class="catalog-filter-options is-collapsed" data-filter-options data-visible-count="8">
+    {% for brand in brands %}
+      <label class="catalog-filter-option" data-filter-option data-filter-label="{{ brand.name|lower }}">
+        <input type="checkbox" name="brand" value="{{ brand.slug }}" {% if brand.slug in selected_brand_slugs %}checked{% endif %}>
+        <span class="catalog-filter-option__name">{{ brand.name }}</span>
+        <span class="catalog-filter-option__count">{{ brand.product_count }}</span>
+      </label>
+    {% endfor %}
+    <p class="catalog-filter-empty" data-filter-empty hidden>No matching brands.</p>
+  </div>
+  {% if brands|length > 8 %}<button class="catalog-filter-more" type="button" data-filter-more data-more-label="View all brands" data-less-label="Show fewer">View all brands</button>{% endif %}
+</div>

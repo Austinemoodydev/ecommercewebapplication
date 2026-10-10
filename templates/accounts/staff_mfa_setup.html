@@ -1,0 +1,37 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Set up MFA | Store Portal{% endblock %}
+
+{% block content %}
+<div class="text-center mb-3">
+    <h3 class="mb-1">Protect your staff account</h3>
+    <p class="text-muted mb-0">MFA is required before management access is activated.</p>
+</div>
+
+<ol class="small ps-3 mb-3">
+    <li class="mb-2">Open Google Authenticator, Microsoft Authenticator or another TOTP app.</li>
+    <li class="mb-2">Scan this QR code.</li>
+    <li>Enter the six-digit code shown in the app.</li>
+</ol>
+
+<div class="text-center bg-white border rounded-3 p-3 mb-3 mfa-qr">{{ qr_svg|safe }}</div>
+<details class="mb-4">
+    <summary class="small text-primary">Cannot scan the code?</summary>
+    <p class="small text-muted mt-2 mb-1">Choose manual setup, use issuer <strong>{{ issuer }}</strong>, and enter:</p>
+    <code class="user-select-all text-break">{{ secret }}</code>
+</details>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="{{ form.code.id_for_label }}" class="form-label">Six-digit code</label>
+        {{ form.code }}
+        {% for error in form.code.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </div>
+    <button class="btn btn-primary w-100 py-2" type="submit">Activate MFA</button>
+</form>
+
+<form method="post" action="{% url 'staff_mfa_cancel' %}" class="mt-3 text-center">
+    {% csrf_token %}<button type="submit" class="btn btn-link text-muted">Cancel setup</button>
+</form>
+{% endblock %}

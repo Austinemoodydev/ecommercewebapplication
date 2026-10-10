@@ -21,6 +21,7 @@
         {% endblock %}
 
     </title>
+    <script src="{% static 'js/theme.js' %}?v=2"></script>
 
 
     <!-- Bootstrap -->
@@ -45,6 +46,8 @@
         rel="stylesheet"
         href="{% static 'css/admin-dashboard.css' %}"
     >
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'css/campaigns.css' %}">
 
 
     {% block extra_css %}
@@ -417,6 +420,26 @@
 
             <!-- NOTIFICATIONS -->
 
+            {% if perms.core.view_marketingcampaign %}
+            <a
+                href="{% url 'campaign_list' %}"
+                class="sidebar-link {% if 'campaign_' in request.resolver_match.url_name %}active{% endif %}"
+            >
+                <i class="bi bi-megaphone"></i>
+                <span>Campaigns</span>
+            </a>
+            {% endif %}
+
+            {% if perms.core.view_homepageslide %}
+            <a
+                href="{% url 'homepage_slide_list' %}"
+                class="sidebar-link {% if 'homepage_slide_' in request.resolver_match.url_name %}active{% endif %}"
+            >
+                <i class="bi bi-images"></i>
+                <span>Homepage Banners</span>
+            </a>
+            {% endif %}
+
             <a
                 href="{% url 'admin_notifications' %}"
                 class="
@@ -439,6 +462,13 @@
 
             {% if request.user|store_owner %}
 
+            <a href="{% url 'admin_error_reports' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_error_reports' %}active{% endif %}">
+                <i class="bi bi-bug"></i><span>Error reports</span>
+            </a>
+
+            {% endif %}
+
+            {% if request.user|staff_administrator %}
             <!-- STAFF MANAGEMENT -->
 
             <a
@@ -531,10 +561,13 @@
 
             <div class="topbar-actions">
 
+                {% include 'includes/theme_toggle.html' %}
+
 
                 <a
                     href="/"
                     target="_blank"
+                    rel="noopener noreferrer"
                     class="
                         btn
                         btn-outline-secondary
@@ -651,6 +684,12 @@
         <main class="admin-content">
 
             {% include "includes/messages.html" %}
+            {% if active_campaign and perms.core.view_marketingcampaign %}
+                <div class="alert alert-info d-flex justify-content-between align-items-center gap-3">
+                    <span><strong>{{ active_campaign.headline }}</strong> is active until {{ active_campaign.ends_at|date:"j M Y, g:i A" }}.</span>
+                    <a href="{% url 'campaign_detail' active_campaign.pk %}" class="btn btn-sm btn-outline-primary">Manage</a>
+                </div>
+            {% endif %}
 
 
             {% block admin_content %}
@@ -662,6 +701,8 @@
     </div>
 
 </div>
+
+{% include 'includes/chatbot.html' with chatbot_mode='staff' %}
 
 
 <!-- Bootstrap JavaScript -->

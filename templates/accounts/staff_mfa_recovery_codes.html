@@ -1,0 +1,18 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Save recovery codes | Store Portal{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <span class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-3" style="width:54px;height:54px"><i class="bi bi-shield-check fs-4"></i></span>
+    <h3 class="mb-1">MFA is active</h3>
+    <p class="text-muted mb-0">Save these one-time recovery codes in a secure place. They will not be displayed again.</p>
+</div>
+
+<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Each code works once. Do not email or share this list.</div>
+<div class="row g-2 mb-4 font-monospace">
+    {% for code in codes %}<div class="col-6"><div class="border rounded text-center py-2 bg-light user-select-all">{{ code }}</div></div>{% endfor %}
+</div>
+<button type="button" class="btn btn-outline-secondary w-100 mb-2" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print or save securely</button>
+<a href="{% url 'admin_dashboard' %}" class="btn btn-primary w-100">I saved the codes — continue</a>
+{% endblock %}

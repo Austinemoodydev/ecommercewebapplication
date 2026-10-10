@@ -1,0 +1,15 @@
+{% if active_campaign and active_campaign.show_on_website %}
+<section
+  class="campaign-banner"
+  style="--campaign-primary: {{ active_campaign.primary_colour }}; --campaign-secondary: {{ active_campaign.secondary_colour }}; --campaign-text: {{ active_campaign.text_colour }};"
+  aria-label="Current store announcement"
+>
+  {% if active_campaign.banner_image %}<img class="campaign-banner__image" src="{{ active_campaign.banner_image.url }}" alt="">{% endif %}
+  <div class="campaign-banner__content">
+    <strong>{{ active_campaign.headline }}</strong>
+    <span>{{ active_campaign.message }}</span>
+    {% if active_campaign.coupon %}<span class="campaign-banner__coupon">Use code {{ active_campaign.coupon.code }}</span>{% endif %}
+    {% if active_campaign.store_hours_notice %}<small>{{ active_campaign.store_hours_notice }}</small>{% endif %}
+  </div>
+</section>
+{% endif %}

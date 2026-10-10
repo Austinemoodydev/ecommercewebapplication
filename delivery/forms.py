@@ -5,6 +5,7 @@ from .models import (
     DeliveryAttempt,
     DeliveryProvider,
     DeliveryZone,
+    PickupPoint,
 )
 
 
@@ -452,3 +453,41 @@ class DeliveryZoneForm(forms.ModelForm):
             )
 
         return cleaned
+
+
+class PickupPointForm(forms.ModelForm):
+    class Meta:
+        model = PickupPoint
+        fields = [
+            "zone",
+            "provider",
+            "name",
+            "address",
+            "phone",
+            "opening_hours",
+            "fee",
+            "estimated_time",
+            "instructions",
+            "is_active",
+        ]
+        widgets = {
+            "zone": forms.Select(attrs={"class": "form-select"}),
+            "provider": forms.Select(attrs={"class": "form-select"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Easy Coach Rongo Office"}),
+            "address": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Rongo town centre, next to the main stage"}),
+            "phone": forms.TextInput(attrs={"class": "form-control", "placeholder": "Optional station contact"}),
+            "opening_hours": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Mon-Sat, 7:00 AM-7:00 PM"}),
+            "fee": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01", "placeholder": "Use zone fee"}),
+            "estimated_time": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. 1-2 business days"}),
+            "instructions": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["zone"].queryset = DeliveryZone.objects.filter(
+            method="station_pickup"
+        ).order_by("county", "town")
+        self.fields["provider"].queryset = DeliveryProvider.objects.filter(
+            is_active=True
+        ).order_by("name")

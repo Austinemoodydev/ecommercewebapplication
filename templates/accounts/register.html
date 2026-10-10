@@ -2,7 +2,7 @@
 {% load socialaccount %}
 
 {% block title %}
-Create account | OnlineShop
+Create account
 {% endblock %}
 
 
@@ -16,7 +16,7 @@ Create account | OnlineShop
     </h3>
 
     <p class="text-muted mb-0">
-        Join OnlineShop for faster checkout,
+        Create an account for faster checkout,
         order tracking and saved addresses.
     </p>
 
@@ -226,16 +226,19 @@ Create account | OnlineShop
 </div>
 
 
-<a
-    class="btn btn-outline-secondary w-100 py-2"
-    href="{% provider_login_url 'google' %}"
+<form method="post" action="{% provider_login_url 'google' process='login' next='/' %}">
+    {% csrf_token %}
+<button
+    type="submit"
+    class="auth-google-btn"
 >
 
     <i class="bi bi-google me-2"></i>
 
     Sign up with Google
 
-</a>
+</button>
+</form>
 
 
 <div class="text-center mt-4">

@@ -26,8 +26,9 @@ function csrfToken() {
 }
 
 function updateCartUI(data) {
-    const counter = document.getElementById("cart-count");
-    if (counter) counter.textContent = data.count;
+    document.querySelectorAll(".js-cart-count").forEach(counter => {
+        counter.textContent = data.count;
+    });
 
     const totalEl = document.getElementById("cart-total");
     if (totalEl) totalEl.textContent = formatKesAmount(data.total);
@@ -117,11 +118,18 @@ document.addEventListener("click", function (e) {
             },
             body: body.toString()
         })
-            .then(res => res.json())
+            .then(async res => {
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Unable to add this item.");
+                return data;
+            })
             .then(data => {
                 updateCartUI(data);
                 e.target.textContent = "Added!";
                 setTimeout(() => { e.target.textContent = "Add to Cart"; }, 1200);
+            })
+            .catch(error => {
+                window.alert(error.message);
             });
     }
 

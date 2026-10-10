@@ -1,14 +1,17 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}{{ product.name }}{% endblock %}
 {% block meta_description %}{{ product.description|striptags|truncatechars:155 }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/product-detail.css' %}">{% endblock %}
 {% block content %}
 
-<div class="row">
+<div class="row g-4 g-lg-5 align-items-start product-detail">
   <div class="col-md-6">
-    <img src="{{ product.image.url }}" class="img-fluid rounded" />
+    <div class="product-detail-media"><img id="product-main-image" src="{{ product.image.url }}" class="img-fluid" alt="{{ product.name }}" /></div>
   </div>
   <div class="col-md-6">
-    <h2>{{ product.name }}</h2>
+    <span class="eyebrow text-primary">{{ product.category.name }}</span>
+    <h1 class="h2">{{ product.name }}</h1>
 
     <div class="mb-2">
         {% for i in "12345" %}
@@ -23,20 +26,83 @@
         </span>
     </div>
 
-    <h3 class="text-primary">KES {{ product.current_price|money }}</h3>
+    <h3 class="text-primary">KES <span id="product-live-price">{{ product.current_price|money }}</span></h3>
     <p>{{ product.description }}</p>
-    {% if product.variants.exists %}
-    <label for="variant-select">Choose an option</label>
-    <select id="variant-select" class="form-select mb-3" style="max-width: 320px;">
-      {% for variant in product.variants.all %}{% if variant.is_active %}<option value="{{ variant.id }}">{{ variant.name }} - KES {{ variant.current_price|money }} ({{ variant.available_stock }} available)</option>{% endif %}{% endfor %}
-    </select>
+    {% if structured_options %}
+    <div class="variant-picker mb-3">
+      <div class="fw-semibold mb-2">Choose your options</div>
+      <div class="row g-3">
+        {% for option in structured_options %}
+        <div class="col-sm-6">
+          <label for="product-option-{{ option.id }}" class="form-label">{{ option.name }}</label>
+          <select id="product-option-{{ option.id }}" class="form-select product-option-select" data-option-id="{{ option.id }}">
+            <option value="">Select {{ option.name|lower }}</option>
+            {% for value in option.values.all %}
+            <option value="{{ value.id }}">{{ value.value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+      </div>
+      <select id="variant-select" class="d-none" aria-hidden="true" tabindex="-1">
+        <option value="">Select an option</option>
+        {% for variant in product.available_variants %}
+        <option value="{{ variant.id }}"
+                data-values="{% for value in variant.option_values.all %}{{ value.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                data-price-display="{{ variant.current_price|money }}"
+                data-stock="{{ variant.available_stock }}"
+                data-name="{{ variant.display_name }}"
+                data-colour="{{ variant.colour }}"
+                data-image="{% if variant.image %}{{ variant.image.url }}{% else %}{{ product.image.url }}{% endif %}">
+          {{ variant.display_name }}
+        </option>
+        {% endfor %}
+      </select>
+      <p id="variant-stock-message" class="small text-muted mt-2 mb-0">Select each option to see availability.</p>
+    </div>
+    {% elif product.available_variants %}
+    <div class="variant-picker mb-3">
+      <label for="variant-select" class="form-label fw-semibold">Choose an option</label>
+      <select id="variant-select" class="form-select" style="max-width: 420px;">
+        <option value="">Select an option</option>
+        {% for variant in product.available_variants %}
+        <option value="{{ variant.id }}"
+                data-price="{{ variant.current_price }}"
+                data-price-display="{{ variant.current_price|money }}"
+                data-stock="{{ variant.available_stock }}"
+                data-name="{{ variant.name }}"
+                data-colour="{{ variant.colour }}"
+                data-image="{% if variant.image %}{{ variant.image.url }}{% else %}{{ product.image.url }}{% endif %}"
+                {% if variant.available_stock < 1 %}disabled{% endif %}>
+          {{ variant.name }}{% if variant.colour %} — {{ variant.colour }}{% endif %} — KES {{ variant.current_price|money }} ({{ variant.available_stock }} available)
+        </option>
+        {% endfor %}
+      </select>
+
+      <div class="variant-swatches mt-3" aria-label="Available colours">
+        {% for variant in product.available_variants %}
+          {% if variant.colour %}
+          <button type="button"
+                  class="variant-swatch"
+                  data-variant-id="{{ variant.id }}"
+                  title="{{ variant.colour }}{% if variant.available_stock < 1 %} — out of stock{% endif %}"
+                  aria-label="Select {{ variant.colour }}"
+                  {% if variant.available_stock < 1 %}disabled{% endif %}>
+            <span class="variant-swatch__colour" style="background-color: {{ variant.colour_code|default:'#d1d5db' }};"></span>
+            <span>{{ variant.colour }}</span>
+          </button>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <p id="variant-stock-message" class="small text-muted mt-2 mb-0">Select an option to see availability.</p>
+    </div>
     {% else %}<p>Stock: {{ product.available_stock }}</p>{% endif %}
 
     <button type="button"
             class="btn btn-primary add-to-cart-btn"
             data-product="{{ product.id }}"
-            {% if product.variants.exists %}data-variant-select="variant-select"{% endif %}>
-        Add to Cart
+            {% if structured_options or product.available_variants %}data-variant-select="variant-select" disabled{% elif not product.in_stock %}disabled{% endif %}>
+        {% if product.in_stock or product.available_variants %}Add to cart{% else %}Out of stock{% endif %}
     </button>
 
   </div>
@@ -45,12 +111,6 @@
 <hr />
 
 <h3>Customer Reviews</h3>
-
-{% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-{% endif %}
 
 {% if request.user.is_authenticated %}
 
@@ -196,7 +256,7 @@
   {% for item in related_products %}
   <div class="col-md-3">
     <div class="card">
-      <img src="{{ item.image.url }}" class="card-img-top" />
+      <img src="{{ item.image.url }}" class="card-img-top related-product-image" alt="{{ item.name }}" loading="lazy" />
    <div class="card-body">
         <h6>{{ item.name }}</h6>
         <a href="{% url 'product_detail' item.slug %}" class="btn btn-outline-primary btn-sm">
@@ -211,6 +271,94 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/product-detail.js' %}" defer></script>
+{% comment %}
+document.addEventListener("DOMContentLoaded", function () {
+  const select = document.getElementById("variant-select");
+  if (!select) return;
+
+  const image = document.getElementById("product-main-image");
+  const price = document.getElementById("product-live-price");
+  const stock = document.getElementById("variant-stock-message");
+  const addButton = document.querySelector(".add-to-cart-btn[data-variant-select]");
+  const swatches = document.querySelectorAll(".variant-swatch");
+  const optionSelects = Array.from(document.querySelectorAll(".product-option-select"));
+
+  function updateVariant() {
+    const option = select.options[select.selectedIndex];
+    const selected = Boolean(option && option.value);
+    const available = selected && Number(option.dataset.stock) > 0;
+
+    if (selected) {
+      image.src = option.dataset.image;
+      image.alt = `${option.dataset.name}${option.dataset.colour ? ` - ${option.dataset.colour}` : ""}`;
+      price.textContent = option.dataset.priceDisplay;
+      stock.textContent = available ? `${option.dataset.stock} available` : "Out of stock";
+      stock.classList.toggle("text-danger", !available);
+    } else {
+      stock.textContent = "Select an option to see availability.";
+      stock.classList.remove("text-danger");
+    }
+
+    addButton.disabled = !available;
+    swatches.forEach(function (swatch) {
+      swatch.classList.toggle("is-selected", swatch.dataset.variantId === select.value);
+    });
+  }
+
+  select.addEventListener("change", updateVariant);
+  swatches.forEach(function (swatch) {
+    swatch.addEventListener("click", function () {
+      select.value = swatch.dataset.variantId;
+      updateVariant();
+    });
+  });
+
+  function updateStructuredOptions() {
+    const selected = optionSelects.map(item => item.value).filter(Boolean);
+    const variantOptions = Array.from(select.options).filter(option => option.value);
+
+    optionSelects.forEach(function (optionSelect) {
+      Array.from(optionSelect.options).forEach(function (valueOption) {
+        if (!valueOption.value) return;
+        const otherSelected = optionSelects
+          .filter(item => item !== optionSelect && item.value)
+          .map(item => item.value);
+        valueOption.disabled = !variantOptions.some(function (variantOption) {
+          const values = variantOption.dataset.values.split(",");
+          return Number(variantOption.dataset.stock) > 0
+            && values.includes(valueOption.value)
+            && otherSelected.every(value => values.includes(value));
+        });
+      });
+    });
+
+    const match = selected.length === optionSelects.length
+      ? variantOptions.find(function (variantOption) {
+          const values = variantOption.dataset.values.split(",");
+          return selected.length === values.length
+            && selected.every(value => values.includes(value));
+        })
+      : null;
+    select.value = match ? match.value : "";
+    updateVariant();
+    if (!match && selected.length === optionSelects.length) {
+      stock.textContent = "This combination is not available.";
+      stock.classList.add("text-danger");
+    }
+  }
+
+  optionSelects.forEach(function (optionSelect, changedIndex) {
+    optionSelect.addEventListener("change", function () {
+      optionSelects.slice(changedIndex + 1).forEach(function (laterSelect) {
+        laterSelect.value = "";
+      });
+      updateStructuredOptions();
+    });
+  });
+  updateVariant();
+});
+{% endcomment %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",

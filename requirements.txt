@@ -12,7 +12,8 @@ tzdata==2026.3
 celery>=5.4,<6
 redis>=5,<7
 africastalking>=1.2,<2
-django-allauth>=65,<66
+django-allauth[mfa]>=65.19.3,<66
+openai>=2.0,<3
 
 
 

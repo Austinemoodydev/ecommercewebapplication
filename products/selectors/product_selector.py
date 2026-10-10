@@ -1,5 +1,6 @@
 ﻿from django.db.models import Q
-from products.models import Product
+from django.db.models import Prefetch
+from products.models import Product, ProductVariant
 
 
 class ProductSelector:
@@ -29,7 +30,17 @@ class ProductSelector:
             "category",
             "brand"
         ).prefetch_related(
-            "images"
+            "images",
+            Prefetch(
+                "variants",
+                queryset=ProductVariant.objects.filter(
+                    is_active=True,
+                ).prefetch_related(
+                    "option_values__option",
+                ).order_by("id"),
+                to_attr="available_variants",
+            ),
+            "options__values",
         ).get(
             slug=slug,
             is_active=True

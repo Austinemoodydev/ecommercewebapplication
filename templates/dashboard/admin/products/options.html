@@ -1,0 +1,60 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}Product options | {{ product.name }}{% endblock %}
+{% block page_heading %}Product options{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">Configure options</h1>
+    <p class="text-muted mb-0">{{ product.name }} — create only the attributes this product needs.</p>
+  </div>
+  <a href="{% url 'admin_product_detail' product.pk %}" class="btn btn-outline-secondary">Back to product</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="dashboard-card">
+      <h2 class="h5 mb-3">Add an option</h2>
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Option name</label>
+          {{ form.name }}
+          {% for error in form.name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Available values</label>
+          {{ form.values }}
+          <div class="form-text">Examples: Small, Medium, Large or 128GB, 256GB.</div>
+          {% for error in form.values.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <button class="btn btn-primary">Save option</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="dashboard-card">
+      <h2 class="h5 mb-3">Configured options</h2>
+      {% for option in options %}
+      <div class="border rounded p-3 mb-3">
+        <div class="d-flex justify-content-between gap-3">
+          <div>
+            <strong>{{ option.name }}</strong>
+            <div class="mt-2 d-flex flex-wrap gap-2">
+              {% for value in option.values.all %}<span class="badge text-bg-light border">{{ value.value }}</span>{% endfor %}
+            </div>
+          </div>
+          <form method="post" action="{% url 'admin_product_option_delete' product.pk option.pk %}" onsubmit="return confirm('Remove this option and its variant assignments?');">
+            {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Remove</button>
+          </form>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-muted">No structured options yet. Add Size, Colour, Storage, RAM or any attribute relevant to this product.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

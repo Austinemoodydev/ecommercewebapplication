@@ -561,6 +561,10 @@ Order {{ order.order_number }}
 
                                     {% endif %}
 
+                                    <small class="d-block text-muted">
+                                        SKU: {% if item.variant %}{{ item.variant.sku }}{% elif item.product %}{{ item.product.sku }}{% else %}Unavailable{% endif %}
+                                    </small>
+
                                 </td>
 
 

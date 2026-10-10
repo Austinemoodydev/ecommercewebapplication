@@ -230,6 +230,7 @@ class StoreRolePermissionMatrixTests(TestCase):
             "crm_customer_list",
             "admin_notifications",
             "admin_analytics",
+            "staff_manage_list",
         ]
 
         for url_name in allowed:
@@ -253,7 +254,6 @@ class StoreRolePermissionMatrixTests(TestCase):
 
         denied = [
             "admin_store_settings",
-            "staff_manage_list",
         ]
 
         for url_name in denied:

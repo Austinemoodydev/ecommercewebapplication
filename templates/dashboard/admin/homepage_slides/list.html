@@ -1,0 +1,33 @@
+{% extends "dashboard/admin/base.html" %}
+{% block title %}Homepage Banners{% endblock %}
+{% block page_heading %}Homepage Banners{% endblock %}
+{% block admin_content %}
+<div class="dashboard-heading">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div><h1>Homepage banners</h1><p>Control storefront promotions, destinations, display order, and publishing schedules.</p></div>
+    {% if perms.core.add_homepageslide %}<a class="btn btn-primary" href="{% url 'homepage_slide_create' %}"><i class="bi bi-plus-lg"></i> Add banner</a>{% endif %}
+  </div>
+</div>
+<div class="dashboard-card">
+  <div class="table-responsive">
+    <table class="table dashboard-table align-middle">
+      <thead><tr><th>Banner</th><th>Destination</th><th>Schedule</th><th>Order</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for slide in slides %}
+        <tr>
+          <td><strong>{{ slide.internal_name }}</strong><small class="d-block text-muted">{{ slide.heading }}</small></td>
+          <td>{% if slide.product %}Product: {{ slide.product.name }}{% elif slide.category %}Category: {{ slide.category.name }}{% elif slide.destination_url %}{{ slide.destination_url }}{% else %}All products{% endif %}</td>
+          <td>{% if slide.starts_at %}{{ slide.starts_at|date:"j M Y, g:i A" }}{% else %}Immediately{% endif %}<small class="d-block text-muted">{% if slide.ends_at %}until {{ slide.ends_at|date:"j M Y, g:i A" }}{% else %}No end date{% endif %}</small></td>
+          <td>{{ slide.display_order }}</td>
+          <td>{% if slide.is_active_now %}<span class="badge text-bg-success">Live</span>{% elif slide.is_enabled %}<span class="badge text-bg-light">Scheduled</span>{% else %}<span class="badge text-bg-secondary">Disabled</span>{% endif %}</td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'homepage_slide_edit' slide.pk %}">Edit</a>
+            {% if perms.core.change_homepageslide %}<form class="d-inline" method="post" action="{% url 'homepage_slide_toggle' slide.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary" type="submit">{% if slide.is_enabled %}Disable{% else %}Enable{% endif %}</button></form>{% endif %}
+          </td>
+        </tr>
+      {% empty %}<tr><td colspan="6" class="text-center py-5">No homepage banners have been configured.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

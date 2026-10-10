@@ -1,50 +1,57 @@
 {% load static %}
-<nav class="navbar navbar-expand-lg navbar-dark storefront-nav sticky-top">
-  <div class="container">
-    <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
-      <img
-        src="{% static 'images/icons/icon.jpeg' %}"
-        alt="OnlineShop"
-        height="32"
-        class="me-2"
-      >
-      <span>OnlineShop</span>
+<nav class="navbar navbar-expand-xl navbar-dark storefront-nav sticky-top" aria-label="Main navigation">
+  <div class="container storefront-nav__inner">
+    <a class="navbar-brand storefront-brand" href="{% url 'home' %}" aria-label="{{ store_settings.store_name|default:'Store' }} home">
+      <i class="bi bi-bag-check-fill storefront-brand-icon" aria-hidden="true"></i>
+      {% if store_settings.store_name %}<span class="storefront-brand-name">{{ store_settings.store_name }}</span>{% endif %}
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#storefrontNav" aria-controls="storefrontNav" aria-expanded="false" aria-label="Open navigation"><span class="navbar-toggler-icon"></span></button>
-    <div class="collapse navbar-collapse" id="storefrontNav">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li><li class="nav-item"><a class="nav-link" href="{% url 'shop' %}">Shop</a></li><li class="nav-item"><a class="nav-link" href="{% url 'category_list' %}">Categories</a></li><li class="nav-item"><a class="nav-link nav-offer" href="{% url 'offers' %}">Offers</a></li>
-      </ul>
-      <form class="nav-search d-flex my-3 my-lg-0" method="get" action="{% url 'shop' %}"><input class="form-control" type="search" name="search" placeholder="Search products" value="{{ request.GET.search }}" aria-label="Search products"><button class="btn" aria-label="Search"><i class="bi bi-search"></i></button></form>
-      <ul class="navbar-nav align-items-lg-center ms-lg-3 gap-lg-2">
-        <li class="nav-item">
-          <a
-            href="{% url 'customer_notifications' %}"
-            class="nav-icon position-relative"
-            aria-label="Notifications"
-          >
-            <i class="bi bi-bell"></i>
 
-            {% if notification_unread_count %}
-              <span class="count-badge">
-                {{ notification_unread_count }}
-              </span>
-            {% endif %}
-          </a>
-        </li>
-        <li class="nav-item"><a href="{% url 'wishlist' %}" class="nav-icon" aria-label="Wishlist"><i class="bi bi-heart"></i><span id="wishlist-count" class="count-badge">{{ wishlist_count|default:'0' }}</span></a></li><li class="nav-item"><a href="{% url 'cart' %}" class="nav-icon" aria-label="Cart"><i class="bi bi-bag"></i><span id="cart-count" class="count-badge">{{ cart_count|default:'0' }}</span></a></li>
-        {% if request.user.is_authenticated %}<li class="nav-item dropdown"><a class="nav-account dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ request.user.username }}</a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="{% url 'dashboard' %}">Dashboard</a></li><li><a class="dropdown-item" href="{% url 'order_history' %}">My orders</a></li><li><hr class="dropdown-divider"></li><li>
-<form method="post"
-      action="{% url 'logout' %}"
-      class="m-0">
-    {% csrf_token %}
-    <button type="submit"
-            class="dropdown-item text-danger">
-        <i class="bi bi-box-arrow-right me-2"></i>
-        Log out
-    </button>
-</form>
-</li></ul></li>{% else %}<li class="nav-item"><a href="{% url 'login' %}" class="nav-account">Sign in</a></li>{% endif %}
+    <div class="storefront-mobile-actions d-flex d-xl-none" aria-label="Shopping shortcuts">
+      {% include 'includes/theme_toggle.html' %}
+      <a href="{% url 'cart' %}" class="nav-icon nav-icon--mobile" aria-label="Cart, {{ cart_count|default:'0' }} items">
+        <i class="bi bi-bag" aria-hidden="true"></i>
+        <span class="count-badge js-cart-count">{{ cart_count|default:'0' }}</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#storefrontNav" aria-controls="storefrontNav" aria-expanded="false" aria-label="Open navigation"><span class="navbar-toggler-icon"></span></button>
+    </div>
+
+    <form class="nav-search nav-search--mobile d-flex d-xl-none" method="get" action="{% url 'shop' %}" role="search">
+      <input class="form-control" type="search" name="search" placeholder="Search products" value="{{ request.GET.search }}" aria-label="Search products">
+      <button class="btn" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+    </form>
+
+    <div class="collapse navbar-collapse" id="storefrontNav">
+      <ul class="navbar-nav storefront-links me-auto mb-2 mb-xl-0">
+        <li class="nav-item"><a class="nav-link{% if request.resolver_match.url_name == 'home' %} active{% endif %}" href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
+        <li class="nav-item"><a class="nav-link{% if request.resolver_match.url_name == 'shop' or request.resolver_match.url_name == 'product_detail' %} active{% endif %}" href="{% url 'shop' %}"{% if request.resolver_match.url_name == 'shop' or request.resolver_match.url_name == 'product_detail' %} aria-current="page"{% endif %}>Shop</a></li>
+        <li class="nav-item"><a class="nav-link{% if request.resolver_match.url_name == 'category_list' or request.resolver_match.url_name == 'category_detail' %} active{% endif %}" href="{% url 'category_list' %}"{% if request.resolver_match.url_name == 'category_list' or request.resolver_match.url_name == 'category_detail' %} aria-current="page"{% endif %}>Categories</a></li>
+      </ul>
+
+      <form class="nav-search nav-search--desktop d-none d-xl-flex" method="get" action="{% url 'shop' %}" role="search">
+        <input class="form-control" type="search" name="search" placeholder="Search products" value="{{ request.GET.search }}" aria-label="Search products">
+        <button class="btn" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+      </form>
+
+      <ul class="navbar-nav storefront-actions align-items-xl-center ms-xl-3 gap-xl-1">
+        <li class="nav-item">{% include 'includes/theme_toggle.html' %}</li>
+        {% if request.user.is_authenticated %}
+          <li class="nav-item"><a href="{% url 'customer_notifications' %}" class="nav-icon" data-nav-label="Notifications" title="Notifications" aria-label="Notifications{% if notification_unread_count %}, {{ notification_unread_count }} unread{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notification_unread_count %}<span class="count-badge">{{ notification_unread_count }}</span>{% endif %}</a></li>
+        {% endif %}
+        <li class="nav-item"><a href="{% url 'wishlist' %}" class="nav-icon" data-nav-label="Wishlist" title="Wishlist" aria-label="Wishlist, {{ wishlist_count|default:'0' }} items"><i class="bi bi-heart" aria-hidden="true"></i><span id="wishlist-count" class="count-badge">{{ wishlist_count|default:'0' }}</span></a></li>
+        <li class="nav-item d-none d-xl-block"><a href="{% url 'cart' %}" class="nav-icon" title="Cart" aria-label="Cart, {{ cart_count|default:'0' }} items"><i class="bi bi-bag" aria-hidden="true"></i><span class="count-badge js-cart-count">{{ cart_count|default:'0' }}</span></a></li>
+        {% if request.user.is_authenticated %}
+          <li class="nav-item dropdown">
+            <button class="nav-account dropdown-toggle bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle" aria-hidden="true"></i><span>{{ request.user.username }}</span></button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="{% url 'dashboard' %}">My account</a></li>
+              <li><a class="dropdown-item" href="{% url 'order_history' %}">My orders</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><form method="post" action="{% url 'logout' %}" class="m-0">{% csrf_token %}<button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2" aria-hidden="true"></i>Log out</button></form></li>
+            </ul>
+          </li>
+        {% else %}
+          <li class="nav-item"><a href="{% url 'login' %}" class="nav-account"><i class="bi bi-person" aria-hidden="true"></i><span>Sign in</span></a></li>
+        {% endif %}
       </ul>
     </div>
   </div>

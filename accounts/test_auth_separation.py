@@ -185,12 +185,12 @@ class AuthenticationSeparationTests(TestCase):
 
         self.assertEqual(
             settings.LOGIN_REDIRECT_URL,
-            "/shop/",
+            "/",
         )
 
         self.assertEqual(
             settings.ACCOUNT_SIGNUP_REDIRECT_URL,
-            "/shop/",
+            "/",
         )
 
 

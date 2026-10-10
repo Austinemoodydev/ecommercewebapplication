@@ -27,6 +27,7 @@ from .forms import (
     DeliveryAttemptForm,
     DeliveryProviderForm,
     DeliveryZoneForm,
+    PickupPointForm,
 )
 
 from .models import (
@@ -35,6 +36,7 @@ from .models import (
     DeliveryEvent,
     DeliveryProvider,
     DeliveryZone,
+    PickupPoint,
 )
 
 from .services import (
@@ -896,6 +898,64 @@ def delivery_zone_toggle(
     return redirect(
         "delivery_zone_list"
     )
+
+
+@staff_member_required
+def pickup_point_list(request):
+    points = PickupPoint.objects.select_related("zone", "provider")
+    q = request.GET.get("q", "").strip()
+    if q:
+        points = points.filter(
+            Q(name__icontains=q)
+            | Q(address__icontains=q)
+            | Q(zone__county__icontains=q)
+            | Q(zone__town__icontains=q)
+            | Q(provider__name__icontains=q)
+        )
+    return render(
+        request,
+        "dashboard/admin/delivery/pickup_points.html",
+        {"pickup_points": points, "query": q},
+    )
+
+
+@staff_member_required
+def pickup_point_create(request):
+    form = PickupPointForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        point = form.save()
+        messages.success(request, f"Pickup point {point.name} added successfully.")
+        return redirect("delivery_pickup_point_list")
+    return render(
+        request,
+        "dashboard/admin/delivery/pickup_point_form.html",
+        {"form": form, "title": "Add Pickup Point"},
+    )
+
+
+@staff_member_required
+def pickup_point_edit(request, pk):
+    point = get_object_or_404(PickupPoint, pk=pk)
+    form = PickupPointForm(request.POST or None, instance=point)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Pickup point updated successfully.")
+        return redirect("delivery_pickup_point_list")
+    return render(
+        request,
+        "dashboard/admin/delivery/pickup_point_form.html",
+        {"form": form, "title": "Edit Pickup Point", "pickup_point": point},
+    )
+
+
+@staff_member_required
+def pickup_point_toggle(request, pk):
+    point = get_object_or_404(PickupPoint, pk=pk)
+    if request.method == "POST":
+        point.is_active = not point.is_active
+        point.save(update_fields=["is_active", "updated_at"])
+        messages.success(request, "Pickup point status updated.")
+    return redirect("delivery_pickup_point_list")
 
 
 

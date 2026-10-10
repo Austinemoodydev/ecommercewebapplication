@@ -2,6 +2,7 @@
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,10 +16,21 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-for-local-de
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+SERVE_MEDIA_LOCALLY = os.environ.get("SERVE_MEDIA_LOCALLY", "False") == "True"
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000").rstrip("/")
 GOOGLE_SITE_VERIFICATION = os.environ.get("GOOGLE_SITE_VERIFICATION", "")
+
+# AI assistants. The API key is server-side only and is never rendered into
+# HTML or returned to the browser.
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_CHAT_MODEL = os.environ.get("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+OPENAI_TRANSCRIBE_MODEL = os.environ.get("OPENAI_TRANSCRIBE_MODEL", "gpt-transcribe")
+CHATBOT_ENABLED = bool(OPENAI_API_KEY)
+CHATBOT_MAX_MESSAGE_CHARS = 600
+CHATBOT_MAX_HISTORY_ITEMS = 8
+CHATBOT_MAX_AUDIO_BYTES = 5 * 1024 * 1024
 
 
 # Application definition
@@ -33,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'allauth',
     'allauth.account',
+    'allauth.mfa',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.facebook',
@@ -68,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'core.error_middleware.ApplicationErrorMiddleware',
     'accounts.staff_access.StoreStaffPermissionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -210,9 +224,25 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-LOGIN_REDIRECT_URL = "/shop/"
-ACCOUNT_SIGNUP_REDIRECT_URL = "/shop/"
+LOGIN_REDIRECT_URL = "/"
+ACCOUNT_SIGNUP_REDIRECT_URL = "/"
 SOCIALACCOUNT_ADAPTER = "accounts.adapters.CustomerOnlySocialAccountAdapter"
+
+# Store-management MFA. Customer and guest-checkout authentication are
+# deliberately separate and are not made subject to this policy.
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+MFA_TOTP_ISSUER = os.environ.get("MFA_TOTP_ISSUER", "Online Shop Management")
+MFA_RECOVERY_CODES_SHOW_ONCE = True
+MFA_TOTP_TOLERANCE = 1
+MFA_ADAPTER = "accounts.mfa_adapter.EncryptedMFAAdapter"
+MFA_ENCRYPTION_KEY = os.environ.get("MFA_ENCRYPTION_KEY", SECRET_KEY)
+# Production/runtime default is mandatory. The bypass exists only so older
+# unit tests that intentionally use Django's force_login() can isolate the
+# feature under test; dedicated MFA tests turn enforcement back on.
+MFA_STAFF_ENFORCEMENT = os.environ.get(
+    "MFA_STAFF_ENFORCEMENT",
+    "False" if "test" in sys.argv else "True",
+).lower() == "true"
 
 
 # ------------------------------------------------------------
@@ -242,6 +272,7 @@ MPESA_CALLBACK_SECRET = os.environ.get("MPESA_CALLBACK_SECRET")
 # Production security settings (only active when DEBUG=False)
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = int(
@@ -291,6 +322,11 @@ CELERY_TASK_REJECT_ON_WORKER_LOST = True
 
 CELERY_BEAT_SCHEDULE = {
 
+    "dispatch-due-marketing-campaigns": {
+        "task": "core.tasks.dispatch_due_campaigns",
+        "schedule": 300.0,
+    },
+
     "expire-unpaid-orders": {
 
         "task": "orders.tasks.expire_unpaid_orders",
@@ -314,14 +350,17 @@ DEFAULT_FROM_EMAIL = os.environ.get("EMAIL_HOST_USER")
 
 # OAuth credentials stay in environment variables. Callback URLs are:
 # /accounts/social/<provider>/login/callback/
-SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_LOGIN_ON_GET = False
 SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APPS": [{"client_id": os.environ.get("GOOGLE_CLIENT_ID", ""), "secret": os.environ.get("GOOGLE_CLIENT_SECRET", ""), "key": ""}],
         "SCOPE": ["profile", "email"],
         "AUTH_PARAMS": {"access_type": "online"},
         "OAUTH_PKCE_ENABLED": True,
+        "EMAIL_AUTHENTICATION": True,
     },
     "facebook": {
         "APPS": [{"client_id": os.environ.get("FACEBOOK_CLIENT_ID", ""), "secret": os.environ.get("FACEBOOK_CLIENT_SECRET", ""), "key": ""}],

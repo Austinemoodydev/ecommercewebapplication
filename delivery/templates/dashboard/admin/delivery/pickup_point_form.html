@@ -1,0 +1,46 @@
+{% extends "dashboard/admin/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_heading %}Pickup Points{% endblock %}
+
+{% block admin_content %}
+<div class="dashboard-heading">
+  <div>
+    <h1>{{ title }}</h1>
+    <p>Add a courier office, parcel desk, bus station, or collection point.</p>
+  </div>
+</div>
+
+<div class="dashboard-card">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="row g-3">
+      {% for field in form %}
+        <div class="{% if field.name == 'address' or field.name == 'instructions' %}col-12{% else %}col-md-6{% endif %}">
+          {% if field.name == 'is_active' %}
+            <div class="form-check mt-4">
+              {{ field }}
+              <label class="form-check-label" for="{{ field.id_for_label }}">Available to customers</label>
+            </div>
+          {% else %}
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% endif %}
+          {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Save Pickup Point</button>
+      <a class="btn btn-outline-secondary" href="{% url 'delivery_pickup_point_list' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

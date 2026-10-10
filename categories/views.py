@@ -1,6 +1,6 @@
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import Category
 
@@ -13,6 +13,10 @@ def category_list(request):
 
 
 def category_detail(request, slug):
+    legacy_slugs = {"electronics-acessories": "electronics-accessories"}
+    if slug in legacy_slugs:
+        return redirect("category_detail", slug=legacy_slugs[slug], permanent=True)
+
     category = get_object_or_404(Category, slug=slug, is_active=True)
     products = category.products.filter(is_active=True).select_related("brand")
     page_obj = Paginator(products, 12).get_page(request.GET.get("page"))

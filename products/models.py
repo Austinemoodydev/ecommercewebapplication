@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.text import slugify
+from uuid import uuid4
 from categories.models import Category
 
 class ActiveProductManager(models.Manager):
@@ -44,7 +45,7 @@ class Product(models.Model):
 
     description = models.TextField()
 
-    sku = models.CharField(max_length=50, unique=True)
+    sku = models.CharField(max_length=50, unique=True, blank=True)
 
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -84,11 +85,21 @@ class Product(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
-
         if not self.slug:
             self.slug = slugify(self.name)
+        if self.sku:
+            self.sku = self.sku.strip().upper()
+            super().save(*args, **kwargs)
+            return
 
+        self.sku = f"AUTO-{uuid4().hex[:12].upper()}"
         super().save(*args, **kwargs)
+        category_code = "".join(character for character in self.category.name.upper() if character.isalnum())[:3] or "GEN"
+        brand_name = self.brand.name if self.brand_id else "General"
+        brand_code = "".join(character for character in brand_name.upper() if character.isalnum())[:3] or "GEN"
+        generated_sku = f"{category_code}-{brand_code}-{self.pk:04d}"
+        Product.objects.filter(pk=self.pk).update(sku=generated_sku)
+        self.sku = generated_sku
 
     @property
     def current_price(self):
@@ -132,11 +143,68 @@ class ProductImage(models.Model):
         return f"{self.product.name} Image"
 
 
+class ProductOption(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="options",
+    )
+    name = models.CharField(max_length=50)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ("position", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("product", "name"),
+                name="unique_product_option_name",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.product.name} — {self.name}"
+
+
+class ProductOptionValue(models.Model):
+    option = models.ForeignKey(
+        ProductOption,
+        on_delete=models.CASCADE,
+        related_name="values",
+    )
+    value = models.CharField(max_length=80)
+    colour_code = models.CharField(max_length=7, blank=True)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ("position", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("option", "value"),
+                name="unique_product_option_value",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.option.name}: {self.value}"
+
+
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     name = models.CharField(max_length=100)
-    sku = models.CharField(max_length=50, unique=True)
+    sku = models.CharField(max_length=50, unique=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    colour = models.CharField(max_length=50, blank=True)
+    colour_code = models.CharField(max_length=7, blank=True)
+    image = models.ImageField(
+        upload_to="products/variants/",
+        blank=True,
+        null=True,
+    )
+    option_values = models.ManyToManyField(
+        ProductOptionValue,
+        blank=True,
+        related_name="variants",
+    )
 
     cost_price = models.DecimalField(
         max_digits=10,
@@ -158,5 +226,35 @@ class ProductVariant(models.Model):
     def available_stock(self):
         return max(self.stock - self.reserved_stock, 0)
 
+    @property
+    def display_name(self):
+        selected_values = sorted(
+            self.option_values.all(),
+            key=lambda value: (
+                value.option.position,
+                value.position,
+                value.id,
+            ),
+        )
+        if selected_values:
+            return " / ".join(
+                f"{value.option.name}: {value.value}"
+                for value in selected_values
+            )
+        if self.colour:
+            return f"{self.name} — {self.colour}"
+        return self.name
+
     def __str__(self):
-        return f"{self.product.name} - {self.name}"
+        return f"{self.product.name} - {self.display_name}"
+
+    def save(self, *args, **kwargs):
+        if self.sku:
+            self.sku = self.sku.strip().upper()
+            super().save(*args, **kwargs)
+            return
+        self.sku = f"AUTO-{uuid4().hex[:12].upper()}"
+        super().save(*args, **kwargs)
+        generated_sku = f"{self.product.sku}-V{self.pk:02d}"[:50]
+        ProductVariant.objects.filter(pk=self.pk).update(sku=generated_sku)
+        self.sku = generated_sku

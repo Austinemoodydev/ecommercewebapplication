@@ -6,11 +6,14 @@ from django.urls import reverse
 
 from accounts.store_roles import (
     STORE_OWNER,
+    STORE_MANAGER,
+    SECURITY_ADMIN,
     ORDER_STAFF,
     INVENTORY_STAFF,
     FINANCE_STAFF,
     SUPPORT_STAFF,
 )
+from accounts.models import StaffSecurityEvent
 
 
 User = get_user_model()
@@ -90,6 +93,11 @@ class StaffManagementTests(TestCase):
         self.assertContains(
             response,
             "Staff Management",
+        )
+
+        self.assertContains(
+            response,
+            "Role access guide",
         )
 
 
@@ -225,6 +233,59 @@ class StaffManagementTests(TestCase):
         self.assertFalse(
             self.order_staff.is_active
         )
+
+        self.assertTrue(StaffSecurityEvent.objects.filter(
+            actor=self.owner,
+            target=self.order_staff,
+            action=StaffSecurityEvent.ACTION_SUSPENDED,
+        ).exists())
+
+    def test_manager_can_manage_department_staff_but_not_managers(self):
+        manager = User.objects.create_user(
+            username="manager", email="manager@example.com",
+            password="StrongPass123!", is_staff=True,
+        )
+        manager.groups.add(Group.objects.get(name=STORE_MANAGER))
+        self.client.force_login(manager)
+
+        response = self.client.post(reverse(
+            "staff_manage_toggle_active", args=[self.order_staff.pk]
+        ))
+        self.assertRedirects(response, reverse("staff_manage_list"))
+        self.order_staff.refresh_from_db()
+        self.assertFalse(self.order_staff.is_active)
+
+        another_manager = User.objects.create_user(
+            username="manager2", email="manager2@example.com",
+            password="StrongPass123!", is_staff=True,
+        )
+        another_manager.groups.add(Group.objects.get(name=STORE_MANAGER))
+        response = self.client.post(reverse(
+            "staff_manage_toggle_active", args=[another_manager.pk]
+        ))
+        another_manager.refresh_from_db()
+        self.assertTrue(another_manager.is_active)
+
+    def test_security_admin_can_manage_manager_but_not_owner(self):
+        security = User.objects.create_user(
+            username="security", email="security@example.com",
+            password="StrongPass123!", is_staff=True,
+        )
+        security.groups.add(Group.objects.get(name=SECURITY_ADMIN))
+        manager = User.objects.create_user(
+            username="manager3", email="manager3@example.com",
+            password="StrongPass123!", is_staff=True,
+        )
+        manager.groups.add(Group.objects.get(name=STORE_MANAGER))
+        self.client.force_login(security)
+
+        self.client.post(reverse("staff_manage_toggle_active", args=[manager.pk]))
+        manager.refresh_from_db()
+        self.assertFalse(manager.is_active)
+
+        self.client.post(reverse("staff_manage_toggle_active", args=[self.owner.pk]))
+        self.owner.refresh_from_db()
+        self.assertTrue(self.owner.is_active)
 
 
 class StoreRoleCreationTests(TestCase):

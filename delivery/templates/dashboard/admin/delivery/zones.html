@@ -46,6 +46,13 @@ Delivery Zones
             </a>
 
             <a
+                href="{% url 'delivery_pickup_point_list' %}"
+                class="btn btn-outline-primary"
+            >
+                Pickup Points
+            </a>
+
+            <a
                 href="{% url 'delivery_provider_list' %}"
                 class="btn btn-outline-primary"
             >
@@ -112,7 +119,7 @@ Delivery Zones
                     <th>County / Town</th>
                     <th>Method</th>
                     <th>Provider</th>
-                    <th>Pickup Point</th>
+                    <th>Pickup Points</th>
                     <th>Price</th>
                     <th>Estimated</th>
                     <th>Status</th>
@@ -162,7 +169,11 @@ Delivery Zones
 
 
                         <td>
-                            {{ zone.pickup_point|default:"—" }}
+                            {% if zone.method == "station_pickup" %}
+                                {{ zone.pickup_points.count }} configured
+                            {% else %}
+                                —
+                            {% endif %}
                         </td>
 
 

@@ -106,17 +106,21 @@
                         {% endif %}
 
 
-                        {% if zone.pickup_point %}
-
-                            <div class="mb-2">
-
-                                Pickup:
-                                <strong>
-                                    {{ zone.pickup_point }}
-                                </strong>
-
+                        {% if zone.method == "station_pickup" %}
+                            <div class="mt-3">
+                                <div class="fw-semibold mb-2">Available pickup points</div>
+                                {% for point in zone.pickup_points.all %}
+                                    {% if point.is_active %}
+                                        <div class="border rounded p-2 mb-2 small">
+                                            <strong>{{ point.name }}</strong> · {{ point.provider.name }}
+                                            <div class="text-muted">{{ point.address }}</div>
+                                            <div>KES {{ point.effective_fee|money }}{% if point.effective_estimated_time %} · {{ point.effective_estimated_time }}{% endif %}</div>
+                                        </div>
+                                    {% endif %}
+                                {% empty %}
+                                    <div class="text-muted small">No active pickup stations yet.</div>
+                                {% endfor %}
                             </div>
-
                         {% endif %}
 
 

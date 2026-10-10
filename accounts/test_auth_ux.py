@@ -29,6 +29,10 @@ class AuthenticationUXTests(TestCase):
             "Continue with Google",
         )
 
+        self.assertContains(response, "Everything you need, in one secure place.")
+        self.assertContains(response, 'method="post"')
+        self.assertContains(response, reverse("google_login"))
+
         self.assertNotContains(
             response,
             "Store Staff Login",
@@ -82,6 +86,15 @@ class AuthenticationUXTests(TestCase):
             response,
             "Create an account",
         )
+
+    def test_google_login_starts_with_post_and_targets_homepage(self):
+        response = self.client.post(
+            reverse("google_login"),
+            {"next": reverse("home")},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith("https://accounts.google.com/"))
+        self.assertIn("redirect_uri=", response.url)
 
 
     def test_customer_cannot_use_staff_login(self):
